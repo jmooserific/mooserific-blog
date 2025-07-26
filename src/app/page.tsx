@@ -2,6 +2,7 @@
 import fs from "fs";
 import path from "path";
 import RowsPhotoAlbum from "react-photo-album";
+import "react-photo-album/styles.css";
 
 const postsDir = path.join(process.cwd(), "posts");
 
@@ -38,10 +39,11 @@ export default function HomePage() {
               <RowsPhotoAlbum
                 layout="rows"
                 rowConstraints={{ singleRowMaxHeight: 250, minPhotos: 1, maxPhotos: 3 }}
-                photos={post.photos.map((filename) => ({
-                  src: `/posts/${post.slug}/${filename}`,
-                  width: 800,
-                  height: 600
+                photos={post.photos.map((photo) => ({
+                  src: `/posts/${post.slug}/${photo.filename}`,
+                  width: photo.width,
+                  height: photo.height,
+                  alt: post.caption || "Photo"
                 }))}
               />
             </div>

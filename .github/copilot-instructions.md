@@ -15,13 +15,16 @@
 
 ## Project-Specific Conventions
 - **Posts**: Each post folder uses ISO date/time as its slug (e.g., `2025-07-26T14-42`).
-- **post.json** format:
+- **post.json** format (with image sizes):
   ```json
   {
     "date": "2025-07-26T14:42:00",
     "author": "vemoose",
     "caption": "Short paragraph of text here...",
-    "photos": ["01.jpg", "02.jpg", "03.jpg"]
+    "photos": [
+      { "filename": "01.jpg", "width": 800, "height": 600 },
+      { "filename": "02.jpg", "width": 1200, "height": 900 }
+    ]
   }
   ```
 - **Image access**: Images are served from `/posts/[slug]/[filename]`.
