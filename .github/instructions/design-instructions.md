@@ -65,7 +65,6 @@ Keep it light, warm, and non-commercial. Example:
 With `react-photo-album`:
 
 * Layout: `"rows"` or `"masonry"`
-* Gutter: `4px` (or `gap-1`)
 * Use a slightly rounded style: `rounded-md`
 * Optional hover effect: `hover:opacity-90 transition`
 
@@ -77,24 +76,6 @@ Use a humanist, friendly typeface:
 
 * Base: `Inter`, `Nunito`, or `system-ui`
 * Optionally add `Playfair Display` or `DM Serif Text` for date/author for a print-style vibe
-
----
-
-## 📦 Example Tailwind Snippet (Post Card)
-
-```tsx
-<div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
-  <p className="text-sm text-gray-500 mb-4">
-    Posted on <strong className="text-gray-700">July 26, 2025</strong> by <strong>vemoose</strong>
-  </p>
-  <div className="prose prose-base mb-6">
-    <p>Another fun trip for sports! Gwen and I traveled to Saint Louis...</p>
-  </div>
-  <div className="pt-2">
-    <PhotoAlbum layout="rows" photos={photos} />
-  </div>
-</div>
-```
 
 ---
 

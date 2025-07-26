@@ -1,7 +1,7 @@
 // Homepage: lists latest posts
 import fs from "fs";
 import path from "path";
-import PhotoAlbum from "react-photo-album";
+import RowsPhotoAlbum from "react-photo-album";
 
 const postsDir = path.join(process.cwd(), "posts");
 
@@ -23,25 +23,34 @@ function getPosts() {
 export default function HomePage() {
   const posts = getPosts();
   return (
-    <main className="max-w-3xl mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Family Photo Blog</h1>
-      {posts.map((post) => (
-        <section key={post.slug} className="mb-10 p-4 bg-white rounded shadow">
-          <div className="mb-2 text-sm text-gray-500">
-            Posted on {new Date(post.date).toLocaleDateString()} by {post.author}
-          </div>
-          <div className="mb-4 prose">{post.caption}</div>
-          <PhotoAlbum
-            layout="rows"
-            photos={post.photos.map((filename) => ({
-              src: `/posts/${post.slug}/${filename}`,
-              width: 800,
-              height: 600,
-            }))}
-            rowsPerPage={3}
-          />
-        </section>
-      ))}
+    <main className="bg-gray-50 min-h-screen font-sans antialiased">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <h1 className="text-3xl font-bold mb-6 text-gray-900 text-center">Family Photo Blog</h1>
+        {posts.map((post) => (
+          <section key={post.slug} className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+            <p className="text-sm text-gray-500 mb-4">
+              Posted on <strong className="text-gray-700">{new Date(post.date).toLocaleDateString()}</strong> by <strong>{post.author}</strong>
+            </p>
+            <div className="prose prose-base mb-6">
+              {post.caption}
+            </div>
+            <div className="pt-2">
+              <RowsPhotoAlbum
+                layout="rows"
+                rowConstraints={{ singleRowMaxHeight: 250, minPhotos: 1, maxPhotos: 3 }}
+                photos={post.photos.map((filename) => ({
+                  src: `/posts/${post.slug}/${filename}`,
+                  width: 800,
+                  height: 600
+                }))}
+              />
+            </div>
+          </section>
+        ))}
+        <footer className="text-center text-sm text-gray-400 py-6">
+          &copy; {new Date().getFullYear()} Family Photo Blog
+        </footer>
+      </div>
     </main>
   );
 }
