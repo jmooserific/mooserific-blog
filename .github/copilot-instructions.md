@@ -51,5 +51,36 @@
 3. Save `post.json` and image files.
 4. Author field is set from request header.
 
+# Next.js + Tailwind + TypeScript Development Instructions
+
+Instructions for generating high-quality Next.js applications with Tailwind CSS styling and TypeScript.
+
+## Project Context
+-   Latest Next.js (App Router preferred)
+-   TypeScript for type safety and strong typing
+-   Tailwind CSS for all styling
+
+## Development Standards
+### Architecture
+-   Organize routes and components by feature or domain.
+
+### TypeScript
+-   Always define explicit interfaces or types for props, state, and API responses.
+-   Use `async/await` for asynchronous operations and include robust error handling.
+
+### Styling
+-   Utilize Tailwind CSS classes for all styling.
+-   Implement responsive design using Tailwind's utility classes (e.g., `md:`, `lg:`).
+
+### Components
+-   Create reusable and modular components.
+-   Destructure props in component signatures.
+-   Use React Fragments (`<>...</>`) to avoid unnecessary DOM elements.
+
+### Performance
+-   Minimize client-side rendering where server components can be used.
+-   Implement lazy loading for non-critical components using `React.lazy` and `Suspense`.
+
+
 ---
 For questions about conventions or unclear patterns, review `README.md` or ask for clarification.
