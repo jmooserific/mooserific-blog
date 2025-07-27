@@ -23,9 +23,8 @@ function getPosts(): Post[] {
 export default function HomePage() {
   const posts: Post[] = getPosts().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   return (
-    <main className="bg-gray-50 min-h-screen font-sans antialiased">
+    <main>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <h1 className="text-3xl font-bold mb-6 text-gray-900 text-center">Mooserific!</h1>
         {posts.map((post) => (
           <PostCard key={post.slug} post={post} />
         ))}
