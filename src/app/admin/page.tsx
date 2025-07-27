@@ -1,3 +1,5 @@
+'use client'
+
 // Admin UI: drag & drop images, caption, create post
 import { useState } from "react";
 type PhotoMeta = { filename: string; width: number; height: number };
@@ -25,21 +27,29 @@ export default function AdminPage() {
     setPhotos(meta);
   }
 
-  function handleSubmit() {
-    // TODO: Implement post creation logic (save to /posts)
-    // Example post.json structure:
-    // {
-    //   date: new Date().toISOString(),
-    //   author: "from header",
-    //   caption,
-    //   photos: photos
-    // }
-    alert("Post created! (stub)\n" + JSON.stringify({
-      date: new Date().toISOString(),
-      author: "from header",
-      caption,
-      photos
-    }, null, 2));
+  async function handleSubmit() {
+    const formData = new FormData();
+    formData.append("caption", caption);
+    // Get author from header if available (for demo, use placeholder)
+    formData.append("author", "from header");
+    formData.append("photos", JSON.stringify(photos));
+    files.forEach((file) => {
+      formData.append(file.name, file);
+    });
+    const res = await fetch("/admin/api/create-post", {
+      method: "POST",
+      body: formData,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      alert(`Post created! Slug: ${data.slug}`);
+      setCaption("");
+      setFiles([]);
+      setPhotos([]);
+    } else {
+      const error = await res.text();
+      alert("Error: " + error);
+    }
   }
 
   return (
