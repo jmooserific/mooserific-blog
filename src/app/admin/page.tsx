@@ -72,11 +72,36 @@ export default function AdminPage() {
           />
           <p className="prose text-gray-600 text-xs italic">Use <a href="https://commonmark.org/help/" target="_blank">Markdown</a> to style</p>
           <div
-            className="border-dashed border-2 border-gray-300 rounded p-4 text-center"
+            className="border-dashed border-2 border-gray-300 rounded p-4 text-center cursor-pointer"
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
+            onClick={() => document.getElementById('file-upload')?.click()}
           >
-            Drag & drop up to 10 images here
+            Drag & drop up to 10 images here<br />
+            <span className="text-xs text-gray-400">or click to select</span>
+            <input
+              id="file-upload"
+              type="file"
+              multiple
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const inputFiles = Array.from(e.target.files || []).slice(0, 10);
+                setFiles(inputFiles);
+                // Extract dimensions for each image
+                const metaPromises = inputFiles.map((file) => {
+                  return new Promise<PhotoMeta>((resolve) => {
+                    const img = new window.Image();
+                    img.onload = () => {
+                      resolve({ filename: file.name, width: img.width, height: img.height });
+                    };
+                    img.src = URL.createObjectURL(file);
+                  });
+                });
+                const meta = await Promise.all(metaPromises);
+                setPhotos(meta);
+              }}
+            />
           </div>
           <ul className="mb-4">
             {photos.map((photo, i) => (
