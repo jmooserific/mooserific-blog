@@ -50,9 +50,6 @@ export default function HomePage() {
             </div>
           </section>
         ))}
-        <footer className="text-center text-sm text-gray-400 py-6">
-          &copy; {new Date().getFullYear()} Mooserific
-        </footer>
       </div>
     </main>
   );

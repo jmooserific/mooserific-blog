@@ -117,9 +117,6 @@ export default function AdminPage() {
             Post
           </button>
         </form>
-        <footer className="text-center text-sm text-gray-400 py-6 mt-8">
-          &copy; {new Date().getFullYear()} Mooserific
-        </footer>
       </div>
     </main>
   );
