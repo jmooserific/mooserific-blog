@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { join } from "path";
 import { readFile } from "fs/promises";
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string; filename: string } }) {
+export async function GET(req: NextRequest, context: { params: { slug: string; filename: string } }) {
+  const params = await context.params;
   const filePath = join(process.cwd(), "posts", params.slug, params.filename);
   try {
     const file = await readFile(filePath);
