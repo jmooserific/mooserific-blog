@@ -26,7 +26,7 @@ export default function HomePage() {
   return (
     <main className="bg-gray-50 min-h-screen font-sans antialiased">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <h1 className="text-3xl font-bold mb-6 text-gray-900 text-center">Family Photo Blog</h1>
+        <h1 className="text-3xl font-bold mb-6 text-gray-900 text-center">Mooserific!</h1>
         {posts.map((post) => (
           <section key={post.slug} className="bg-white rounded-2xl shadow-sm p-6 mb-8">
             <p className="text-sm text-gray-500 mb-4">
