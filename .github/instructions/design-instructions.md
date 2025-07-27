@@ -1,9 +1,9 @@
 ---
 applyTo: '**'
 ---
-Absolutely! Let’s design a clean, modern, and family-friendly blog layout that focuses on **simplicity**, **photography**, and **longevity** — optimized for readability, photo viewing, and export-to-photo-book use. Responsiveness and accessibility are musts.
+Let’s design a clean, modern, and family-friendly blog layout that focuses on **simplicity**, **photography**, and **longevity** — optimized for readability, photo viewing, and export-to-photo-book use. Responsiveness and accessibility are musts.
 
-You want something that feels calm, personal, and clutter-free — like a digital family album.
+We want something that feels calm, personal, and clutter-free — like a digital family album.
 
 ---
 
@@ -15,18 +15,26 @@ You want something that feels calm, personal, and clutter-free — like a digita
 * **Each post**:
 
   * Subtle card-style container
-  * Top: Date & author in small gray text
+  * Top-right: Date & author in small gray text
   * Middle: Text (caption/description)
   * Bottom: Tiled/mosaic photo gallery
 
 ---
 
-### 📄 Individual Post Page (`/2025/07/26/14-42`)
+### Filtering
+Our family blog will contain hundreds of posts made over the past decade. It is essential that there be a good way to filter the homepage to a certain year and, optionally, month, day, and time. A "filter" icon should be displayed at the top-right of the homepage. When clicked, it should open a popover component that shows a date picker.
 
-* Same layout as homepage
-* Slightly larger photos (for focused viewing)
-* Optional “Back to Archive” link at top
-* Optional download/export to PDF button
+When a date filter is specified, it should be passed as a param to the homepage. The param format should resemble the post date format. For example:
+  * `?date_filter=2021-07-26T08-34`: Show the post from July 26, 2021 at 08:34
+  * `?date_filter=2021-07-26`: Show all posts from July 26, 2021
+  * `?date_filter=2021-07`: Show all posts from July 2021
+  * `?date_filter=2021`: Show all posts from 2021
+
+If there are no posts for the specified date filter, show a nice message.
+
+This mechanism will replace the traditional blog post "permalink" mechanism.
+
+In the future, we may add additional filtering mechanisms, like tags or authors.
 
 ---
 
@@ -68,14 +76,17 @@ With `react-photo-album`:
 * Use a slightly rounded style: `rounded-md`
 * Optional hover effect: `hover:opacity-90 transition`
 
+When a photo is clicked, it should open a `yet-another-react-lightbox` lightbox for a full-size slideshow of the images in that gallery, starting with the photo that was clicked.
+
 ---
 
 ## ✏️ Font Pairing
 
 Use a humanist, friendly typeface:
 
-* Base: `Inter`, `Nunito`, or `system-ui`
+* Base: `Inter` or `system-ui`
 * Optionally add `Playfair Display` or `DM Serif Text` for date/author for a print-style vibe
+* Optionally add `Sign Painter` to the site title for some flair
 
 ---
 
@@ -85,7 +96,8 @@ Use a humanist, friendly typeface:
 | -------------------------- | ------------------------------------------ |
 | Light/dark mode toggle     | Subtle toggle in footer                    |
 | Year/month archive sidebar | Clickable list of dates in sidebar         |
-| Pagination                 | 5–10 posts per page with “Older Posts” nav |
+| Pagination                 | 10 posts per page with infinite scrolling  |
+| Videos                     | Support for (single) video posts           |
 | “Print view”               | Stripped-down style with large photos      |
 
 ---
