@@ -1,3 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
 @import "tailwindcss";
+
+@layer base {
+  .prose ul, .prose ol {
+    list-style: revert;
+    padding-left: revert;
+  }
+
+  .prose a {
+    color: #2563eb; /* Tailwind's blue-600 */
+    text-decoration: underline;
+  }
+}

@@ -1,6 +1,7 @@
 // Homepage: lists latest posts
 import fs from "fs";
 import path from "path";
+import Markdown from 'react-markdown'
 import RowsPhotoAlbum from "react-photo-album";
 import "react-photo-album/styles.css";
 
@@ -33,7 +34,7 @@ export default function HomePage() {
               Posted on <strong className="text-gray-700">{new Date(post.date).toLocaleDateString()}</strong> by <strong>{post.author}</strong>
             </p>
             <div className="prose prose-base mb-6">
-              {post.caption}
+              <Markdown>{post.caption}</Markdown>
             </div>
             <div className="pt-2">
               <RowsPhotoAlbum
@@ -50,7 +51,7 @@ export default function HomePage() {
           </section>
         ))}
         <footer className="text-center text-sm text-gray-400 py-6">
-          &copy; {new Date().getFullYear()} Family Photo Blog
+          &copy; {new Date().getFullYear()} Mooserific
         </footer>
       </div>
     </main>

@@ -55,7 +55,7 @@ export default function AdminPage() {
   return (
     <main className="bg-gray-50 min-h-screen font-sans antialiased">
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-        <h1 className="text-2xl font-bold mb-4 text-gray-900 text-center">Create New Post</h1>
+        <h1 className="text-2xl font-bold mb-4 text-gray-900 text-center">Create a new post</h1>
         <form
           className="space-y-4"
           onSubmit={(e) => {
@@ -64,12 +64,13 @@ export default function AdminPage() {
           }}
         >
           <textarea
-            className="w-full border rounded p-2 prose prose-base mb-6"
+            className="bg-gray-100 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500 my-0"
             rows={3}
-            placeholder="Caption (Markdown supported)"
+            placeholder="Caption"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
           />
+          <p className="prose text-gray-600 text-xs italic">Use <a href="https://commonmark.org/help/" target="_blank">Markdown</a> to style</p>
           <div
             className="border-dashed border-2 border-gray-300 rounded p-4 text-center"
             onDrop={handleDrop}
@@ -89,7 +90,7 @@ export default function AdminPage() {
           </button>
         </form>
         <footer className="text-center text-sm text-gray-400 py-6 mt-8">
-          &copy; {new Date().getFullYear()} Family Photo Blog
+          &copy; {new Date().getFullYear()} Mooserific
         </footer>
       </div>
     </main>
