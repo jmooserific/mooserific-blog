@@ -55,6 +55,9 @@ export default function AdminPage() {
   return (
     <main className="bg-gray-50 min-h-screen font-sans antialiased">
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
+        <nav className="mb-6">
+          <a href="/" className="text-blue-600 hover:underline text-sm">← Back to posts</a>
+        </nav>
         <h1 className="text-2xl font-bold mb-4 text-gray-900 text-center">Create a new post</h1>
         <form
           className="space-y-4"
@@ -64,20 +67,20 @@ export default function AdminPage() {
           }}
         >
           <textarea
-            className="bg-gray-100 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500 my-0"
+            className="appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500 my-0"
             rows={3}
-            placeholder="Caption"
+            placeholder="Caption (optional)"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
           />
           <p className="prose text-gray-600 text-xs italic">Use <a href="https://commonmark.org/help/" target="_blank">Markdown</a> to style</p>
           <div
-            className="border-dashed border-2 border-gray-300 rounded p-4 text-center cursor-pointer"
+            className="border-dashed border-2 border-gray-300 rounded p-8 text-center cursor-pointer"
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             onClick={() => document.getElementById('file-upload')?.click()}
           >
-            Drag & drop up to 10 images here<br />
+            Drop photos here<br />
             <span className="text-xs text-gray-400">or click to select</span>
             <input
               id="file-upload"
