@@ -1,6 +1,11 @@
+'use client';
+
+import { useState } from "react";
 import Markdown from 'react-markdown';
 import RowsPhotoAlbum from "react-photo-album";
 import "react-photo-album/styles.css";
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
 
 export type PhotoMeta = {
   filename: string;
@@ -20,27 +25,40 @@ interface PostCardProps {
   post: Post;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => (
-  <section className="bg-white rounded-xl shadow-sm p-4 mb-8">
-    <p className="text-sm text-gray-500 mb-4 text-right">
-      Posted on <strong className="text-gray-700">{new Date(post.date).toLocaleDateString()}</strong> by <strong>{post.author}</strong>
-    </p>
-    <div className="prose prose-base mb-6">
-      <Markdown>{post.caption}</Markdown>
-    </div>
-    <div className="pt-2">
-      <RowsPhotoAlbum
-        layout="rows"
-        rowConstraints={{ singleRowMaxHeight: 250, minPhotos: 1, maxPhotos: 3 }}
-        photos={post.photos.map((photo) => ({
-          src: `/posts/${post.slug}/${photo.filename}`,
-          width: photo.width,
-          height: photo.height,
-          alt: post.caption || "Photo"
-        }))}
-      />
-    </div>
-  </section>
-);
+const PostCard: React.FC<PostCardProps> = ({ post }) => {
+  const [index, setIndex] = useState(-1);
+
+  const photos = post.photos.map((photo) => ({
+    src: `/posts/${post.slug}/${photo.filename}`,
+    width: photo.width,
+    height: photo.height,
+    alt: post.caption || "Photo"
+  }));
+
+  return (
+    <section className="bg-white rounded-xl shadow-sm p-4 mb-8">
+      <p className="text-sm text-gray-500 mb-4 text-right">
+        Posted on <strong className="text-gray-700">{new Date(post.date).toLocaleDateString()}</strong> by <strong>{post.author}</strong>
+      </p>
+      <div className="prose prose-base mb-6">
+        <Markdown>{post.caption}</Markdown>
+      </div>
+      <div className="pt-2">
+        <RowsPhotoAlbum
+          layout="rows"
+          rowConstraints={{ singleRowMaxHeight: 250, minPhotos: 1, maxPhotos: 3 }}
+          photos={photos}
+          onClick={({ index }) => setIndex(index)}
+        />
+        <Lightbox
+          slides={photos}
+          open={index >= 0}
+          index={index}
+          close={() => setIndex(-1)}
+        />
+      </div>
+    </section>
+  )
+};
 
 export default PostCard;
