@@ -1,8 +1,8 @@
-// Homepage: lists latest posts
 
 import fs from "fs";
 import path from "path";
-import PostCard, { Post } from "@/components/PostCard";
+import PostListClient from "@/components/PostListClient";
+import { Post } from "@/components/PostCard";
 
 const postsDir = path.join(process.cwd(), "posts");
 
@@ -21,14 +21,7 @@ function getPosts(): Post[] {
 }
 
 export default function HomePage() {
+  // Get posts and sort (server-side)
   const posts: Post[] = getPosts().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return (
-    <main>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {posts.map((post) => (
-          <PostCard key={post.slug} post={post} />
-        ))}
-      </div>
-    </main>
-  );
+  return <PostListClient posts={posts} />;
 }
