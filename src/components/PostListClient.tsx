@@ -36,12 +36,14 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts }) => {
   };
 
   return (
-    <main className="relative">
-      <FilterButton onSelect={handleSelectDate} initialValue={dateFilter} />
+    <main>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {dateFilter && (
-          <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
-        )}
+        <div className="flex items-center gap-4 mb-6">
+          <FilterButton onSelect={handleSelectDate} initialValue={dateFilter} />
+          {dateFilter && (
+            <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
+          )}
+        </div>
         {filteredPosts.length === 0 ? (
           <div className="text-center text-gray-500 py-12 text-lg">No posts found for this date.</div>
         ) : (

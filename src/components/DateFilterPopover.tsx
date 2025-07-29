@@ -78,7 +78,11 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
   };
 
   return (
-    <div ref={ref} className="absolute right-4 top-16 z-50 bg-white rounded-xl shadow-lg p-4 w-72 border border-gray-200">
+    <div
+      ref={ref}
+      className="absolute left-4 top-4 z-50 bg-white rounded-xl shadow-lg p-4 w-80 border border-gray-200"
+      onMouseDown={e => e.stopPropagation()}
+    >
       <label className="block text-sm font-medium text-gray-700 mb-2">Filter by date</label>
       <div className="flex gap-2 mb-2">
         <select

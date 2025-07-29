@@ -22,7 +22,7 @@ We want something that feels calm, personal, and clutter-free — like a digital
 ---
 
 ### Filtering
-Our family blog will contain hundreds of posts made over the past decade. It is essential that there be a good way to filter the homepage to a certain year and, optionally, month, day, and time. A "filter" icon should be displayed at the top-right of the homepage. When clicked, it should open a popover component that shows a date picker.
+Our family blog will contain hundreds of posts made over the past decade. It is essential that there be a good way to filter the homepage to a certain year and, optionally, month, day, and time. A "filter" icon should be displayed above the list of posts on the homepage. When clicked, it should open a popover component that shows a date picker.
 
 When a date filter is specified, it should be passed as a param to the homepage. The param format should resemble the post date format. For example:
   * `?date_filter=2021-07-26T08-34`: Show the post from July 26, 2021 at 08:34
