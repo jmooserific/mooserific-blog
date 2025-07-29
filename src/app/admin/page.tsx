@@ -8,13 +8,17 @@ export default function AdminPage() {
   const [caption, setCaption] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
 
   async function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     const droppedFiles = Array.from(e.dataTransfer.files).slice(0, 10);
     setFiles(droppedFiles);
+    // Separate images and videos
+    const imageFiles = droppedFiles.filter(f => f.type.startsWith("image/"));
+    const videoFiles = droppedFiles.filter(f => f.type.startsWith("video/"));
     // Extract dimensions for each image
-    const metaPromises = droppedFiles.map((file) => {
+    const metaPromises = imageFiles.map((file) => {
       return new Promise<PhotoMeta>((resolve) => {
         const img = new window.Image();
         img.onload = () => {
@@ -25,6 +29,7 @@ export default function AdminPage() {
     });
     const meta = await Promise.all(metaPromises);
     setPhotos(meta);
+    setVideos(videoFiles.map(f => f.name));
   }
 
   async function handleSubmit() {
@@ -33,6 +38,7 @@ export default function AdminPage() {
     // Get author from header if available (for demo, use placeholder)
     formData.append("author", "from header");
     formData.append("photos", JSON.stringify(photos));
+    formData.append("videos", JSON.stringify(videos));
     files.forEach((file) => {
       formData.append(file.name, file);
     });
@@ -46,6 +52,7 @@ export default function AdminPage() {
       setCaption("");
       setFiles([]);
       setPhotos([]);
+      setVideos([]);
     } else {
       const error = await res.text();
       alert("Error: " + error);
@@ -79,19 +86,22 @@ export default function AdminPage() {
           onDragOver={(e) => e.preventDefault()}
           onClick={() => document.getElementById('file-upload')?.click()}
         >
-          Drop photos here<br />
+          Drop photos or videos here<br />
           <span className="text-xs text-gray-400">or click to select</span>
           <input
             id="file-upload"
             type="file"
             multiple
-            accept="image/*"
+            accept="image/*,video/*"
             style={{ display: 'none' }}
             onChange={async (e) => {
               const inputFiles = Array.from(e.target.files || []).slice(0, 10);
               setFiles(inputFiles);
+              // Separate images and videos
+              const imageFiles = inputFiles.filter(f => f.type.startsWith("image/"));
+              const videoFiles = inputFiles.filter(f => f.type.startsWith("video/"));
               // Extract dimensions for each image
-              const metaPromises = inputFiles.map((file) => {
+              const metaPromises = imageFiles.map((file) => {
                 return new Promise<PhotoMeta>((resolve) => {
                   const img = new window.Image();
                   img.onload = () => {
@@ -102,13 +112,19 @@ export default function AdminPage() {
               });
               const meta = await Promise.all(metaPromises);
               setPhotos(meta);
+              setVideos(videoFiles.map(f => f.name));
             }}
           />
         </div>
         <ul className="mb-4">
           {photos.map((photo, i) => (
-            <li key={i} className="text-sm text-gray-500">
-              {photo.filename} <span className="text-xs text-gray-400">({photo.width}×{photo.height})</span>
+            <li key={photo.filename} className="text-sm text-gray-500">
+              🖼️ {photo.filename} <span className="text-xs text-gray-400">({photo.width}×{photo.height})</span>
+            </li>
+          ))}
+          {videos.map((video, i) => (
+            <li key={video} className="text-sm text-gray-500">
+              🎬 {video}
             </li>
           ))}
         </ul>

@@ -78,6 +78,8 @@ With `react-photo-album`:
 
 When a photo is clicked, it should open a `yet-another-react-lightbox` lightbox for a full-size slideshow of the images in that gallery, starting with the photo that was clicked.
 
+If a post contains any videos, they should be displayed after the photo album using simple `video` tags.
+
 ---
 
 ## ✏️ Font Pairing

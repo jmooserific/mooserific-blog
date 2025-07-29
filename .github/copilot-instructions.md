@@ -15,21 +15,23 @@
 
 ## Project-Specific Conventions
 - **Posts**: Each post folder uses ISO date/time as its slug (e.g., `2025-07-26T14-42`).
-- **post.json** format (with image sizes):
+- **post.json** format:
   ```json
   {
-    "date": "2025-07-26T14:42:00",
-    "author": "vemoose",
-    "caption": "Short paragraph of text here...",
+    "date": "2025-07-26T14:42:00", // required
+    "author": "vemoose", // optional
+    "caption": "Short paragraph of text here...", // optional
     "photos": [
       { "filename": "01.jpg", "width": 800, "height": 600 },
       { "filename": "02.jpg", "width": 1200, "height": 900 }
-    ]
+    ], // optional
+    "videos": ["clip1.mp4", "clip2.mp4"] // optional
   }
   ```
-- **Image access**: Images are served from `/posts/[slug]/[filename]`.
+- **Image/Video access**: Images/Videos are served from `/posts/[slug]/[filename]`.
 - **Styling**: Use Tailwind CSS utility classes. Global styles in `src/globals.css`.
-- **Photo gallery**: Use `react-photo-album` for responsive image layouts.
+- **Photo gallery**: Use `react-photo-album` for responsive image layouts and `yet-another-react-lightbox` for image lightboxes.
+- **Videos**: Use simple HTML5 `<video>` tags for video playback.
 - **Admin UI**: Drag-and-drop for up to 10 images, Markdown/WYSIWYG caption, creates post folder and saves files.
 
 ## Integration Points & Patterns
@@ -46,9 +48,9 @@
 - `/README.md` — Project overview and conventions
 
 ## Example: Creating a Post
-1. Admin UI receives drag-and-drop images and caption.
+1. Admin UI receives drag-and-drop images/videos and caption.
 2. On submit, create `/posts/YYYY-MM-DDTHH-MM/` folder.
-3. Save `post.json` and image files.
+3. Save `post.json` and image/video files.
 4. Author field is set from request header.
 
 # Next.js + Tailwind + TypeScript Development Instructions

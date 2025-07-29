@@ -19,6 +19,7 @@ export type Post = {
   caption: string;
   photos: PhotoMeta[];
   slug: string;
+  videos?: string[];
 };
 
 interface PostCardProps {
@@ -56,6 +57,21 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           index={index}
           close={() => setIndex(-1)}
         />
+        {Array.isArray(post.videos) && post.videos.length > 0 && (
+          <div className="mt-4 flex flex-col gap-4">
+            {post.videos.map((video: string) => (
+              <video
+                key={video}
+                controls
+                className="w-full rounded-md bg-black"
+                style={{ maxHeight: 400 }}
+              >
+                <source src={`/posts/${post.slug}/${video}`} />
+                Your browser does not support the video tag.
+              </video>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
