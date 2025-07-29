@@ -1,6 +1,8 @@
 # Mooserific Blog!
 
-![Screenshot of Mooserific Blog](./public/screenshot.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jmooserific/mooserific-blog/refs/heads/main/public/Screenshot.png" alt="screenshot of Mooserific Blog" style="max-width: 800px;"/>
+</p>
 
 A private, family-oriented photo blog built with Next.js (App Router), styled with Tailwind CSS, and designed for filesystem-based post storage. Hosted via Docker on Synology NAS.
 
