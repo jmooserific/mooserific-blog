@@ -1,11 +1,12 @@
 # Mooserific Blog!
 
+![Screenshot of Mooserific Blog](./public/screenshot.png)
+
 A private, family-oriented photo blog built with Next.js (App Router), styled with Tailwind CSS, and designed for filesystem-based post storage. Hosted via Docker on Synology NAS.
 
 ## Features
 - Posts stored as folders in `/posts/YYYY-MM-DDTHH-MM/` with `post.json` and photo files
-- Homepage displays latest posts in descending order
-- Individual post pages
+- Homepage displays latest posts or posts from the specified year/month/day in descending order
 - Admin UI for uploading photos and creating posts
 - No external database
 - Auth handled via reverse proxy (HTTP Basic Auth)
@@ -21,17 +22,22 @@ A private, family-oriented photo blog built with Next.js (App Router), styled wi
 - `/src` — Next.js app code
 - `/public` — Static assets
 
+
 ## Sample Post Format
-```
+```json
 {
   "date": "2025-07-26T14:42:00",
   "author": "vemoose",
   "caption": "Short paragraph of text here...",
-  "photos": ["01.jpg", "02.jpg", "03.jpg"]
+  "photos": [
+    { "filename": "01.jpg", "width": 800, "height": 600 },
+    { "filename": "02.jpg", "width": 1200, "height": 900 }
+  ]
 }
 ```
 
 ## Routes
-- `/` — Homepage
-- `/[year]/[month]/[day]/[slug]` — Individual post
+- `/` — Homepage (shows all posts, or filtered by date)
+- `/?date_filter=YYYY`, `/?date_filter=YYYY-MM`, `/?date_filter=YYYY-MM-DD`, `/?date_filter=YYYY-MM-DDTHH-MM` — Filter posts by year, month, day, or timestamp
+- `/posts/[slug]/[filename]` — Serve post images
 - `/admin` — Editor UI (protected externally)
