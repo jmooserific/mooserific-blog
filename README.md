@@ -7,6 +7,7 @@
 A private, family-oriented photo blog built with Next.js (App Router), styled with Tailwind CSS, and designed for filesystem-based post storage. Hosted via Docker on Synology NAS.
 
 ## Features
+- Tiled galleries with fullscreen "lightbox" photo viewing
 - Posts stored as folders in `/posts/YYYY-MM-DDTHH-MM/` with `post.json` and photo files
 - Homepage displays latest posts or posts from the specified year/month/day in descending order
 - Admin UI for uploading photos and creating posts
