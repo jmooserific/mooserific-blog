@@ -1,7 +1,7 @@
 ---
 applyTo: '**'
 ---
-Let’s design a clean, modern, and family-friendly blog layout that focuses on **simplicity**, **photography**, and **longevity** — optimized for readability, photo viewing, and export-to-photo-book use. Responsiveness and accessibility are musts.
+Let’s design a clean, modern, and family-friendly blog layout that focuses on **simplicity**, **photography**, and **longevity** — optimized for readability, photo viewing, and export-to-photo-book use. Responsiveness and accessibility are musts. Videos are also supported in posts, but they aren't the primary focus.
 
 We want something that feels calm, personal, and clutter-free — like a digital family album.
 
@@ -99,7 +99,6 @@ Use a humanist, friendly typeface:
 | Light/dark mode toggle     | Subtle toggle in footer                    |
 | Year/month archive sidebar | Clickable list of dates in sidebar         |
 | Pagination                 | 10 posts per page with infinite scrolling  |
-| Videos                     | Support for (single) video posts           |
 | “Print view”               | Stripped-down style with large photos      |
 
 ---
