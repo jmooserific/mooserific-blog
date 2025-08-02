@@ -2,7 +2,7 @@
 
 ## Big Picture Architecture
 - **Mooserific Blog** is a private family photo blog built with Next.js (App Router) and Tailwind CSS, designed for filesystem-based post storage (no external DB).
-- **Posts** are stored in `/posts/YYYY-MM-DDTHH-MM/` folders, each containing a `post.json` and photo files. The app reads these directly from the filesystem.
+- **Posts** are stored in `/posts/YYYY-MM-DDTHH-MM/` folders, each containing a `post.json` and photo/video files. The app reads these directly from the filesystem.
 - **Homepage (`/`)** lists posts in descending date order. Posts can be filtered by date.
 - **Admin UI (`/admin`)** allows authenticated users (via reverse proxy) to create posts by uploading images and entering captions. Auth is handled externally; capture the `Authorization` or `X-Authenticated-User` header for the author field.
 
