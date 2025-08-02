@@ -47,7 +47,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <div className="pt-2">
         <RowsPhotoAlbum
           layout="rows"
-          rowConstraints={{ singleRowMaxHeight: 250, minPhotos: 1, maxPhotos: 3 }}
+          rowConstraints={{ minPhotos: 1, maxPhotos: 3 }}
           photos={photos}
           onClick={({ index }) => setIndex(index)}
         />
