@@ -3,4 +3,12 @@ module.exports = {
   plugins: [
     require('@tailwindcss/typography')
   ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', 'sans-serif'],
+        script: ['var(--font-pacifico)', 'cursive']
+      }
+    }
+  }
 };
