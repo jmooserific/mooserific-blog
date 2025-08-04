@@ -1,4 +1,4 @@
-import { Inter, Pacifico } from 'next/font/google'
+import { Inter, Sacramento } from 'next/font/google'
 
 export const inter = Inter({
   subsets: ['latin'],
@@ -6,9 +6,9 @@ export const inter = Inter({
   display: 'swap',
 })
 
-export const pacifico = Pacifico({
+export const sacramento = Sacramento({
   subsets: ['latin'],
-  variable: '--font-pacifico',
+  variable: '--font-sacramento',
   display: 'swap',
   weight: '400',
 })
