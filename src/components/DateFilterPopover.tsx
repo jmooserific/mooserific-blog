@@ -80,13 +80,16 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
   return (
     <div
       ref={ref}
-      className="absolute left-4 top-4 z-50 bg-white rounded-xl shadow-lg p-4 w-80 border border-gray-200"
+      className="absolute left-4 top-4 z-50 bg-white rounded-xl shadow-lg p-4 w-100 border border-gray-200"
       onMouseDown={e => e.stopPropagation()}
     >
       <label className="block text-sm font-medium text-gray-700 mb-2">Filter by date</label>
       <div className="flex gap-2 mb-2">
         <select
-          className="w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={
+            `w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ` +
+            (!year ? '' : '')
+          }
           value={year}
           onChange={e => { setYear(e.target.value); setMonthName(""); setDay(""); }}
           autoFocus
@@ -95,7 +98,10 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
         <select
-          className="w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={
+            `w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ` +
+            (!year ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : '')
+          }
           value={monthName}
           onChange={e => { setMonthName(e.target.value); setDay(""); }}
           disabled={!year}
@@ -104,7 +110,10 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
           {monthNames.map((m, idx) => idx > 0 && <option key={m} value={m}>{m}</option>)}
         </select>
         <select
-          className="w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={
+            `w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ` +
+            ((!year || !monthName) ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : '')
+          }
           value={day}
           onChange={e => setDay(e.target.value)}
           disabled={!year || !monthName}
