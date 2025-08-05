@@ -7,10 +7,11 @@
 A simple, private, family-oriented photo (and video) blog built with Next.js, styled with Tailwind CSS, and designed for filesystem-based post storage. Hosted via Docker on Synology NAS.
 
 ## Features
-- Tiled galleries with fullscreen "lightbox" photo viewing
-- Posts stored as folders in `/posts/YYYY-MM-DDTHH-MM/` with `post.json` and photo files
+- Tiled photo and video galleries with fullscreen "lightbox" viewing (using `react-photo-album` and `yet-another-react-lightbox`)
+- Video playback with HTML5 `<video>` tags
+- Posts stored as folders in `/posts/YYYY-MM-DDTHH-MM/` with `post.json`, photo, and video files
 - Homepage displays latest posts or posts from the specified year/month/day in descending order
-- Admin UI for uploading photos and creating posts
+- Admin UI for uploading up to 10 images/videos per post, with drag-and-drop and Markdown/WYSIWYG caption support
 - No external database
 - Auth handled via reverse proxy (HTTP Basic Auth)
 
@@ -35,7 +36,8 @@ A simple, private, family-oriented photo (and video) blog built with Next.js, st
   "photos": [
     { "filename": "01.jpg", "width": 800, "height": 600 },
     { "filename": "02.jpg", "width": 1200, "height": 900 }
-  ]
+  ],
+  "videos": ["clip1.mp4", "clip2.mp4"]
 }
 ```
 
