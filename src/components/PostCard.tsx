@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import Markdown from 'react-markdown';
-import RowsPhotoAlbum from "react-photo-album";
+import {
+  RenderImageContext,
+  RenderImageProps,
+  RowsPhotoAlbum,
+} from "react-photo-album";
 import "react-photo-album/styles.css";
+import Image from "next/image";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
@@ -29,12 +34,34 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [index, setIndex] = useState(-1);
 
+
   const photos = post.photos.map((photo) => ({
     src: `/posts/${post.slug}/${photo.filename}`,
     width: photo.width,
     height: photo.height,
     alt: post.caption || "Photo"
   }));
+
+  // Custom renderPhoto for Next.js Image optimization
+  const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
+    { photo, width, height }: RenderImageContext) => (
+    <div
+      style={{
+        width: "100%",
+        position: "relative",
+        aspectRatio: `${width} / ${height}`,
+      }}
+    >
+      <Image
+        fill
+        src={photo}
+        alt={alt}
+        title={title}
+        sizes={sizes}
+        quality={80}
+      />
+    </div>
+  );
 
   return (
     <section className="bg-white rounded-xl shadow-sm p-4 mb-8">
@@ -46,10 +73,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </div>
       <div className="pt-2">
         <RowsPhotoAlbum
-          layout="rows"
           rowConstraints={{ minPhotos: 1, maxPhotos: 3 }}
           photos={photos}
           onClick={({ index }) => setIndex(index)}
+          render={{ image: renderPhoto }}
         />
         <Lightbox
           slides={photos}
