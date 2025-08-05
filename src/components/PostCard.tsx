@@ -64,7 +64,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   );
 
   return (
-    <section className="bg-white rounded-xl shadow-sm p-4 mb-8">
+    <section className="bg-white shadow-sm p-4 mb-8">
       <p className="text-sm text-gray-500 mb-4 text-right">
         Posted on <strong className="text-gray-700">{new Date(post.date).toLocaleDateString()}</strong> by <strong>{post.author}</strong>
       </p>
