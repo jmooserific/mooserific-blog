@@ -1,5 +1,5 @@
 import "../globals.css";
-import { inter, sacramento } from './fonts'
+import { quicksand, sacramento } from './fonts'
 import Link from "next/link";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <title>Mooserific Blog!</title>
         <meta name="description" content="A family photo blog!" />
       </head>
-      <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}>
+      <body className={`${quicksand.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}>
         <header>
           <h1 className={`${sacramento.className} text-6xl font-bold m-6 text-gray-900 text-center`}><Link href="/">Mooserific!</Link></h1>
         </header>
