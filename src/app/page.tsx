@@ -1,6 +1,7 @@
 
 import fs from "fs";
 import path from "path";
+import { Suspense } from "react";
 import PostListClient from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
@@ -28,7 +29,9 @@ export default function HomePage() {
   const posts = allPosts.slice(0, POSTS_PER_PAGE);
   return (
     <>
-      <PostListClient posts={posts} />
+      <Suspense fallback={<div>Loading posts...</div>}>
+        <PostListClient posts={posts} />
+      </Suspense>
       <Pagination currentPage={1} totalPages={totalPages} />
     </>
   );

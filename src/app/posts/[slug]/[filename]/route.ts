@@ -3,12 +3,15 @@ import { join } from "path";
 import { statSync, createReadStream } from "fs";
 import { readFile } from "fs/promises";
 
-export async function GET(req: NextRequest, context: { params: { slug: string; filename: string } }) {
-  const params = await context.params;
-  const filePath = join(process.cwd(), "posts", params.slug, params.filename);
+export async function GET(
+  request: NextRequest,
+  { params } : { params: Promise<{ slug: string, filename: string }> }
+) {
+  const { slug, filename } = await params;
+  const filePath = join(process.cwd(), "posts", slug, filename);
 
   // Infer content type from file extension
-  const ext = params.filename.split('.').pop()?.toLowerCase();
+  const ext = filename.split('.').pop()?.toLowerCase();
   let contentType = "application/octet-stream";
   if (ext === "jpg" || ext === "jpeg") contentType = "image/jpeg";
   else if (ext === "png") contentType = "image/png";
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest, context: { params: { slug: string; f
 
   try {
     const stats = statSync(filePath);
-    const range = req.headers.get("range");
+    const range = request.headers.get("range");
 
     if (range) {
       // Parse Range header, e.g. "bytes=0-1023"

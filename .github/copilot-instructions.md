@@ -59,6 +59,8 @@ Instructions for generating high-quality Next.js applications with Tailwind CSS 
 
 ## Project Context
 -   Latest Next.js (App Router preferred)
+-   Use Next.js built-in components when appropriate (e.g., `Image`, `Link`, `Head`)
+-   Be sure to consider the versions of Next.js and React in use
 -   TypeScript for type safety and strong typing
 -   Tailwind CSS for all styling
 
