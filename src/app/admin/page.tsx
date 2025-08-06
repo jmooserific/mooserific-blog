@@ -2,6 +2,8 @@
 
 // Admin UI: drag & drop images, caption, create post
 import { useState } from "react";
+import { PhotoIcon, FilmIcon } from "@heroicons/react/24/outline";
+
 type PhotoMeta = { filename: string; width: number; height: number };
 
 export default function AdminPage() {
@@ -117,14 +119,17 @@ export default function AdminPage() {
           />
         </div>
         <ul className="mb-4">
+
           {photos.map((photo, i) => (
             <li key={photo.filename} className="text-sm text-gray-500">
-              🖼️ {photo.filename} <span className="text-xs text-gray-400">({photo.width}×{photo.height})</span>
+              <PhotoIcon className="h-4 w-4 inline-block" />&nbsp;
+              {photo.filename} <span className="text-xs text-gray-400">({photo.width}×{photo.height})</span>
             </li>
           ))}
           {videos.map((video, i) => (
             <li key={video} className="text-sm text-gray-500">
-              🎬 {video}
+              <FilmIcon className="h-4 w-4 inline-block" />&nbsp;
+              {video}
             </li>
           ))}
         </ul>
