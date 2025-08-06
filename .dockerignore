@@ -1,1 +1,6 @@
+posts/
 posts
+node_modules
+.git
+.next
+.env.local

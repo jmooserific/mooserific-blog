@@ -6,10 +6,18 @@ import PostListClient from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 const POSTS_PER_PAGE = 10;
 const postsDir = path.join(process.cwd(), "posts");
 
 function getPosts(): Post[] {
+  // Handle case where posts directory doesn't exist (e.g., during build)
+  if (!fs.existsSync(postsDir)) {
+    return [];
+  }
+  
   const postFolders = fs.readdirSync(postsDir);
   return (postFolders
     .map((folder) => {
