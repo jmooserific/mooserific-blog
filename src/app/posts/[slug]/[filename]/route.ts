@@ -5,7 +5,7 @@ import { readFile } from "fs/promises";
 
 export async function GET(
   request: NextRequest,
-  { params } : { params: Promise<{ slug: string, filename: string }> }
+  { params }: { params: Promise<{ slug: string, filename: string }> }
 ) {
   const { slug, filename } = await params;
   const filePath = join(process.cwd(), "posts", slug, filename);
