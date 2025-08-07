@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <footer className="text-center text-sm text-gray-900 py-6">
-          &copy; {new Date().getFullYear()} Mooserific
+          &copy; {new Date().getFullYear()} Mooserific | Powered by <a href="https://github.com/jmooserific/mooserific-blog">Mooserific Blog!</a>
         </footer>
       </body>
     </html>
