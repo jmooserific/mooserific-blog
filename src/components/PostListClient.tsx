@@ -34,25 +34,23 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts }) => {
   };
 
   return (
-    <main>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <FilterButton onSelect={handleSelectDate} initialValue={dateFilter} />
-          {dateFilter && (
-            <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
-          )}
-        </div>
-        {posts.length === 0 ? (
-          <div className="text-center text-gray-500 py-12 text-lg">
-            {dateFilter ? `No posts found for ${dateFilter}.` : "No posts found."}
-          </div>
-        ) : (
-          posts.map((post) => (
-            <PostCard key={post.slug} post={post} />
-          ))
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-center gap-4 mb-6">
+        <FilterButton onSelect={handleSelectDate} initialValue={dateFilter} />
+        {dateFilter && (
+          <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
         )}
       </div>
-    </main>
+      {posts.length === 0 ? (
+        <div className="text-center text-gray-500 py-12 text-lg">
+          {dateFilter ? `No posts found for ${dateFilter}.` : "No posts found."}
+        </div>
+      ) : (
+        posts.map((post) => (
+          <PostCard key={post.slug} post={post} />
+        ))
+      )}
+    </div>
   );
 };
 
