@@ -65,9 +65,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   return (
     <section className="bg-white shadow-sm p-4 mb-8">
-      <p className="text-sm text-gray-500 mb-4 text-right">
-        Posted on <strong className="text-gray-700">{new Date(post.date).toLocaleDateString()}</strong> by <strong>{post.author}</strong>
-      </p>
+      <h2 className="text-xl font-semibold text-gray-800 mb-2">
+        {new Date(post.date).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })}
+      </h2>
       <div className="prose prose-base mb-6">
         <Markdown>{post.caption}</Markdown>
       </div>
@@ -100,6 +104,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         )}
       </div>
+      {post.author && (
+        <p className="text-sm text-right text-gray-600 mt-2">
+          by <strong>{post.author}</strong>
+        </p>
+      )}
     </section>
   )
 };
