@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import PostListClient from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
+import { matchesDateFilter } from "../utils/dateFilter";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -28,19 +29,40 @@ function getPosts(): Post[] {
       }
       return null;
     })
-    .filter(Boolean) as Post[]);
+    .filter(Boolean) as Post[])
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export default function HomePage() {
-  const allPosts = getPosts().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
-  const posts = allPosts.slice(0, POSTS_PER_PAGE);
+interface HomePageProps {
+  searchParams: Promise<{ page?: string; date_filter?: string }>;
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const allPosts = getPosts();
+  const params = await searchParams;
+  const currentPage = parseInt(params.page || "1");
+  const dateFilter = params.date_filter || "";
+  
+  // Apply date filter first
+  const filteredPosts = dateFilter
+    ? allPosts.filter((post) => matchesDateFilter(post.date, dateFilter))
+    : allPosts;
+  
+  // Then apply pagination
+  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+  const paginatedPosts = filteredPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
+
   return (
     <>
       <Suspense fallback={<div>Loading posts...</div>}>
-        <PostListClient posts={posts} />
+        <PostListClient posts={paginatedPosts} />
       </Suspense>
-      <Pagination currentPage={1} totalPages={totalPages} />
+      <Pagination 
+        currentPage={currentPage} 
+        totalPages={totalPages}
+        dateFilter={dateFilter}
+      />
     </>
   );
 }

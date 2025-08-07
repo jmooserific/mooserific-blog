@@ -4,7 +4,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import FilterButton from "./FilterButton";
 import ActiveFilterBadge from "./ActiveFilterBadge";
 import PostCard, { Post } from "./PostCard";
-import { matchesDateFilter } from "../utils/dateFilter";
 
 interface PostListClientProps {
   posts: Post[];
@@ -15,23 +14,22 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts }) => {
   const router = useRouter();
   const dateFilter = searchParams.get("date_filter") || "";
 
-  const filteredPosts = dateFilter
-    ? posts.filter((post) => matchesDateFilter(post.date, dateFilter))
-    : posts;
-
   const handleSelectDate = (dateString: string) => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(searchParams.toString());
     if (dateString) {
       params.set("date_filter", dateString);
     } else {
       params.delete("date_filter");
     }
+    // Reset to first page when changing filter
+    params.delete("page");
     router.replace("?" + params.toString(), { scroll: false });
   };
 
   const handleClearFilter = () => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(searchParams.toString());
     params.delete("date_filter");
+    params.delete("page");
     router.replace("?" + params.toString(), { scroll: false });
   };
 
@@ -44,10 +42,12 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts }) => {
             <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
           )}
         </div>
-        {filteredPosts.length === 0 ? (
-          <div className="text-center text-gray-500 py-12 text-lg">No posts found for this date.</div>
+        {posts.length === 0 ? (
+          <div className="text-center text-gray-500 py-12 text-lg">
+            {dateFilter ? `No posts found for ${dateFilter}.` : "No posts found."}
+          </div>
         ) : (
-          filteredPosts.map((post) => (
+          posts.map((post) => (
             <PostCard key={post.slug} post={post} />
           ))
         )}
