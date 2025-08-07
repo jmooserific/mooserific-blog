@@ -1,60 +1,33 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { format, parse, isValid } from "date-fns";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { PostMetadata } from "../utils/postMetadata";
 
 interface DateFilterPopoverProps {
   onClose: () => void;
   onSelect: (dateString: string) => void;
   initialValue?: string;
+  postMetadata: PostMetadata;
 }
 
-const parseDateInput = (input: string): string | null => {
-  // Accepts YYYY, YYYY-MM, YYYY-MM-DD, YYYY-MM-DDTHH-MM
-  if (/^\d{4}$/.test(input)) return input;
-  if (/^\d{4}-\d{2}$/.test(input)) return input;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}$/.test(input)) return input;
-  return null;
-};
+const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect, initialValue, postMetadata }) => {
+  // Parse initial value to extract year and month
+  const getInitialYear = () => {
+    if (initialValue && /^\d{4}/.test(initialValue)) {
+      const year = parseInt(initialValue.substring(0, 4));
+      return postMetadata.availableYears.includes(year) ? year : postMetadata.availableYears[0];
+    }
+    return postMetadata.availableYears[0] || new Date().getFullYear();
+  };
 
-const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect, initialValue }) => {
-  // Parse initialValue into year, month, day
-  const now = new Date();
-  let initialYear = "";
-  let initialMonth = "";
-  let initialDay = "";
-  if (initialValue) {
-    const [y, m, d] = initialValue.split(/-|T/);
-    if (y) initialYear = y;
-    if (m) initialMonth = m;
-    if (d && d.length === 2) initialDay = d;
-  }
-  const [year, setYear] = useState(initialYear);
-  const [day, setDay] = useState(initialDay);
-  // Years: current year to current year - 25
-  const years = Array.from({ length: 26 }, (_, i) => (now.getFullYear() - i).toString());
-  // Month names
-  const monthNames = [
-    "", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
-  ];
-  // Map month name to number string (01-12)
-  const monthNameToNumber = (name: string) => {
-    const idx = monthNames.indexOf(name);
-    return idx > 0 ? idx.toString().padStart(2, "0") : "";
-  };
-  // If initialMonth is a number, convert to name
-  const initialMonthName = monthNames[Number(initialMonth)] || "";
-  const [monthName, setMonthName] = useState(initialMonthName);
-  // Days: 1-31, but filter based on month/year
-  const getDaysInMonth = (y: string, m: string) => {
-    if (!y || !m) return [];
-    const d = new Date(Number(y), Number(m), 0).getDate();
-    return Array.from({ length: d }, (_, i) => (i + 1).toString().padStart(2, "0"));
-  };
-  const days = ["", ...getDaysInMonth(year, monthNameToNumber(monthName))];
+  const [currentYear, setCurrentYear] = useState(getInitialYear());
   const ref = useRef<HTMLDivElement>(null);
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -66,67 +39,117 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
+  const handlePreviousYear = () => {
+    const currentIndex = postMetadata.availableYears.indexOf(currentYear);
+    if (currentIndex < postMetadata.availableYears.length - 1) {
+      setCurrentYear(postMetadata.availableYears[currentIndex + 1]);
+    }
+  };
 
-  const handleSelect = () => {
-    if (!year) return;
-    let filter = year;
-    const monthNum = monthNameToNumber(monthName);
-    if (monthNum) filter += `-${monthNum}`;
-    if (day) filter += `-${day}`;
-    onSelect(filter);
+  const handleNextYear = () => {
+    const currentIndex = postMetadata.availableYears.indexOf(currentYear);
+    if (currentIndex > 0) {
+      setCurrentYear(postMetadata.availableYears[currentIndex - 1]);
+    }
+  };
+
+  const handleYearClick = () => {
+    onSelect(currentYear.toString());
     onClose();
   };
+
+  const handleMonthClick = (monthIndex: number) => {
+    const monthStr = (monthIndex + 1).toString().padStart(2, '0');
+    onSelect(`${currentYear}-${monthStr}`);
+    onClose();
+  };
+
+  const isMonthDisabled = (monthIndex: number) => {
+    return !postMetadata.monthsWithPosts[currentYear]?.includes(monthIndex + 1);
+  };
+
+  const getPostCount = (yearOrMonth: string) => {
+    return postMetadata.postCounts[yearOrMonth] || 0;
+  };
+
+  const currentIndex = postMetadata.availableYears.indexOf(currentYear);
+  const canGoPrevious = currentIndex < postMetadata.availableYears.length - 1;
+  const canGoNext = currentIndex > 0;
 
   return (
     <div
       ref={ref}
-      className="absolute left-4 top-4 z-50 bg-white rounded-xl shadow-lg p-4 w-100 border border-gray-200"
+      className="absolute left-4 top-4 z-50 bg-white rounded-xl shadow-lg border border-gray-200 w-80"
       onMouseDown={e => e.stopPropagation()}
     >
-      <label className="block text-sm font-medium text-gray-700 mb-2">Filter by date</label>
-      <div className="flex gap-2 mb-2">
-        <select
-          className={
-            `w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ` +
-            (!year ? '' : '')
-          }
-          value={year}
-          onChange={e => { setYear(e.target.value); setMonthName(""); setDay(""); }}
-          autoFocus
+      {/* Year Navigation Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <button
+          onClick={handlePreviousYear}
+          disabled={!canGoPrevious}
+          className={`p-2 rounded-md transition-colors ${
+            canGoPrevious
+              ? 'hover:bg-gray-100 text-gray-700'
+              : 'text-gray-300 cursor-not-allowed'
+          }`}
         >
-          <option value="">Year</option>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <select
-          className={
-            `w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ` +
-            (!year ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : '')
-          }
-          value={monthName}
-          onChange={e => { setMonthName(e.target.value); setDay(""); }}
-          disabled={!year}
+          <ChevronLeftIcon className="h-5 w-5" />
+        </button>
+        
+        <button
+          onClick={handleYearClick}
+          className="text-2xl font-semibold text-gray-800 hover:text-blue-600 transition-colors px-4 py-2 rounded-md hover:bg-blue-50"
+          title={`Filter by ${currentYear} (${getPostCount(currentYear.toString())} posts)`}
         >
-          <option value="">Month</option>
-          {monthNames.map((m, idx) => idx > 0 && <option key={m} value={m}>{m}</option>)}
-        </select>
-        <select
-          className={
-            `w-1/3 border border-gray-300 rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ` +
-            ((!year || !monthName) ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : '')
-          }
-          value={day}
-          onChange={e => setDay(e.target.value)}
-          disabled={!year || !monthName}
+          {currentYear}
+        </button>
+        
+        <button
+          onClick={handleNextYear}
+          disabled={!canGoNext}
+          className={`p-2 rounded-md transition-colors ${
+            canGoNext
+              ? 'hover:bg-gray-100 text-gray-700'
+              : 'text-gray-300 cursor-not-allowed'
+          }`}
         >
-          <option value="">Day</option>
-          {days.map(d => d && <option key={d} value={d}>{d}</option>)}
-        </select>
+          <ChevronRightIcon className="h-5 w-5" />
+        </button>
       </div>
-      <button
-        className="w-full bg-blue-600 text-white rounded-md py-2 mt-1 hover:bg-blue-700 transition"
-        onClick={handleSelect}
-        disabled={!year}
-      >Apply</button>
+
+      {/* Month Grid */}
+      <div className="p-4">
+        <div className="grid grid-cols-3 gap-2">
+          {monthNames.map((month, index) => {
+            const isDisabled = isMonthDisabled(index);
+            const monthKey = `${currentYear}-${(index + 1).toString().padStart(2, '0')}`;
+            const postCount = getPostCount(monthKey);
+            
+            return (
+              <button
+                key={month}
+                onClick={() => !isDisabled && handleMonthClick(index)}
+                disabled={isDisabled}
+                className={`
+                  p-3 rounded-lg text-sm font-medium transition-all duration-150
+                  ${isDisabled
+                    ? 'text-gray-300 cursor-not-allowed bg-gray-50'
+                    : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700 border border-transparent hover:border-blue-200'
+                  }
+                `}
+                title={isDisabled ? 'No posts this month' : `${month} ${currentYear} (${postCount} posts)`}
+              >
+                <div>{month}</div>
+                {!isDisabled && postCount > 0 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {postCount} post{postCount !== 1 ? 's' : ''}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

@@ -4,12 +4,14 @@ import { useSearchParams, useRouter } from "next/navigation";
 import FilterButton from "./FilterButton";
 import ActiveFilterBadge from "./ActiveFilterBadge";
 import PostCard, { Post } from "./PostCard";
+import { PostMetadata } from "../utils/postMetadata";
 
 interface PostListClientProps {
   posts: Post[];
+  postMetadata: PostMetadata;
 }
 
-const PostListClient: React.FC<PostListClientProps> = ({ posts }) => {
+const PostListClient: React.FC<PostListClientProps> = ({ posts, postMetadata }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const dateFilter = searchParams.get("date_filter") || "";
@@ -36,7 +38,7 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center gap-4 mb-6">
-        <FilterButton onSelect={handleSelectDate} initialValue={dateFilter} />
+        <FilterButton onSelect={handleSelectDate} initialValue={dateFilter} postMetadata={postMetadata} />
         {dateFilter && (
           <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
         )}

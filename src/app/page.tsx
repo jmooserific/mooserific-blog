@@ -6,6 +6,7 @@ import PostListClient from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
 import { matchesDateFilter } from "../utils/dateFilter";
+import { getPostMetadata } from "../utils/postMetadata";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ interface HomePageProps {
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const allPosts = getPosts();
+  const postMetadata = getPostMetadata();
   const params = await searchParams;
   const currentPage = parseInt(params.page || "1");
   const dateFilter = params.date_filter || "";
@@ -56,7 +58,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <>
       <Suspense fallback={<div>Loading posts...</div>}>
-        <PostListClient posts={paginatedPosts} />
+        <PostListClient posts={paginatedPosts} postMetadata={postMetadata} />
       </Suspense>
       <Pagination 
         currentPage={currentPage} 
