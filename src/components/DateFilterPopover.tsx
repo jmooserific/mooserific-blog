@@ -131,7 +131,7 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
                 onClick={() => !isDisabled && handleMonthClick(index)}
                 disabled={isDisabled}
                 className={`
-                  p-3 rounded-lg text-sm font-medium transition-all duration-150
+                  relative p-3 rounded-lg text-sm font-medium transition-all duration-150
                   ${isDisabled
                     ? 'text-gray-300 cursor-not-allowed bg-gray-50'
                     : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700 border border-transparent hover:border-blue-200'
@@ -141,8 +141,8 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
               >
                 <div>{month}</div>
                 {!isDisabled && postCount > 0 && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {postCount} post{postCount !== 1 ? 's' : ''}
+                  <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-sm">
+                    {postCount > 99 ? '99+' : postCount}
                   </div>
                 )}
               </button>

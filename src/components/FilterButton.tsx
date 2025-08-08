@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 import DateFilterPopover from "./DateFilterPopover";
 import { PostMetadata } from "../utils/postMetadata";
 
@@ -20,7 +20,7 @@ const FilterButton: React.FC<FilterButtonProps> = ({ onSelect, initialValue, pos
         title="Filter posts"
         onMouseDown={e => { e.stopPropagation(); setOpen(v => !v); }}
       >
-        <AdjustmentsHorizontalIcon className="h-6 w-6 text-gray-600" />
+        <CalendarDaysIcon className="h-6 w-6 text-gray-600" />
       </button>
       {open && (
         <DateFilterPopover
