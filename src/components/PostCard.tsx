@@ -13,7 +13,7 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
 export type PhotoMeta = {
-  filename: string;
+  filename: string; // Can be full URL from R2
   width: number;
   height: number;
 };
@@ -35,12 +35,15 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [index, setIndex] = useState(-1);
 
 
-  const photos = post.photos.map((photo) => ({
-    src: `/posts/${post.slug}/${photo.filename}`,
-    width: photo.width,
-    height: photo.height,
-    alt: post.caption || "Photo"
-  }));
+  const photos = post.photos.map((photo) => {
+    const isUrl = /^https?:\/\//.test(photo.filename) || photo.filename.startsWith('/');
+    return {
+      src: isUrl ? photo.filename : `/posts/${post.slug}/${photo.filename}`,
+      width: photo.width,
+      height: photo.height,
+      alt: post.caption || 'Photo'
+    };
+  });
 
   // Custom renderPhoto for Next.js Image optimization
   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
@@ -97,7 +100,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 className="w-full rounded-md bg-black"
                 style={{ maxHeight: 400 }}
               >
-                <source src={`/posts/${post.slug}/${video}`} />
+                <source src={/^https?:\/\//.test(video) || video.startsWith('/') ? video : `/posts/${post.slug}/${video}`} />
                 Your browser does not support the video tag.
               </video>
             ))}

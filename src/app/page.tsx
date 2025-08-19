@@ -1,37 +1,51 @@
 
-import fs from "fs";
-import path from "path";
 import { Suspense } from "react";
 import PostListClient from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
 import { matchesDateFilter } from "../utils/dateFilter";
-import { getPostMetadata } from "../utils/postMetadata";
+import { listPosts } from '@/lib/db';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 const POSTS_PER_PAGE = 10;
-const postsDir = path.join(process.cwd(), "posts");
 
-function getPosts(): Post[] {
-  // Handle case where posts directory doesn't exist (e.g., during build)
-  if (!fs.existsSync(postsDir)) {
-    return [];
-  }
-  
-  const postFolders = fs.readdirSync(postsDir);
-  return (postFolders
-    .map((folder) => {
-      const postPath = path.join(postsDir, folder, "post.json");
-      if (fs.existsSync(postPath)) {
-        const post = JSON.parse(fs.readFileSync(postPath, "utf-8"));
-        return { ...post, slug: folder } as Post;
-      }
-      return null;
-    })
-    .filter(Boolean) as Post[])
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+async function getPosts(): Promise<Post[]> {
+  const rows = await listPosts({ limit: 500 }); // adjust as needed
+  return rows.map(r => ({
+    date: r.date,
+    author: r.author || '',
+    caption: r.description || '',
+    photos: (r.photos || []).map(p => ({ filename: p.url, width: p.width, height: p.height })),
+    slug: r.id,
+    videos: r.videos
+  })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+function buildMetadata(posts: Post[]) {
+  const availableYears = new Set<number>();
+  const monthsWithPosts: { [year: number]: Set<number> } = {};
+  const postCounts: { [yearMonth: string]: number } = {};
+  posts.forEach(p => {
+    const d = new Date(p.date);
+    if (isNaN(d.getTime())) return;
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth() + 1;
+    availableYears.add(year);
+    if (!monthsWithPosts[year]) monthsWithPosts[year] = new Set();
+    monthsWithPosts[year].add(month);
+    const ym = `${year}-${String(month).padStart(2, '0')}`;
+    postCounts[ym] = (postCounts[ym] || 0) + 1;
+    postCounts[year] = (postCounts[year] || 0) + 1;
+  });
+  return {
+    availableYears: Array.from(availableYears).sort((a,b)=> b-a),
+    monthsWithPosts: Object.fromEntries(
+      Object.entries(monthsWithPosts).map(([y, set]) => [Number(y), Array.from(set).sort((a,b)=>a-b)])
+    ),
+    postCounts
+  };
 }
 
 interface HomePageProps {
@@ -39,8 +53,8 @@ interface HomePageProps {
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const allPosts = getPosts();
-  const postMetadata = getPostMetadata();
+  const allPosts = await getPosts();
+  const postMetadata = buildMetadata(allPosts);
   const params = await searchParams;
   const currentPage = parseInt(params.page || "1");
   const dateFilter = params.date_filter || "";

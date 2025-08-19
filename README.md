@@ -6,14 +6,14 @@
 
 Private, family-oriented photo + video blog built with **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**. Modernized to run on **Vercel**, storing media in **Cloudflare R2** and post metadata in **Cloudflare D1**.
 
-## ✨ Features (Current Architecture)
+## ✨ Features
 - Fast Vercel deployment (Edge-friendly where possible)
-- Cloudflare D1 for post metadata (UUID, date, author, description, media URLs)
-- Cloudflare R2 (S3-compatible) for photos & videos
+- Cloudflare D1 as the sole source of truth for post metadata (UUID, date, author, description, media URLs)
+- Cloudflare R2 (S3-compatible) for photos & videos (no local filesystem storage)
 - Drag‑and‑drop Admin UI (Basic Auth protected) with Markdown description
 - Responsive photo grids via `react-photo-album` (lightbox optional future)
 - Inline `<video controls>` playback for uploaded MP4s
-- Date-ordered feed with future-friendly pagination & filtering hooks
+- Date-ordered feed with server-side filtering utilities (DB-derived metadata)
 
 ## 🧱 Data Model (D1 `posts`)
 ```sql
@@ -43,7 +43,7 @@ export interface Post {
 ## 🗄️ Media Storage (Cloudflare R2)
 - Object key pattern (prod): `photos/<postUUID>/<originalFileName>`
 - Dev adds prefix: `dev/photos/<postUUID>/<originalFileName>`
-- URLs stored directly in D1; initial implementation can serve public bucket URLs (optionally move to signed or proxied URLs later).
+- URLs stored directly in D1; currently served as-is (optionally move to signed or proxied URLs later).
 
 ## 🔐 Authentication
 Basic HTTP Auth enforced via Vercel middleware (`/admin` + write API routes). Username (portion before `@` if email) is recorded as `author` when posts are created/updated.
@@ -82,7 +82,7 @@ BASIC_AUTH_PASS=
    ```
 5. Open `http://localhost:3000/admin` (browser will prompt for Basic Auth).
 
-Media uploads in dev go to R2 under `dev/` prefix. Remove prefix automatically in production based on `ENVIRONMENT`.
+Media uploads in dev go to R2 under `dev/` prefix; production omits it.
 
 ## 🛫 Deployment (Vercel)
 1. Push repo to GitHub.
@@ -91,15 +91,15 @@ Media uploads in dev go to R2 under `dev/` prefix. Remove prefix automatically i
 4. (Optional) Add Cloudflare account-specific IP allow rules if bucket is private.
 5. Trigger deploy; migrations can be applied via CI step or manual Wrangler run (future automation TBD).
 
-## 🧪 API Routes (Planned/Implemented)
-| Method | Route             | Purpose                               | Auth |
-|--------|-------------------|----------------------------------------|------|
+## 🧪 API Routes
+| Method | Route             | Purpose                                | Auth |
+|--------|-------------------|-----------------------------------------|------|
 | GET    | `/api/posts`      | List posts (desc, optional limit/cursor)| No   |
-| POST   | `/api/posts`      | Create post (description + media URLs) | Yes  |
-| GET    | `/api/posts/:id`  | Fetch single post                      | No   |
-| PUT    | `/api/posts/:id`  | Update description / media lists       | Yes  |
-| DELETE | `/api/posts/:id`  | Delete post (optional media cascade)   | Yes  |
-| POST   | `/api/media`      | Upload media (FormData) -> R2          | Yes  |
+| POST   | `/api/posts`      | Create post (description + media URLs)  | Yes  |
+| GET    | `/api/posts/:id`  | Fetch single post                       | No   |
+| PUT    | `/api/posts/:id`  | Update description / media lists        | Yes  |
+| DELETE | `/api/posts/:id`  | Delete post (optional media cascade)    | Yes  |
+| POST   | `/api/media`      | Upload media (FormData) -> R2           | Yes  |
 
 ## 🧮 Admin Flow
 1. User authenticates (Basic Auth middleware)
@@ -139,7 +139,7 @@ Media uploads in dev go to R2 under `dev/` prefix. Remove prefix automatically i
 ```
 
 ## 🗺️ Routes (User-Facing)
-- `/` – Homepage (lists newest posts; optional future `?before=` cursor or date filters)
+- `/` – Homepage (lists newest posts; future pagination/cursor)
 - `/admin` – Admin UI (Basic Auth)
 - (Optional) `/post/[id]` – Individual post view (if implemented)
 

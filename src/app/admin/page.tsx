@@ -35,29 +35,44 @@ export default function AdminPage() {
   }
 
   async function handleSubmit() {
-    const formData = new FormData();
-    formData.append("caption", caption);
-    // Get author from header if available (for demo, use placeholder)
-    formData.append("author", "from header");
-    formData.append("photos", JSON.stringify(photos));
-    formData.append("videos", JSON.stringify(videos));
-    files.forEach((file) => {
-      formData.append(file.name, file);
-    });
-    const res = await fetch("/admin/api/create-post", {
-      method: "POST",
-      body: formData,
-    });
-    if (res.ok) {
-      const data = await res.json();
-      alert(`Post created! Slug: ${data.slug}`);
-      setCaption("");
+    try {
+      if (files.length === 0) {
+        alert('Select at least one file');
+        return;
+      }
+      // 1. Upload media
+      const mediaForm = new FormData();
+      files.forEach(f => mediaForm.append(f.name, f));
+      const mediaRes = await fetch('/api/media', { method: 'POST', body: mediaForm });
+      if (!mediaRes.ok) {
+        throw new Error(await mediaRes.text());
+      }
+      const { postId, urls } = await mediaRes.json();
+      // Separate photos/videos by MIME type or extension
+      const photoUrls: string[] = urls.filter((u: string) => /\.(jpe?g|png|gif|webp|avif)$/i.test(u));
+      const videoUrls: string[] = urls.filter((u: string) => /\.(mp4|mov|webm)$/i.test(u));
+      // Map photoUrls back to dimensions we already captured in "photos" state
+      const photoAssets = photoUrls.map(url => {
+        const meta = photos.find(p => url.includes(p.filename)) || { width: 800, height: 600 };
+        return { url, width: meta.width, height: meta.height };
+      });
+      // 2. Create post record
+      const postRes = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: caption, photos: photoAssets, videos: videoUrls })
+      });
+      if (!postRes.ok) {
+        throw new Error(await postRes.text());
+      }
+      const created = await postRes.json();
+      alert(`Post created! ID: ${created.id}`);
+      setCaption('');
       setFiles([]);
       setPhotos([]);
       setVideos([]);
-    } else {
-      const error = await res.text();
-      alert("Error: " + error);
+    } catch (e: any) {
+      alert('Error: ' + e.message);
     }
   }
 
