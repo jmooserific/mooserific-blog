@@ -2,21 +2,26 @@ import type { Post, ListPostsOptions, PhotoAsset } from './types';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 
-// Lightweight abstraction: in production we use Cloudflare D1 HTTP API; in dev fall back to local SQLite if CF vars absent
+// Lightweight abstraction: in production we ALWAYS use Cloudflare D1 HTTP API; in dev we can fall back to local SQLite if D1 env vars absent.
 
 const D1_HTTP_REQUIRED = ['D1_DATABASE_ID', 'D1_ACCOUNT_ID', 'CF_API_TOKEN'];
 
 let sqliteDb: any;
+const isVercel = !!process.env.VERCEL;
+const nodeEnv = process.env.NODE_ENV || process.env.ENVIRONMENT || 'development';
+const isProd = nodeEnv === 'production' || isVercel;
 
 function useLocalSQLite() {
+  if (isProd) {
+    throw new Error('Local SQLite fallback is disabled in production. Configure D1 environment variables.');
+  }
   if (!sqliteDb) {
     const fs = require('fs');
     const path = require('path');
     const dataDir = path.join(process.cwd(), '.data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
     const dbPath = path.join(dataDir, 'dev.sqlite');
     sqliteDb = new Database(dbPath);
-    // Ensure schema (matches migration 0001)
     sqliteDb.exec(`CREATE TABLE IF NOT EXISTS posts (
       id TEXT PRIMARY KEY,
       date TEXT NOT NULL,
@@ -33,7 +38,9 @@ function useLocalSQLite() {
 async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ results: T[] } > {
   const missing = D1_HTTP_REQUIRED.filter(v => !process.env[v]);
   if (missing.length) {
-    // Fallback to local sqlite
+    if (isProd) {
+      throw new Error(`Missing D1 env vars in production: ${missing.join(', ')}`);
+    }
     const db = useLocalSQLite();
     const stmt = db.prepare(sql.replace(/\$\d+/g, '?'));
     const rows = stmt.all(...params);
