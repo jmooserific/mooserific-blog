@@ -51,7 +51,8 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
   const dbId = process.env.D1_DATABASE_ID!;
   const token = process.env.CF_API_TOKEN!;
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}/raw`;
-  const body = { sql: [sql], params: [params] };
+  // D1 HTTP API expects a single SQL string for /raw; we send params array.
+  const body = { sql, params };
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -65,8 +66,14 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
     throw new Error(`D1 query failed: ${res.status} ${text}`);
   }
   const data = await res.json();
-  const first = data.result?.[0];
-  return { results: (first?.results || []) as T[] };
+  // Response shape may be either { result: [{ results: [...] }]} or { result: { results: [...] }}
+  let rows: any[] = [];
+  if (Array.isArray(data.result)) {
+    rows = data.result[0]?.results || [];
+  } else if (data.result && Array.isArray(data.result.results)) {
+    rows = data.result.results;
+  }
+  return { results: rows as T[] };
 }
 
 export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
