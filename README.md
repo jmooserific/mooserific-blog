@@ -1,48 +1,148 @@
-# Mooserific Blog!
+# Mooserific Blog
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/jmooserific/mooserific-blog/refs/heads/main/public/Screenshot.png" alt="screenshot of Mooserific Blog" style="max-width: 800px;"/>
 </p>
 
-A simple, private, family-oriented photo (and video) blog built with Next.js, styled with Tailwind CSS, and designed for filesystem-based post storage. Hosted via Docker on Synology NAS.
+Private, family-oriented photo + video blog built with **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**. Modernized to run on **Vercel**, storing media in **Cloudflare R2** and post metadata in **Cloudflare D1**.
 
-## Features
-- Tiled photo and video galleries with fullscreen "lightbox" viewing (using `react-photo-album` and `yet-another-react-lightbox`)
-- Video playback with HTML5 `<video>` tags
-- Posts stored as folders in `/posts/YYYY-MM-DDTHH-MM/` with `post.json`, photo, and video files
-- Homepage displays latest posts or posts from the specified year/month/day in descending order
-- Admin UI for uploading up to 10 images/videos per post, with drag-and-drop and Markdown/WYSIWYG caption support
-- No external database
-- Auth handled via reverse proxy (HTTP Basic Auth)
+## ✨ Features (Current Architecture)
+- Fast Vercel deployment (Edge-friendly where possible)
+- Cloudflare D1 for post metadata (UUID, date, author, description, media URLs)
+- Cloudflare R2 (S3-compatible) for photos & videos
+- Drag‑and‑drop Admin UI (Basic Auth protected) with Markdown description
+- Responsive photo grids via `react-photo-album` (lightbox optional future)
+- Inline `<video controls>` playback for uploaded MP4s
+- Date-ordered feed with future-friendly pagination & filtering hooks
 
-## Getting Started
-1. Install dependencies: `npm install`
-2. Run locally: `npm run dev`
-3. Build for production: `npm run build`
-4. Run in Docker (see `Dockerfile`)
+## 🧱 Data Model (D1 `posts`)
+```sql
+CREATE TABLE posts (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  author TEXT,
+  description TEXT,
+  photos TEXT,  -- JSON array of R2 URLs
+  videos TEXT   -- JSON array of R2 URLs (nullable)
+);
+CREATE INDEX idx_posts_date ON posts(date DESC);
+```
 
-## Folder Structure
-- `/posts` — All post folders and images
-- `/src` — Next.js app code
-- `/public` — Static assets
-
-
-## Sample Post Format
-```json
-{
-  "date": "2025-07-26T14:42:00",
-  "author": "vemoose",
-  "caption": "Short paragraph of text here...",
-  "photos": [
-    { "filename": "01.jpg", "width": 800, "height": 600 },
-    { "filename": "02.jpg", "width": 1200, "height": 900 }
-  ],
-  "videos": ["clip1.mp4", "clip2.mp4"]
+TypeScript shape:
+```ts
+export interface Post {
+  id: string;
+  date: string;          // ISO timestamp
+  author?: string;        // from Basic Auth username (before @)
+  description?: string;   // markdown
+  photos: string[];       // R2 object URLs
+  videos?: string[];      // R2 object URLs
 }
 ```
 
-## Routes
-- `/` — Homepage (shows all posts, or filtered by date)
-- `/?date_filter=YYYY`, `/?date_filter=YYYY-MM`, `/?date_filter=YYYY-MM-DD`, `/?date_filter=YYYY-MM-DDTHH-MM` — Filter posts by year, month, day, or timestamp
-- `/posts/[slug]/[filename]` — Serve post images
-- `/admin` — Editor UI (protected externally)
+## 🗄️ Media Storage (Cloudflare R2)
+- Object key pattern (prod): `photos/<postUUID>/<originalFileName>`
+- Dev adds prefix: `dev/photos/<postUUID>/<originalFileName>`
+- URLs stored directly in D1; initial implementation can serve public bucket URLs (optionally move to signed or proxied URLs later).
+
+## 🔐 Authentication
+Basic HTTP Auth enforced via Vercel middleware (`/admin` + write API routes). Username (portion before `@` if email) is recorded as `author` when posts are created/updated.
+
+## 📦 Environment Variables
+Provide these in `.env.local` (local) and Vercel Project Settings (production). Example `.env.example`:
+```env
+R2_BUCKET_NAME=
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+D1_DATABASE_ID=           # if using direct binding ID
+ENVIRONMENT=development   # or production
+BASIC_AUTH_USER=
+BASIC_AUTH_PASS=
+```
+
+## 🚀 Getting Started (Local Dev)
+1. Install deps:
+   ```bash
+   npm install
+   ```
+2. Copy env template:
+   ```bash
+   cp .env.example .env.local
+   # fill in credentials
+   ```
+3. (First time) Create + apply D1 migration:
+   ```bash
+   npx wrangler d1 migrations apply <DB_NAME>
+   # or: wrangler d1 execute <DB_NAME> --local --file=./migrations/0001_posts.sql
+   ```
+4. Start dev server:
+   ```bash
+   npm run dev
+   ```
+5. Open `http://localhost:3000/admin` (browser will prompt for Basic Auth).
+
+Media uploads in dev go to R2 under `dev/` prefix. Remove prefix automatically in production based on `ENVIRONMENT`.
+
+## 🛫 Deployment (Vercel)
+1. Push repo to GitHub.
+2. Import project in Vercel dashboard.
+3. Add the environment variables above to Production / Preview scopes.
+4. (Optional) Add Cloudflare account-specific IP allow rules if bucket is private.
+5. Trigger deploy; migrations can be applied via CI step or manual Wrangler run (future automation TBD).
+
+## 🧪 API Routes (Planned/Implemented)
+| Method | Route             | Purpose                               | Auth |
+|--------|-------------------|----------------------------------------|------|
+| GET    | `/api/posts`      | List posts (desc, optional limit/cursor)| No   |
+| POST   | `/api/posts`      | Create post (description + media URLs) | Yes  |
+| GET    | `/api/posts/:id`  | Fetch single post                      | No   |
+| PUT    | `/api/posts/:id`  | Update description / media lists       | Yes  |
+| DELETE | `/api/posts/:id`  | Delete post (optional media cascade)   | Yes  |
+| POST   | `/api/media`      | Upload media (FormData) -> R2          | Yes  |
+
+## 🧮 Admin Flow
+1. User authenticates (Basic Auth middleware)
+2. Drag‑and‑drop selects images/videos
+3. Client sends FormData to `/api/media` (server streams to R2)
+4. Receive array of R2 URLs
+5. Submit `POST /api/posts` with `{ description, photos, videos }`
+6. UI refreshes with new post
+
+## 🗂️ Project Structure
+- `src/app/` – Pages & API routes (`api/posts`, `api/media`, `admin`)
+- `lib/` – `db.ts` (D1 helpers), `r2.ts` (R2 helpers)
+- `migrations/` – SQL migration files (numbered)
+- `public/` – Static assets (favicon, screenshot)
+- `.github/` – CI / instructions
+
+## 🧪 Testing & Quality Notes
+- Unit: key generation (R2), DB helpers, API auth guard
+- Integration: create → list → fetch → update → delete cycle
+- Security: sanitize markdown, enforce MIME & size limits
+
+## 📄 Sample Post (API JSON)
+```json
+{
+  "id": "b52a5d3d-5e4b-4c5e-8e2e-6a3d1b7e9f10",
+  "date": "2025-07-26T14:42:00.000Z",
+  "author": "vemoose",
+  "description": "Short paragraph of markdown **here**...",
+  "photos": [
+    "https://<r2-public-domain>/photos/b52a5d3d-5e4b-4c5e-8e2e-6a3d1b7e9f10/IMG_0001.jpg",
+    "https://<r2-public-domain>/photos/b52a5d3d-5e4b-4c5e-8e2e-6a3d1b7e9f10/IMG_0002.jpg"
+  ],
+  "videos": [
+    "https://<r2-public-domain>/photos/b52a5d3d-5e4b-4c5e-8e2e-6a3d1b7e9f10/clip1.mp4"
+  ]
+}
+```
+
+## 🗺️ Routes (User-Facing)
+- `/` – Homepage (lists newest posts; optional future `?before=` cursor or date filters)
+- `/admin` – Admin UI (Basic Auth)
+- (Optional) `/post/[id]` – Individual post view (if implemented)
+
+## ⚖️ License
+See `LICENSE`.
+
