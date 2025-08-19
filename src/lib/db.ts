@@ -51,8 +51,9 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
   const dbId = process.env.D1_DATABASE_ID!;
   const token = process.env.CF_API_TOKEN!;
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}/raw`;
-  // D1 HTTP API expects a single SQL string for /raw; we send params array.
-  const body = { sql, params };
+  // Normalize positional placeholders ($1,$2,...) to '?' for D1 HTTP API consistency.
+  const normalizedSql = sql.replace(/\$\d+/g, '?');
+  const body = { sql: normalizedSql, params };
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -66,14 +67,38 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
     throw new Error(`D1 query failed: ${res.status} ${text}`);
   }
   const data = await res.json();
-  // Response shape may be either { result: [{ results: [...] }]} or { result: { results: [...] }}
-  let rows: any[] = [];
-  if (Array.isArray(data.result)) {
-    rows = data.result[0]?.results || [];
-  } else if (data.result && Array.isArray(data.result.results)) {
-    rows = data.result.results;
+  // Normalize known response variants from D1 raw endpoint.
+  // Variants observed:
+  // A: { result: [ { results: [...], success: true, meta: {...} } ], success: true }
+  // B: { result: { results: [...], meta: {...} }, success: true }
+  // C: { result: [ { columns: [...], rows: [[...],[...]], success: true } ] }
+  // D: { result: { columns: [...], rows: [[...],[...]] } }
+  let rowObjs: any[] = [];
+  const r = data.result;
+  const mapCols = (container: any) => {
+    if (container?.columns && Array.isArray(container.rows)) {
+      return mapColumnsRows(container.columns, container.rows);
+    }
+    return [];
+  };
+  if (Array.isArray(r)) {
+    const first = r[0];
+    if (first?.results && Array.isArray(first.results)) {
+      rowObjs = first.results;
+    } else if (first?.columns) {
+      rowObjs = mapCols(first);
+    }
+  } else if (r) {
+    if (Array.isArray(r.results)) {
+      rowObjs = r.results;
+    } else if (r.columns) {
+      rowObjs = mapCols(r);
+    }
   }
-  return { results: rows as T[] };
+  if (!Array.isArray(rowObjs)) {
+    rowObjs = [];
+  }
+  return { results: rowObjs as T[] };
 }
 
 export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
@@ -82,8 +107,9 @@ export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
     const { results } = await d1Query<Post>(`SELECT * FROM posts WHERE date < $1 ORDER BY date DESC LIMIT $2`, [opts.before, limit]);
     return results.map(deserializePost);
   }
-  const { results } = await d1Query<Post>(`SELECT * FROM posts ORDER BY date DESC LIMIT $1`, [limit]);
-  return results.map(deserializePost);
+  const { results } = await d1Query<any>(`SELECT * FROM posts ORDER BY date DESC LIMIT $1`, [limit]);
+  const arr = Array.isArray(results) ? results : [];
+  return arr.map(deserializePost);
 }
 
 export async function getPost(id: string): Promise<Post | null> {
@@ -155,7 +181,22 @@ function deserializePost(row: any): Post {
   };
 }
 
-function safeParseArray(val: any): string[] | undefined {
-  if (!val) return undefined;
-  try { return JSON.parse(val); } catch { return undefined; }
+function safeParseArray(val: any): any[] | undefined {
+  if (val == null) return undefined;
+  try {
+    const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+    if (Array.isArray(parsed)) return parsed;
+    // If it's a single object or primitive, wrap it
+    return [parsed];
+  } catch {
+    return undefined;
+  }
+}
+
+function mapColumnsRows(columns: string[], rows: any[][]): any[] {
+  return rows.map(r => {
+    const obj: any = {};
+    columns.forEach((col, idx) => { obj[col] = r[idx]; });
+    return obj;
+  });
 }
