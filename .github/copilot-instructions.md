@@ -2,7 +2,7 @@
 
 Mooserific-blog is a simple photo/video blogging platform. It prioritizes easy posting and a clean, simple appearance.
 
-These instructions describe the NEW architecture. Remove any reliance on local filesystem post folders or Docker runtime assumptions.
+These instructions describe the NEW architecture. All legacy filesystem post folder or container-specific assumptions are deprecated.
 
 ## Big Picture Architecture
 - Deployment target: **Vercel** (Next.js App Router + Edge-friendly where useful).
@@ -89,7 +89,7 @@ Simplest initial approach: upload via server route (FormData) to avoid presigned
 - Install deps: `npm install`.
 - Local dev: `npm run dev` (Next.js). Run `wrangler d1 execute <DB_NAME> --local --file=./migrations/0001_posts.sql` for first migration OR use `wrangler d1 migrations apply` once configured.
 - Migrations directory: `migrations/` (numbered). Add new SQL migration files when schema changes.
-- No Docker required. Remove any Docker-specific deployment assumptions.
+- Deployment is Vercel-native (no containers required).
 
 ## Migration Management (D1)
 ```
