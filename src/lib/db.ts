@@ -85,18 +85,38 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
     const first = r[0];
     if (first?.results && Array.isArray(first.results)) {
       rowObjs = first.results;
+    } else if (first?.results?.columns && Array.isArray(first?.results?.rows)) {
+      // Variant E: { result: [ { results: { columns: [...], rows: [...] }, success: true, meta: {...} } ] }
+      rowObjs = mapColumnsRows(first.results.columns, first.results.rows);
     } else if (first?.columns) {
       rowObjs = mapCols(first);
     }
   } else if (r) {
     if (Array.isArray(r.results)) {
       rowObjs = r.results;
+    } else if (r?.results?.columns && Array.isArray(r?.results?.rows)) {
+      // Variant F: { result: { results: { columns: [...], rows: [...] }, success: true } }
+      rowObjs = mapColumnsRows(r.results.columns, r.results.rows);
     } else if (r.columns) {
       rowObjs = mapCols(r);
     }
   }
   if (!Array.isArray(rowObjs)) {
     rowObjs = [];
+  }
+  // Additional normalization: some responses embed positional arrays inside a wrapping array
+  // e.g. rowObjs = [ [id,date,author,description,photos,videos], ... ]
+  if (rowObjs.length && Array.isArray(rowObjs[0]) && !('id' in rowObjs[0])) {
+    // Attempt to derive columns from original response 'r'
+    let cols: string[] | undefined;
+    if (Array.isArray(r) && r[0]?.columns) cols = r[0].columns;
+    else if (!Array.isArray(r) && r?.columns) cols = r.columns;
+    cols = cols || ['id','date','author','description','photos','videos'];
+    rowObjs = (rowObjs as any[]).map((vals: any[]) => {
+      const obj: any = {};
+      cols!.forEach((c,i)=> { obj[c] = vals[i]; });
+      return obj;
+    });
   }
   return { results: rowObjs as T[] };
 }
