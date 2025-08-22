@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import Markdown from 'react-markdown';
-import {
-  RenderImageContext,
-  RenderImageProps,
-  RowsPhotoAlbum,
-} from "react-photo-album";
+import { RenderImageContext, RenderImageProps } from "react-photo-album";
 import "react-photo-album/styles.css";
 import Image from "next/image";
-import Lightbox from "yet-another-react-lightbox";
+import dynamic from "next/dynamic";
+const RowsPhotoAlbum = dynamic(() => import("react-photo-album").then(m => m.RowsPhotoAlbum), { ssr: false });
+const Lightbox = dynamic(() => import("yet-another-react-lightbox"), { ssr: false });
 import "yet-another-react-lightbox/styles.css";
 
 export type PhotoMeta = {
@@ -66,14 +64,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     </div>
   );
 
+  // Format date in a UTC-stable way to avoid SSR/CSR timezone differences
+  const formatDateUTC = (iso: string) => {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const month = monthNames[d.getUTCMonth()];
+    const day = d.getUTCDate();
+    const year = d.getUTCFullYear();
+    return `${month} ${day}, ${year}`;
+  };
+
   return (
     <section className="bg-white shadow-sm p-4 mb-8">
       <h2 className="text-xl font-semibold text-gray-800 mb-2">
-        {new Date(post.date).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })}
+        {formatDateUTC(post.date)}
       </h2>
       <div className="prose prose-base mb-6">
         <Markdown>{post.caption}</Markdown>

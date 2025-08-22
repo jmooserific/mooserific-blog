@@ -18,7 +18,9 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
       const year = parseInt(initialValue.substring(0, 4));
       return postMetadata.availableYears.includes(year) ? year : postMetadata.availableYears[0];
     }
-    return postMetadata.availableYears[0] || new Date().getFullYear();
+    // Avoid using local current year which can cause hydration diffs.
+    // Fall back to latest year in metadata, or a fixed constant (1970) if none.
+    return postMetadata.availableYears[0] || 1970;
   };
 
   const [currentYear, setCurrentYear] = useState(getInitialYear());
@@ -87,15 +89,14 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
         <button
           onClick={handlePreviousYear}
           disabled={!canGoPrevious}
-          className={`p-2 rounded-md transition-colors ${
-            canGoPrevious
+          className={`p-2 rounded-md transition-colors ${canGoPrevious
               ? 'hover:bg-gray-100 text-gray-700'
               : 'text-gray-300 cursor-not-allowed'
-          }`}
+            }`}
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </button>
-        
+
         <button
           onClick={handleYearClick}
           className="text-2xl font-semibold text-gray-800 hover:text-blue-600 transition-colors px-4 py-2 rounded-md hover:bg-blue-50"
@@ -103,15 +104,14 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
         >
           {currentYear}
         </button>
-        
+
         <button
           onClick={handleNextYear}
           disabled={!canGoNext}
-          className={`p-2 rounded-md transition-colors ${
-            canGoNext
+          className={`p-2 rounded-md transition-colors ${canGoNext
               ? 'hover:bg-gray-100 text-gray-700'
               : 'text-gray-300 cursor-not-allowed'
-          }`}
+            }`}
         >
           <ChevronRightIcon className="h-5 w-5" />
         </button>
@@ -124,7 +124,7 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
             const isDisabled = isMonthDisabled(index);
             const monthKey = `${currentYear}-${(index + 1).toString().padStart(2, '0')}`;
             const postCount = getPostCount(monthKey);
-            
+
             return (
               <button
                 key={month}
