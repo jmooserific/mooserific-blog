@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Post, ListPostsOptions, PhotoAsset } from './types';
+import { getCloudflareClient } from './cloudflare';
 
 // D1 over Cloudflare API only.
 
@@ -16,68 +17,14 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
     throw new Error(`Missing required env vars for D1: ${missing.join(', ')}`);
   }
 
-  const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}/raw`;
-  // Normalize positional placeholders ($1,$2,...) to '?' for D1 HTTP API consistency.
+  // Normalize positional placeholders ($1,$2,...) to '?' for D1 consistency
   const normalizedSql = sql.replace(/\$\d+/g, '?');
-  const body = { sql: normalizedSql, params };
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`D1 query failed: ${res.status} ${text}`);
-  }
-  const data = await res.json();
-  // Normalize known response variants from D1 raw endpoint.
-  let rowObjs: any[] = [];
-  const r = data.result;
-  const mapCols = (container: any) => {
-    if (container?.columns && Array.isArray(container.rows)) {
-      return mapColumnsRows(container.columns, container.rows);
-    }
-    return [];
-  };
-  if (Array.isArray(r)) {
-    const first = r[0];
-    if (first?.results && Array.isArray(first.results)) {
-      rowObjs = first.results;
-    } else if (first?.results?.columns && Array.isArray(first?.results?.rows)) {
-      rowObjs = mapColumnsRows(first.results.columns, first.results.rows);
-    } else if (first?.columns) {
-      rowObjs = mapCols(first);
-    }
-  } else if (r) {
-    if (Array.isArray(r.results)) {
-      rowObjs = r.results;
-    } else if (r?.results?.columns && Array.isArray(r?.results?.rows)) {
-      rowObjs = mapColumnsRows(r.results.columns, r.results.rows);
-    } else if (r.columns) {
-      rowObjs = mapCols(r);
-    }
-  }
-  if (!Array.isArray(rowObjs)) {
-    rowObjs = [];
-  }
-  // Additional normalization if rows come back as arrays
-  if (rowObjs.length && Array.isArray(rowObjs[0]) && !('id' in rowObjs[0])) {
-    let cols: string[] | undefined;
-    if (Array.isArray(r) && r[0]?.columns) cols = r[0].columns;
-    else if (!Array.isArray(r) && r?.columns) cols = r.columns;
-    cols = cols || ['id', 'date', 'author', 'description', 'photos', 'videos'];
-    rowObjs = (rowObjs as any[]).map((vals: any[]) => {
-      const obj: any = {};
-      cols!.forEach((c, i) => {
-        obj[c] = vals[i];
-      });
-      return obj;
-    });
-  }
-  return { results: rowObjs as T[] };
+  const cf = getCloudflareClient();
+  // The Cloudflare client expects account_id as a parameter
+  const resp = await cf.d1.database.query(dbId, { account_id: accountId!, sql: normalizedSql, params }, {});
+  const first = Array.isArray((resp as any).result) ? (resp as any).result[0] : (resp as any).result;
+  const rows = first?.results;
+  return { results: Array.isArray(rows) ? (rows as T[]) : [] };
 }
 
 export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
@@ -171,10 +118,3 @@ function safeParseArray(val: any): any[] | undefined {
   }
 }
 
-function mapColumnsRows(columns: string[], rows: any[][]): any[] {
-  return rows.map(r => {
-    const obj: any = {};
-    columns.forEach((col, idx) => { obj[col] = r[idx]; });
-    return obj;
-  });
-}

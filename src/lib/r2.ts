@@ -1,3 +1,4 @@
+import 'server-only';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const REQUIRED_R2_VARS = [

@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { buildObjectKey, putObject } from '@/lib/r2';
-import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +11,7 @@ export async function POST(req: NextRequest) {
       if (value instanceof File) files.push(value);
     });
     if (files.length === 0) return new Response('No files', { status: 400 });
-    const postId = form.get('postId') as string || randomUUID();
+  const postId = form.get('postId') as string || crypto.randomUUID();
   const urls: string[] = [];
     for (const file of files) {
       const key = buildObjectKey(file.name, postId);
