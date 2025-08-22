@@ -24,7 +24,6 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^24.1.0",
     "@types/react": "19.1.8",
-  "better-sqlite3": "^11.5.0",
     "autoprefixer": "latest",
     "postcss": "latest",
     "typescript": "5.8.3"

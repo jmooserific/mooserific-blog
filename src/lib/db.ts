@@ -1,55 +1,21 @@
 import type { Post, ListPostsOptions, PhotoAsset } from './types';
-import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 
-// Lightweight abstraction: in production we ALWAYS use Cloudflare D1 HTTP API; in dev we can fall back to local SQLite if D1 env vars absent.
+// D1 over Cloudflare API only. Local SQLite fallback has been removed.
 
-const D1_HTTP_REQUIRED = ['D1_DATABASE_ID', 'D1_ACCOUNT_ID', 'CF_API_TOKEN'];
+async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ results: T[] }> {
+  const dbId = process.env.D1_DATABASE_ID;
+  const token = process.env.CF_API_TOKEN;
+  const accountId = process.env.D1_ACCOUNT_ID || process.env.R2_ACCOUNT_ID; // reuse R2 account when possible
 
-let sqliteDb: any;
-const isVercel = !!process.env.VERCEL;
-const nodeEnv = process.env.NODE_ENV || process.env.ENVIRONMENT || 'development';
-const isProd = nodeEnv === 'production' || isVercel;
-
-function useLocalSQLite() {
-  if (isProd) {
-    throw new Error('Local SQLite fallback is disabled in production. Configure D1 environment variables.');
-  }
-  if (!sqliteDb) {
-    const fs = require('fs');
-    const path = require('path');
-    const dataDir = path.join(process.cwd(), '.data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    const dbPath = path.join(dataDir, 'dev.sqlite');
-    sqliteDb = new Database(dbPath);
-    sqliteDb.exec(`CREATE TABLE IF NOT EXISTS posts (
-      id TEXT PRIMARY KEY,
-      date TEXT NOT NULL,
-      author TEXT,
-      description TEXT,
-      photos TEXT NOT NULL,
-      videos TEXT
-    );
-    CREATE INDEX IF NOT EXISTS idx_posts_date ON posts(date DESC);`);
-  }
-  return sqliteDb;
-}
-
-async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ results: T[] } > {
-  const missing = D1_HTTP_REQUIRED.filter(v => !process.env[v]);
+  const missing: string[] = [];
+  if (!dbId) missing.push('D1_DATABASE_ID');
+  if (!token) missing.push('CF_API_TOKEN');
+  if (!accountId) missing.push('D1_ACCOUNT_ID (or R2_ACCOUNT_ID)');
   if (missing.length) {
-    if (isProd) {
-      throw new Error(`Missing D1 env vars in production: ${missing.join(', ')}`);
-    }
-    const db = useLocalSQLite();
-    const stmt = db.prepare(sql.replace(/\$\d+/g, '?'));
-    const rows = stmt.all(...params);
-    return { results: rows };
+    throw new Error(`Missing required env vars for D1: ${missing.join(', ')}`);
   }
 
-  const accountId = process.env.D1_ACCOUNT_ID!;
-  const dbId = process.env.D1_DATABASE_ID!;
-  const token = process.env.CF_API_TOKEN!;
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}/raw`;
   // Normalize positional placeholders ($1,$2,...) to '?' for D1 HTTP API consistency.
   const normalizedSql = sql.replace(/\$\d+/g, '?');
@@ -57,10 +23,10 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -68,11 +34,6 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
   }
   const data = await res.json();
   // Normalize known response variants from D1 raw endpoint.
-  // Variants observed:
-  // A: { result: [ { results: [...], success: true, meta: {...} } ], success: true }
-  // B: { result: { results: [...], meta: {...} }, success: true }
-  // C: { result: [ { columns: [...], rows: [[...],[...]], success: true } ] }
-  // D: { result: { columns: [...], rows: [[...],[...]] } }
   let rowObjs: any[] = [];
   const r = data.result;
   const mapCols = (container: any) => {
@@ -86,7 +47,6 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
     if (first?.results && Array.isArray(first.results)) {
       rowObjs = first.results;
     } else if (first?.results?.columns && Array.isArray(first?.results?.rows)) {
-      // Variant E: { result: [ { results: { columns: [...], rows: [...] }, success: true, meta: {...} } ] }
       rowObjs = mapColumnsRows(first.results.columns, first.results.rows);
     } else if (first?.columns) {
       rowObjs = mapCols(first);
@@ -95,7 +55,6 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
     if (Array.isArray(r.results)) {
       rowObjs = r.results;
     } else if (r?.results?.columns && Array.isArray(r?.results?.rows)) {
-      // Variant F: { result: { results: { columns: [...], rows: [...] }, success: true } }
       rowObjs = mapColumnsRows(r.results.columns, r.results.rows);
     } else if (r.columns) {
       rowObjs = mapCols(r);
@@ -104,17 +63,17 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
   if (!Array.isArray(rowObjs)) {
     rowObjs = [];
   }
-  // Additional normalization: some responses embed positional arrays inside a wrapping array
-  // e.g. rowObjs = [ [id,date,author,description,photos,videos], ... ]
+  // Additional normalization if rows come back as arrays
   if (rowObjs.length && Array.isArray(rowObjs[0]) && !('id' in rowObjs[0])) {
-    // Attempt to derive columns from original response 'r'
     let cols: string[] | undefined;
     if (Array.isArray(r) && r[0]?.columns) cols = r[0].columns;
     else if (!Array.isArray(r) && r?.columns) cols = r.columns;
-    cols = cols || ['id','date','author','description','photos','videos'];
+    cols = cols || ['id', 'date', 'author', 'description', 'photos', 'videos'];
     rowObjs = (rowObjs as any[]).map((vals: any[]) => {
       const obj: any = {};
-      cols!.forEach((c,i)=> { obj[c] = vals[i]; });
+      cols!.forEach((c, i) => {
+        obj[c] = vals[i];
+      });
       return obj;
     });
   }
@@ -175,8 +134,7 @@ export async function updatePost(id: string, input: UpdatePostInput): Promise<Po
 }
 
 export async function deletePost(id: string): Promise<boolean> {
-  const { results } = await d1Query(`DELETE FROM posts WHERE id = $1`, [id]);
-  // D1 raw API returns mutation info differently; our sqlite fallback returns an empty result set.
+  await d1Query(`DELETE FROM posts WHERE id = $1`, [id]);
   return true;
 }
 

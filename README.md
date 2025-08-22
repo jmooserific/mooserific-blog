@@ -4,7 +4,7 @@
   <img src="https://raw.githubusercontent.com/jmooserific/mooserific-blog/refs/heads/main/public/Screenshot.png" alt="screenshot of Mooserific Blog" style="max-width: 800px;"/>
 </p>
 
-Private, family-oriented photo + video blog built with **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**. Modernized to run on **Vercel**, storing media in **Cloudflare R2** and post metadata in **Cloudflare D1**.
+Private, family-oriented photo + video blog built with **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**. Runs on **Vercel**, storing media in **Cloudflare R2** and post metadata in **Cloudflare D1**.
 
 ## ✨ Features
 - Fast Vercel deployment (Edge-friendly where possible)
@@ -56,6 +56,10 @@ R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
 D1_DATABASE_ID=           # if using direct binding ID
+CF_API_TOKEN=             # API token with D1 access (and R2 if needed)
+## One of the following must be set for D1 API calls (prefer D1_ACCOUNT_ID):
+# D1_ACCOUNT_ID=
+# OR reuse R2_ACCOUNT_ID above
 ENVIRONMENT=development   # or production
 BASIC_AUTH_USER=
 BASIC_AUTH_PASS=
@@ -71,10 +75,9 @@ BASIC_AUTH_PASS=
    cp .env.example .env.local
    # fill in credentials
    ```
-3. (First time) Create + apply D1 migration:
+3. (First time) Create + apply D1 migration (Cloudflare D1 required):
    ```bash
-   npx wrangler d1 migrations apply <DB_NAME>
-   # or: wrangler d1 execute <DB_NAME> --local --file=./migrations/0001_posts.sql
+  npx wrangler d1 migrations apply <DB_NAME>
    ```
 4. Start dev server:
    ```bash

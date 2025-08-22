@@ -49,15 +49,19 @@ R2_BUCKET_NAME=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
-D1_DATABASE_ID=            # optional if using binding via wrangler
+D1_DATABASE_ID=            # Cloudflare D1 database ID (required)
+CF_API_TOKEN=              # Cloudflare API token with D1 access (and R2 if needed)
+## One of the following must be set for D1 API calls (prefer D1_ACCOUNT_ID):
+# D1_ACCOUNT_ID=
+# OR reuse R2_ACCOUNT_ID above
 ENVIRONMENT=development    # or production
 BASIC_AUTH_USER=
 BASIC_AUTH_PASS=
 ```
-Vercel: define the above (no secrets in repo). Local dev: `.env.local` + `wrangler.toml` for D1 binding & R2 credentials if needed.
+Vercel: define the above (no secrets in repo). Local dev: `.env.local` + `wrangler.toml` for D1/R2 as needed. D1 is required in dev; no local SQLite fallback exists.
 
 ## Libraries / Helpers
-- `lib/db.ts`: D1 access (minimal wrapper: getPost, listPosts, createPost, updatePost, deletePost). Use `better-sqlite3` style parameterization via D1 `prepare` API or a lightweight helper.
+- `lib/db.ts`: D1 access (minimal wrapper: getPost, listPosts, createPost, updatePost, deletePost). Use Cloudflare D1 raw API over HTTPS with positional params ($1, $2...) normalized to `?`.
 - `lib/r2.ts`: R2 client creation + `putObject`, `getSignedUrl` (optional), and helper to build object keys with dev prefix logic.
 - Avoid large dependencies; prefer native `fetch` to R2 endpoint (S3-compatible) or `@aws-sdk/client-s3` (can tree-shake; if size concerns, implement direct `fetch` signed requests—initially fine to use AWS SDK v3 S3 Client configured for R2 endpoint: `https://<accountid>.r2.cloudflarestorage.com` & custom region like `auto`).
 
@@ -87,7 +91,7 @@ Simplest initial approach: upload via server route (FormData) to avoid presigned
 
 ## Developer Workflows
 - Install deps: `npm install`.
-- Local dev: `npm run dev` (Next.js). Run `wrangler d1 execute <DB_NAME> --local --file=./migrations/0001_posts.sql` for first migration OR use `wrangler d1 migrations apply` once configured.
+- Local dev: `npm run dev` (Next.js). Apply migrations via `wrangler d1 migrations apply <DB_NAME>` after configuring `wrangler.toml`.
 - Migrations directory: `migrations/` (numbered). Add new SQL migration files when schema changes.
 - Deployment is Vercel-native (no containers required).
 
