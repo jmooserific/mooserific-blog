@@ -154,6 +154,11 @@ Legacy `/posts/` directory is deprecated and should not be used for new content.
 - Add lightweight tests for `lib/db.ts` (mock D1 binding) and `lib/r2.ts` key generation logic.
 - Validate API handlers with basic integration tests (happy path + auth failure).
 
+## Safety checks for contributors
+- Treat `src/lib/db.ts` as server-only and avoid importing from client components.
+- Always use parameterized queries with positional params and a separate params array.
+- Never expose `CF_API_TOKEN`, `D1_*`, or `R2_*` secrets to the client.
+
 ---
 For questions about conventions or unclear patterns, review `README.md` or ask for clarification.
 

@@ -124,7 +124,8 @@ Media uploads in dev go to R2 under `dev/` prefix; production omits it.
 - Integration: create → list → fetch → update → delete cycle
 - Security: sanitize markdown, enforce MIME & size limits
 
-## 📄 Sample Post (API JSON)
+
+## �📄 Sample Post (API JSON)
 ```json
 {
   "id": "b52a5d3d-5e4b-4c5e-8e2e-6a3d1b7e9f10",

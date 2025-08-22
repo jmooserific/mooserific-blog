@@ -1,7 +1,7 @@
+import 'server-only';
 import type { Post, ListPostsOptions, PhotoAsset } from './types';
-import { randomUUID } from 'crypto';
 
-// D1 over Cloudflare API only. Local SQLite fallback has been removed.
+// D1 over Cloudflare API only.
 
 async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ results: T[] }> {
   const dbId = process.env.D1_DATABASE_ID;
@@ -100,7 +100,7 @@ export async function getPost(id: string): Promise<Post | null> {
 export interface CreatePostInput { description?: string; photos: PhotoAsset[]; videos?: string[]; author?: string; date?: string; }
 
 export async function createPost(input: CreatePostInput): Promise<Post> {
-  const id = randomUUID();
+  const id = crypto.randomUUID();
   const date = input.date || new Date().toISOString();
   await d1Query(`INSERT INTO posts (id, date, author, description, photos, videos) VALUES ($1,$2,$3,$4,$5,$6)`, [
     id,
