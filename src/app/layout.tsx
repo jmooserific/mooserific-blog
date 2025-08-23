@@ -1,6 +1,7 @@
 import "../globals.css";
 import { quicksand, sacramento } from './fonts'
 import Link from "next/link";
+import { Toaster } from "sonner";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,9 +16,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header>
           <h1 className={`${sacramento.className} text-6xl font-bold m-6 text-gray-900 text-center`}><Link href="/">Mooserific!</Link></h1>
         </header>
-        <main>
+  <main>
           {children}
         </main>
+  <Toaster position="top-right" richColors />
         <footer className="text-center text-sm text-gray-900 py-6">
           &copy; {new Date().getUTCFullYear()} Mooserific | Powered by <a href="https://github.com/jmooserific/mooserific-blog">Mooserific Blog!</a>
         </footer>

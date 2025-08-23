@@ -20,7 +20,8 @@
   "react-photo-album": "^3.1.0",
   "cloudflare": "^4.5.0",
     "tailwindcss": "latest",
-    "yet-another-react-lightbox": "^3.25.0"
+  "yet-another-react-lightbox": "^3.25.0",
+  "sonner": "^1.5.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",

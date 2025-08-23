@@ -2,6 +2,7 @@
 
 // Admin UI: drag & drop images, caption, create post
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { PhotoIcon, FilmIcon } from "@heroicons/react/24/outline";
 
 type PhotoMeta = { filename: string; width: number; height: number };
@@ -104,15 +105,15 @@ export default function AdminPage() {
       if (!postRes.ok) {
         throw new Error(await postRes.text());
       }
-      const created = await postRes.json();
-      alert(`Post created! ID: ${created.id}`);
+  const created = await postRes.json();
+  toast.success('Post created', { description: `ID: ${created.id}` });
   setCaption('');
   setFiles([]);
   setPhotos([]);
   setVideos([]);
       setUploadProgress({});
     } catch (e: any) {
-      alert('Error: ' + e.message);
+      toast.error('Failed to create post', { description: e.message || 'Unknown error' });
     } finally {
       setIsSubmitting(false);
     }
