@@ -44,10 +44,10 @@ export async function getPost(id: string): Promise<Post | null> {
   return row ? deserializePost(row) : null;
 }
 
-export interface CreatePostInput { description?: string; photos: PhotoAsset[]; videos?: string[]; author?: string; date?: string; }
+export interface CreatePostInput { id?: string; description?: string; photos: PhotoAsset[]; videos?: string[]; author?: string; date?: string; }
 
 export async function createPost(input: CreatePostInput): Promise<Post> {
-  const id = crypto.randomUUID();
+  const id = input.id || crypto.randomUUID();
   const date = input.date || new Date().toISOString();
   await d1Query(`INSERT INTO posts (id, date, author, description, photos, videos) VALUES ($1,$2,$3,$4,$5,$6)`, [
     id,

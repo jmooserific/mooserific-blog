@@ -1,7 +1,7 @@
 'use client'
 
 // Admin UI: drag & drop images, caption, create post
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PhotoIcon, FilmIcon } from "@heroicons/react/24/outline";
 
 type PhotoMeta = { filename: string; width: number; height: number };
@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
+  const folderId = useMemo(() => crypto.randomUUID(), []);
 
   async function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -40,14 +41,29 @@ export default function AdminPage() {
         alert('Select at least one file');
         return;
       }
-      // 1. Upload media
-      const mediaForm = new FormData();
-      files.forEach(f => mediaForm.append(f.name, f));
-      const mediaRes = await fetch('/api/media', { method: 'POST', body: mediaForm });
-      if (!mediaRes.ok) {
-        throw new Error(await mediaRes.text());
+      // 1. Direct upload each file to R2 via presigned URL
+      const uploaded: { url: string; filename: string }[] = [];
+      for (const file of files) {
+        const presignRes = await fetch('/api/media/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, folderId })
+        });
+        if (!presignRes.ok) {
+          throw new Error(await presignRes.text());
+        }
+        const presign = await presignRes.json();
+        const put = await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          headers: presign.headers,
+          body: file
+        });
+        if (!put.ok) {
+          throw new Error(`Upload failed for ${file.name}`);
+        }
+        uploaded.push({ url: presign.publicUrl, filename: file.name });
       }
-      const { postId, urls } = await mediaRes.json();
+      const urls = uploaded.map(u => u.url);
       // Separate photos/videos by MIME type or extension
       const photoUrls: string[] = urls.filter((u: string) => /\.(jpe?g|png|gif|webp|avif)$/i.test(u));
       const videoUrls: string[] = urls.filter((u: string) => /\.(mp4|mov|webm)$/i.test(u));
@@ -60,17 +76,17 @@ export default function AdminPage() {
       const postRes = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: caption, photos: photoAssets, videos: videoUrls })
+        body: JSON.stringify({ id: folderId, description: caption, photos: photoAssets, videos: videoUrls })
       });
       if (!postRes.ok) {
         throw new Error(await postRes.text());
       }
       const created = await postRes.json();
       alert(`Post created! ID: ${created.id}`);
-      setCaption('');
-      setFiles([]);
-      setPhotos([]);
-      setVideos([]);
+  setCaption('');
+  setFiles([]);
+  setPhotos([]);
+  setVideos([]);
     } catch (e: any) {
       alert('Error: ' + e.message);
     }

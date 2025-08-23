@@ -1,5 +1,6 @@
 import 'server-only';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const REQUIRED_R2_VARS = [
   'R2_BUCKET_NAME',
@@ -46,4 +47,16 @@ export function getPublicUrl(key: string) {
   const base = process.env.R2_PUBLIC_BASE_URL;
   if (base) return `${base.replace(/\/$/, '')}/${key}`;
   return `/${key}`; // fallback relative path
+}
+
+export async function getPresignedPutUrl(opts: { key: string; contentType: string; expiresIn?: number }) {
+  const client = getR2Client();
+  const bucket = process.env.R2_BUCKET_NAME!;
+  const cmd = new PutObjectCommand({
+    Bucket: bucket,
+    Key: opts.key,
+    ContentType: opts.contentType
+  });
+  const url = await getSignedUrl(client, cmd, { expiresIn: opts.expiresIn ?? 900 });
+  return url;
 }

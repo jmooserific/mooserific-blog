@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     const photos = body.photos.map((p: any) => typeof p === 'string' ? { url: p, width: 800, height: 600 } : p);
     const author = req.headers.get('x-auth-user') || body.author || undefined;
     const post = await createPost({
+      id: body.id,
       photos,
       videos: body.videos,
       description: body.description,

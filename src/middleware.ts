@@ -40,5 +40,5 @@ function unauthorized() {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/posts/:path*', '/api/media']
+  matcher: ['/admin/:path*', '/api/posts/:path*', '/api/media', '/api/media/:path*']
 };
