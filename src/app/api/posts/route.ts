@@ -17,16 +17,19 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!Array.isArray(body.photos) || body.photos.length === 0) {
-      return new Response('photos array required', { status: 400 });
+    const rawPhotos: any[] = Array.isArray(body.photos) ? body.photos : [];
+    const rawVideos: any[] = Array.isArray(body.videos) ? body.videos : [];
+
+    if (rawPhotos.length === 0 && rawVideos.length === 0) {
+      return new Response('At least one photo or video is required', { status: 400 });
     }
-    // Normalize: if array of strings convert to objects with placeholder dims
-    const photos = body.photos.map((p: any) => typeof p === 'string' ? { url: p, width: 800, height: 600 } : p);
+    // Normalize photos: if array of strings convert to objects with placeholder dims
+    const photos = rawPhotos.map((p: any) => typeof p === 'string' ? { url: p, width: 800, height: 600 } : p);
     const author = req.headers.get('x-auth-user') || body.author || undefined;
     const post = await createPost({
       id: body.id,
       photos,
-      videos: body.videos,
+      videos: rawVideos,
       description: body.description,
       author
     });
