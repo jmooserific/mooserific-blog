@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 // Admin UI: drag & drop images, caption, create post
 import { useMemo, useState } from "react";
@@ -12,6 +12,8 @@ export default function AdminPage() {
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
   const folderId = useMemo(() => crypto.randomUUID(), []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   async function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -35,12 +37,37 @@ export default function AdminPage() {
     setVideos(videoFiles.map(f => f.name));
   }
 
+  function putWithProgress(url: string, file: File, headers: Record<string, string>, onProgress: (pct: number) => void) {
+    return new Promise<Response>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', url, true);
+      Object.entries(headers || {}).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          const pct = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
+          onProgress(pct);
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(new Response(null, { status: xhr.status }));
+        } else {
+          reject(new Error(`Upload failed (${xhr.status})`));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.send(file);
+    });
+  }
+
   async function handleSubmit() {
     try {
       if (files.length === 0) {
         alert('Select at least one file');
         return;
       }
+      setIsSubmitting(true);
+      setUploadProgress({});
       // 1. Direct upload each file to R2 via presigned URL
       const uploaded: { url: string; filename: string }[] = [];
       for (const file of files) {
@@ -53,14 +80,10 @@ export default function AdminPage() {
           throw new Error(await presignRes.text());
         }
         const presign = await presignRes.json();
-        const put = await fetch(presign.uploadUrl, {
-          method: 'PUT',
-          headers: presign.headers,
-          body: file
+        await putWithProgress(presign.uploadUrl, file, presign.headers, (pct) => {
+          setUploadProgress((prev) => ({ ...prev, [file.name]: pct }));
         });
-        if (!put.ok) {
-          throw new Error(`Upload failed for ${file.name}`);
-        }
+        setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
         uploaded.push({ url: presign.publicUrl, filename: file.name });
       }
       const urls = uploaded.map(u => u.url);
@@ -87,8 +110,11 @@ export default function AdminPage() {
   setFiles([]);
   setPhotos([]);
   setVideos([]);
+      setUploadProgress({});
     } catch (e: any) {
       alert('Error: ' + e.message);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -164,8 +190,34 @@ export default function AdminPage() {
             </li>
           ))}
         </ul>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-          Post
+        {files.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-sm text-gray-600 flex items-center gap-2">
+              {isSubmitting && (
+                <svg className="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+              )}
+              {isSubmitting ? 'Uploading media…' : 'Ready to upload'}
+            </div>
+            <ul className="space-y-1">
+              {files.map((f) => {
+                const pct = uploadProgress[f.name] ?? 0;
+                return (
+                  <li key={f.name} className="text-xs text-gray-700">
+                    <div className="flex justify-between mb-1">
+                      <span className="truncate mr-2">{f.name}</span>
+                      <span className="text-gray-500">{pct}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded h-2">
+                      <div className="bg-blue-600 h-2 rounded" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        <button type="submit" className={`bg-blue-600 text-white px-4 py-2 rounded ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`} disabled={isSubmitting} aria-busy={isSubmitting}>
+          {isSubmitting ? 'Posting…' : 'Post'}
         </button>
       </form>
     </div>
