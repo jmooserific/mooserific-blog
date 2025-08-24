@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Import legacy sample",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"import:legacy",
+				"posts"
+			],
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		}
+	]
+}

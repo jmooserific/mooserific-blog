@@ -147,6 +147,32 @@ Media uploads in dev go to R2 under `dev/` prefix; production omits it.
 - `/admin` – Admin UI (Basic Auth)
 - (Optional) `/post/[id]` – Individual post view (if implemented)
 
+## 📥 Legacy Import (filesystem → D1/R2)
+Import legacy Tumblr-style folders under `posts/` into D1 and upload their media to R2.
+
+Folder format (example): `posts/YYYY-MM-DDTHH-MM/` containing `post.json` plus referenced media files.
+
+Environment
+- Place secrets in `.env.local` (preferred) or `.env` in the project root. The importer auto-loads `.env.local` if present, else `.env`.
+- Required: `CF_API_TOKEN`, `D1_DATABASE_ID`, `D1_ACCOUNT_ID` (or `R2_ACCOUNT_ID`), `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+- Optional: `R2_PUBLIC_BASE_URL` (for public media URLs), `ENVIRONMENT=development` (adds `dev/` prefix to keys)
+
+Run importer
+
+```bash
+npm install
+# Dry-run (no uploads or DB writes):
+npm run import:legacy -- --dry-run posts
+# Real import:
+npm run import:legacy -- posts
+```
+
+What it does
+- Generates a stable post ID from the folder name (`YYYY-MM-DDTHH-MM` + short hash)
+- Uploads images to `photos/<postId>/...` and videos to `videos/<postId>/...`
+- Inserts a row into D1 with markdown caption, photo assets (url, width, height), and video URLs
+- Idempotent: if a post with the same ID already exists in D1, it’s skipped
+
 ## ⚖️ License
 See `LICENSE`.
 
