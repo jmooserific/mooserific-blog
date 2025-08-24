@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Markdown from 'react-markdown';
 import { RenderImageContext, RenderImageProps } from "react-photo-album";
 import "react-photo-album/styles.css";
@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 const RowsPhotoAlbum = dynamic(() => import("react-photo-album").then(m => m.RowsPhotoAlbum), { ssr: false });
 const Lightbox = dynamic(() => import("yet-another-react-lightbox"), { ssr: false });
 import "yet-another-react-lightbox/styles.css";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 export type PhotoMeta = {
   filename: string; // Can be full URL from R2
@@ -27,10 +28,36 @@ export type Post = {
 
 interface PostCardProps {
   post: Post;
+  isAdmin?: boolean;
+  onDeleted?: () => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
   const [index, setIndex] = useState(-1);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close menu on outside click or Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      const el = menuContainerRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && !el.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('click', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('click', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
 
   const photos = post.photos.map((photo) => {
@@ -83,6 +110,59 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <h2 className="text-xl font-semibold text-gray-800 mb-2">
         {formatDateUTC(post.date)}
       </h2>
+      {isAdmin && (
+        <div ref={menuContainerRef} className="relative">
+          <div className="flex justify-end -mt-8 mb-2">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(v => !v)}
+              className="text-gray-500 hover:text-gray-800 px-2 py-1"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="Post actions"
+            >
+              ⋯
+            </button>
+          </div>
+          {menuOpen && (
+            <div className="absolute right-0 z-10 bg-white border border-gray-200 rounded shadow-md text-sm">
+              <button
+                type="button"
+                className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => {
+                  setMenuOpen(false);
+                  window.location.href = `/admin?edit=${encodeURIComponent(post.slug)}`;
+                }}
+              >
+                <PencilSquareIcon className="h-4 w-4 text-gray-700" />
+                <span>Edit</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                disabled={deleting}
+                onClick={async () => {
+                  setMenuOpen(false);
+                  if (!confirm('Delete this post? This cannot be undone.')) return;
+                  try {
+                    setDeleting(true);
+                    const res = await fetch(`/api/posts/${encodeURIComponent(post.slug)}`, { method: 'DELETE', cache: 'no-store' });
+                    if (!res.ok) throw new Error(await res.text());
+                    onDeleted?.();
+                  } catch (e: any) {
+                    alert(`Failed to delete: ${e?.message || 'Unknown error'}`);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+              >
+                <TrashIcon className="h-4 w-4" />
+                <span>Delete</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <div className="prose prose-base mb-6">
         <Markdown>{post.caption}</Markdown>
       </div>

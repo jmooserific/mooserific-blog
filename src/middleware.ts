@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_PREFIXES = ['/admin', '/api/posts', '/api/media'];
+const PROTECTED_PREFIXES = ['/admin', '/api/posts', '/api/media', '/api/auth'];
 
 function needsAuth(pathname: string, method: string) {
   if (pathname.startsWith('/admin')) return true;
   if (pathname.startsWith('/api/posts') && method !== 'GET') return true;
   if (pathname.startsWith('/api/media')) return true;
+  if (pathname.startsWith('/api/auth')) return true;
   return false;
 }
 
@@ -40,5 +41,5 @@ function unauthorized() {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/posts/:path*', '/api/media', '/api/media/:path*']
+  matcher: ['/admin/:path*', '/api/posts/:path*', '/api/media', '/api/media/:path*', '/api/auth/:path*']
 };
