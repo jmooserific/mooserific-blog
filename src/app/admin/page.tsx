@@ -1,7 +1,7 @@
 "use client"
 
 // Admin UI: drag & drop images, caption, create post
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PhotoIcon, FilmIcon, Bars2Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
@@ -20,6 +20,46 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+
+  function measurePositions() {
+    const map: Record<string, number> = {};
+    for (const [id, el] of Object.entries(itemRefs.current)) {
+      if (el) map[id] = el.getBoundingClientRect().top;
+    }
+    return map;
+  }
+
+  function animateReorder(prevPositions: Record<string, number>) {
+    // Double rAF to ensure DOM has re-rendered before measuring
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        for (const [id, el] of Object.entries(itemRefs.current)) {
+          if (!el) continue;
+          const prevTop = prevPositions[id];
+          const newTop = el.getBoundingClientRect().top;
+          if (prevTop == null) continue;
+          const dy = prevTop - newTop;
+          if (Math.abs(dy) < 1) continue;
+          el.style.transition = 'transform 0s';
+          el.style.transform = `translateY(${dy}px)`;
+          el.style.willChange = 'transform';
+          // Next frame: animate back to place
+          requestAnimationFrame(() => {
+            el.style.transition = 'transform 180ms ease';
+            el.style.transform = '';
+            const cleanup = () => {
+              el.style.transition = '';
+              el.style.willChange = '';
+              el.removeEventListener('transitionend', cleanup);
+            };
+            el.addEventListener('transitionend', cleanup);
+          });
+        }
+      });
+    });
+  }
 
   function normalizeGroupedOrder(arr: UploadItem[]) {
     const photos = arr.filter((i) => i.kind === 'photo');
@@ -100,28 +140,65 @@ export default function AdminPage() {
 
   function handleDragEnd() {
     setDraggingId(null);
+    setDragOver(null);
   }
 
-  function handleItemDrop(overId: string) {
+  function handleDragOverItem(e: React.DragEvent, overId: string) {
+    e.preventDefault();
+    if (!draggingId || draggingId === overId) {
+      setDragOver(null);
+      return;
+    }
+    const from = items.find((i) => i.id === draggingId);
+    const over = items.find((i) => i.id === overId);
+    if (!from || !over) return;
+
+    // Enforce photos before videos group rule
+    if (from.kind !== over.kind) {
+      e.dataTransfer.dropEffect = 'none';
+      setDragOver(null);
+      return;
+    }
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const position: 'before' | 'after' = e.clientY < midY ? 'before' : 'after';
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver({ id: overId, position });
+  }
+
+  function handleItemDrop(overId: string, position: 'before' | 'after') {
     if (!draggingId || draggingId === overId) return;
-    setItems((cur) => {
-      const fromIndex = cur.findIndex((i) => i.id === draggingId);
-      const overIndex = cur.findIndex((i) => i.id === overId);
-      if (fromIndex === -1 || overIndex === -1) return cur;
-      if (cur[fromIndex].kind !== cur[overIndex].kind) return cur; // keep photos before videos
-  const re = reorder(cur, fromIndex, overIndex);
-  return normalizeGroupedOrder(re);
-    });
+    // Measure before positions for FLIP
+    const prevPositions = measurePositions();
+
+    const fromIndex = items.findIndex((i) => i.id === draggingId);
+    const overIndex = items.findIndex((i) => i.id === overId);
+    if (fromIndex === -1 || overIndex === -1) return;
+    if (items[fromIndex].kind !== items[overIndex].kind) return; // keep photos before videos
+
+    let toIndex = position === 'before' ? overIndex : overIndex + 1;
+    if (fromIndex < toIndex) toIndex -= 1;
+
+    const next = items.slice();
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    setItems(next);
     setDraggingId(null);
+    setDragOver(null);
+    animateReorder(prevPositions);
   }
 
   function removeItem(id: string) {
-    setItems((cur) => cur.filter((i) => i.id !== id));
+    const prevPositions = measurePositions();
+    const nextItems = items.filter((i) => i.id !== id);
+    setItems(nextItems);
     setUploadProgress((cur) => {
       const next = { ...cur };
       delete next[id];
       return next;
     });
+    animateReorder(prevPositions);
   }
 
   async function handleSubmit() {
@@ -228,24 +305,64 @@ export default function AdminPage() {
             <div className="text-sm text-gray-600 flex items-center gap-2">
               {isSubmitting ? 'Uploading media…' : 'Ready to upload'}
             </div>
-            <ul className="mb-4 space-y-2">
+            <ul
+              className="mb-4 space-y-2"
+              onDragOver={(e) => {
+                // Allow dropping anywhere in the list while dragging
+                if (draggingId) e.preventDefault();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragOver) {
+                  handleItemDrop(dragOver.id, dragOver.position);
+                }
+              }}
+            >
               {items.map((it) => {
                 const pct = uploadProgress[it.id] ?? 0;
                 const sizeMB = it.file.size / (1024 * 1024);
+                const isDragging = draggingId === it.id;
+                const showTopIndicator = dragOver && dragOver.id === it.id && dragOver.position === 'before';
+                const showBottomIndicator = dragOver && dragOver.id === it.id && dragOver.position === 'after';
                 return (
-                  <li
-                    key={it.id}
-                    className="text-sm text-gray-700"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleItemDrop(it.id)}
+                  <Fragment key={it.id}>
+                    {showTopIndicator && (
+                      <li
+                        className="h-px bg-blue-500/70 rounded"
+                        role="separator"
+                        aria-hidden
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          // Keep indicator active as before position
+                          setDragOver({ id: it.id, position: 'before' });
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleItemDrop(it.id, 'before');
+                        }}
+                      />
+                    )}
+                    <li
+                      ref={(el) => {
+                        itemRefs.current[it.id] = el;
+                      }}
+                    className={`relative text-sm text-gray-700 rounded ${isDragging ? 'opacity-50 bg-blue-50 ring-1 ring-blue-200' : ''}`}
+                    draggable={!isSubmitting}
+                    onDragStart={(e) => handleDragStart(e, it.id)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleDragOverItem(e, it.id)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (dragOver?.id === it.id) {
+                        handleItemDrop(it.id, dragOver.position);
+                      }
+                    }}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 py-1">
                       <span
-                        className="text-gray-400 cursor-grab active:cursor-grabbing"
-                        draggable={!isSubmitting}
-                        onDragStart={(e) => handleDragStart(e, it.id)}
-                        onDragEnd={handleDragEnd}
+                        className="text-gray-400 cursor-grab active:cursor-grabbing select-none"
                         title="Drag to reorder"
+                        draggable={false}
                       >
                         <Bars2Icon className="h-4 w-4" />
                       </span>
@@ -254,7 +371,7 @@ export default function AdminPage() {
                       ) : (
                         <FilmIcon className="h-4 w-4 text-gray-500" />
                       )}
-                      <span className="truncate flex-1">
+                      <span className="truncate flex-1" draggable={false}>
                         {it.file.name} <span className="text-xs text-gray-400">({sizeMB.toFixed(2)} MB)</span>
                       </span>
                       <button
@@ -263,6 +380,7 @@ export default function AdminPage() {
                         onClick={() => removeItem(it.id)}
                         disabled={isSubmitting}
                         aria-label={`Remove ${it.file.name}`}
+                        draggable={false}
                       >
                         <XMarkIcon className="h-4 w-4" />
                       </button>
@@ -271,6 +389,23 @@ export default function AdminPage() {
                       <div className="bg-blue-600 h-1" style={{ width: `${pct}%` }} />
                     </div>
                   </li>
+                  {showBottomIndicator && (
+                    <li
+                      className="h-px bg-blue-500/70 rounded"
+                      role="separator"
+                      aria-hidden
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        // Keep indicator active as after position
+                        setDragOver({ id: it.id, position: 'after' });
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleItemDrop(it.id, 'after');
+                      }}
+                    />
+                  )}
+                  </Fragment>
                 );
               })}
             </ul>
