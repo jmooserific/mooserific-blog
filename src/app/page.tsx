@@ -9,7 +9,7 @@ import { getPostMetadata } from '../utils/postMetadata';
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-const POSTS_PER_PAGE = 10;
+const POSTS_PER_PAGE = 15;
 
 interface HomePageProps {
   searchParams: Promise<{ before?: string; after?: string; date_filter?: string }>;
