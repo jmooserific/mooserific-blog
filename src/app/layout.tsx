@@ -12,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <title>Mooserific Blog!</title>
         <meta name="description" content="A family photo blog!" />
