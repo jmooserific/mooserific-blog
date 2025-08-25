@@ -37,15 +37,17 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, postMetadata }) 
     } else {
       params.delete("date_filter");
     }
-    // Reset to first page when changing filter
-    params.delete("page");
+  // Reset cursors when changing filter
+  params.delete("before");
+  params.delete("after");
     router.replace("?" + params.toString(), { scroll: false });
   };
 
   const handleClearFilter = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("date_filter");
-    params.delete("page");
+  params.delete("before");
+  params.delete("after");
     router.replace("?" + params.toString(), { scroll: false });
   };
 

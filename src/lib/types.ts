@@ -15,5 +15,7 @@ export interface Post {
 
 export interface ListPostsOptions {
   limit?: number; // default 20
-  before?: string; // ISO date for cursor pagination
+  before?: string; // ISO date for cursor pagination (older than)
+  after?: string;  // ISO date for cursor pagination (newer than)
+  dateFilter?: string; // e.g., YYYY or YYYY-MM to restrict results
 }

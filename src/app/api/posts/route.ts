@@ -5,10 +5,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const limitParam = searchParams.get('limit');
   const before = searchParams.get('before') || undefined;
+  const after = searchParams.get('after') || undefined;
+  const dateFilter = searchParams.get('date_filter') || undefined;
   const limit = limitParam ? parseInt(limitParam) : undefined;
   try {
-    const posts = await listPosts({ limit, before });
-    return Response.json({ posts });
+    const posts = await listPosts({ limit, before, after, dateFilter });
+    const nextCursor = posts.length > 0 ? posts[posts.length - 1].date : undefined; // for older page
+    const prevCursor = posts.length > 0 ? posts[0].date : undefined; // for newer page
+    return Response.json({ posts, nextCursor, prevCursor });
   } catch (e: any) {
     return new Response(e.message, { status: 500 });
   }
