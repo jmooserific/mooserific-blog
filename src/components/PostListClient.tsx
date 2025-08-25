@@ -6,7 +6,7 @@ import FilterButton from "./FilterButton";
 import ActiveFilterBadge from "./ActiveFilterBadge";
 import PostCard, { Post } from "./PostCard";
 import { PostMetadata } from "../utils/postMetadata";
-import { LockClosedIcon } from "@heroicons/react/24/outline";
+import { LockClosedIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 interface PostListClientProps {
   posts: Post[];
@@ -26,7 +26,7 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, postMetadata }) 
       .then(data => {
         if (!cancelled) setIsAdmin(Boolean(data?.authenticated));
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => { cancelled = true; };
   }, []);
 
@@ -37,17 +37,17 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, postMetadata }) 
     } else {
       params.delete("date_filter");
     }
-  // Reset cursors when changing filter
-  params.delete("before");
-  params.delete("after");
+    // Reset cursors when changing filter
+    params.delete("before");
+    params.delete("after");
     router.replace("?" + params.toString(), { scroll: false });
   };
 
   const handleClearFilter = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("date_filter");
-  params.delete("before");
-  params.delete("after");
+    params.delete("before");
+    params.delete("after");
     router.replace("?" + params.toString(), { scroll: false });
   };
 
@@ -62,17 +62,17 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, postMetadata }) 
           {isAdmin ? (
             <a
               href="/admin"
-              title="Admin"
+              title="Create a post"
               className="inline-flex items-center p-1 text-gray-600 hover:text-gray-900"
             >
-              <LockClosedIcon className="h-5 w-5" aria-hidden="true" />
+              <PlusIcon className="h-5 w-5" aria-hidden="true" />
             </a>
           ) : (
             <a
               href={`/api/auth/login?redirect=${encodeURIComponent('/')}`}
               className="text-sm text-gray-600 hover:text-gray-900 underline"
             >
-              Sign in
+              <LockClosedIcon className="h-5 w-5" aria-hidden="true" />
             </a>
           )}
         </div>
