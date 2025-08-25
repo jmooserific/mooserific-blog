@@ -21,7 +21,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const before = params.before || undefined;
   const after = params.after || undefined;
 
+  // Fetch page
   const rows = await listPosts({ limit: POSTS_PER_PAGE, before, after, dateFilter: dateFilter || undefined });
+
   const posts: Post[] = rows.map(r => ({
     date: r.date,
     author: r.author || '',
@@ -34,8 +36,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const postMetadata = await getPostMetadata();
 
   // Determine cursors for pagination controls
-  const nextCursor = posts.length > 0 ? posts[posts.length - 1].date : undefined;
-  const prevCursor = posts.length > 0 ? posts[0].date : undefined;
+  let nextCursor: string | undefined = undefined; // older
+  let prevCursor: string | undefined = undefined; // newer
+  if (posts.length > 0) {
+    const first = posts[0].date;
+    const last = posts[posts.length - 1].date;
+    // Probe for newer and older existence within the selected date filter
+    const [newerProbe, olderProbe] = await Promise.all([
+      listPosts({ limit: 1, after: first, dateFilter: dateFilter || undefined }),
+      listPosts({ limit: 1, before: last, dateFilter: dateFilter || undefined })
+    ]);
+    if (newerProbe.length > 0) prevCursor = first;
+    if (olderProbe.length > 0) nextCursor = last;
+  }
 
   return (
     <>
