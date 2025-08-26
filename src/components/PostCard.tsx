@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Markdown from 'react-markdown';
-import { RenderImageContext, RenderImageProps, RowsPhotoAlbum } from "react-photo-album";
+import { RenderImageContext, RenderImageProps } from "react-photo-album";
 import "react-photo-album/styles.css";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+const RowsPhotoAlbum = dynamic(() => import("react-photo-album").then(m => m.RowsPhotoAlbum), { ssr: false });
 const Lightbox = dynamic(() => import("yet-another-react-lightbox"), { ssr: false });
 import "yet-another-react-lightbox/styles.css";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
@@ -29,11 +30,9 @@ interface PostCardProps {
   post: Post;
   isAdmin?: boolean;
   onDeleted?: () => void;
-  // Mark the very first post on the page so we can eagerly load its first image (LCP)
-  isFirstPost?: boolean;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted, isFirstPost = false }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
   const [index, setIndex] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -71,37 +70,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted, i
     };
   });
 
-  // Determine the LCP candidate (first image of the first post on the page)
-  const lcpSrc = isFirstPost && photos.length > 0 ? photos[0].src : undefined;
-
   // Custom renderPhoto for Next.js Image optimization
   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
-    { photo, width, height }: RenderImageContext) => {
-    const isLcp = lcpSrc ? photo.src === lcpSrc : false;
-    return (
-      <div
-        style={{
-          width: "100%",
-          position: "relative",
-          aspectRatio: `${width} / ${height}`,
-        }}
-      >
-        <Image
-          fill
-          src={photo.src}
-          alt={alt}
-          title={title}
-          sizes={sizes}
-          quality={80}
-          // Eager-load and prioritize the first image of the first post to improve LCP
-          priority={isLcp}
-          loading={isLcp ? 'eager' : 'lazy'}
-          fetchPriority={isLcp ? 'high' : 'auto'}
-          className="object-cover"
-        />
-      </div>
-    );
-  };
+    { photo, width, height }: RenderImageContext) => (
+    <div
+      style={{
+        width: "100%",
+        position: "relative",
+        aspectRatio: `${width} / ${height}`,
+      }}
+    >
+      <Image
+        fill
+        src={photo}
+        alt={alt}
+        title={title}
+        sizes={sizes}
+        quality={80}
+      />
+    </div>
+  );
 
   // Format date in a UTC-stable way to avoid SSR/CSR timezone differences
   const formatDateUTC = (iso: string) => {
