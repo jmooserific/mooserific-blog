@@ -30,12 +30,21 @@ export async function POST(req: NextRequest) {
     // Normalize photos: if array of strings convert to objects with placeholder dims
     const photos = rawPhotos.map((p: any) => typeof p === 'string' ? { url: p, width: 800, height: 600 } : p);
     const author = req.headers.get('x-auth-user') || body.author || undefined;
+    let date: string | undefined = undefined;
+    if (typeof body.date === 'string') {
+      const d = new Date(body.date);
+      if (isNaN(d.getTime())) {
+        return new Response('Invalid date format', { status: 400 });
+      }
+      date = d.toISOString();
+    }
     const post = await createPost({
       id: body.id,
       photos,
       videos: rawVideos,
       description: body.description,
-      author
+      author,
+      date
     });
     return Response.json(post, { status: 201 });
   } catch (e: any) {

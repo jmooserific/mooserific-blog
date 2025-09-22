@@ -4,6 +4,7 @@
 import { Fragment, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PhotoIcon, FilmIcon, Bars2Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import DateTimePopover from "@/components/DateTimePopover";
 
 type UploadItem = {
   id: string;
@@ -22,6 +23,9 @@ export default function AdminPage() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+  const [postDate, setPostDate] = useState<Date | null>(new Date());
+  const [showDatePopover, setShowDatePopover] = useState(false);
 
   function measurePositions() {
     const map: Record<string, number> = {};
@@ -242,7 +246,7 @@ export default function AdminPage() {
       const postRes = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: folderId, description: caption, photos: photoAssets, videos: videoUrls })
+        body: JSON.stringify({ id: folderId, description: caption, photos: photoAssets, videos: videoUrls, date: postDate ? postDate.toISOString() : undefined })
       });
       if (!postRes.ok) {
         throw new Error(await postRes.text());
@@ -411,6 +415,35 @@ export default function AdminPage() {
             </ul>
           </div>
         )}
+        {/* Advanced section */}
+        <details className="mt-4" open={showAdvanced} onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}>
+          <summary className="cursor-pointer select-none py-2 text-sm font-medium text-gray-600">
+            Advanced
+          </summary>
+          <div className="pb-4 pt-2 space-y-3">
+            {/* Date/Time field */}
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full text-left rounded-md border border-gray-300 px-3 py-2 text-gray-800 bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-haspopup="dialog"
+                aria-expanded={showDatePopover}
+                onClick={() => setShowDatePopover((v) => !v)}
+              >
+                {postDate ? new Date(postDate).toLocaleString() : 'Use current date/time'}
+              </button>
+              {showDatePopover && (
+                <div className="absolute left-0 top-full mt-2">
+                  <DateTimePopover
+                    initialDate={postDate ?? undefined}
+                    onApply={(d) => setPostDate(d)}
+                    onClose={() => setShowDatePopover(false)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </details>
         <button type="submit" className={`bg-blue-600 text-white px-4 py-2 rounded ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isSubmitting} aria-busy={isSubmitting}>
           {isSubmitting ? 'Posting…' : 'Post'}
         </button>
