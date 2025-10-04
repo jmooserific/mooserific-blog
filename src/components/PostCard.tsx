@@ -108,7 +108,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
   };
 
   return (
-    <section className="bg-white shadow-sm p-4 mb-8">
+    <section className="bg-white rounded-2xl p-4 mb-8">
       <h2 className="text-xl font-semibold text-gray-800 mb-2">
         {formatDateUTC(post.date)}
       </h2>
