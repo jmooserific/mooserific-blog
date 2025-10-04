@@ -15,6 +15,11 @@ Private, family-oriented photo + video blog built with **Next.js (App Router)**,
 - Inline `<video controls>` playback for uploaded MP4s
 - Date-ordered feed with server-side filtering utilities (DB-derived metadata)
 
+## 🌐 Browser Support
+- Production builds target modern evergreen browsers that support ES modules (`defaults and supports es6-module`).
+- Legacy browsers such as Internet Explorer and Opera Mini are not explicitly supported; polyfills and transforms for Baseline features are no longer included by default.
+- If older browser support becomes necessary, adjust the `browserslist` field in `package.json` accordingly and verify the impact on bundle size and performance.
+
 ## 🧱 Data Model (D1 `posts`)
 ```sql
 CREATE TABLE posts (

@@ -35,5 +35,17 @@
     "tsx": "^4.15.7",
   "mime-types": "^2.1.35",
   "dotenv": "^16.4.5"
+  },
+  "browserslist": {
+    "production": [
+      "defaults and supports es6-module",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
