@@ -52,7 +52,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <>
-      <Suspense fallback={<div>Loading posts...</div>}>
+      <Suspense fallback={<div className="text-center text-gray-500 py-12 text-lg">Loading posts...</div>}>
         <PostListClient posts={posts} postMetadata={postMetadata} />
       </Suspense>
       <Pagination 
