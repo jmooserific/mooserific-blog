@@ -18,19 +18,16 @@ A running list of future improvements and nice-to-haves. This is developer-facin
 ## Media & Storage
 - Presigned/direct uploads to R2 for large files; avoid routing big uploads through the server.
 - Image optimization: consider proxying through Next Image or a lightweight image CDN/proxy; optionally signed URLs.
-- Thumbnails: generate and store smaller thumbnails/previews for faster grids.
+- Thumbnails: generate and store smaller thumbnails/previews for faster grids. Use Vercel Image Optimization?
 
 ## Security & Auth
 - Sanitize markdown at render time; consider an allowlist sanitizer.
 - Enforce MIME types and file size limits on uploads.
-- Explore Cloudflare-based auth (e.g., Auth.js with D1 adapter) if moving to Workers.
- - Multiple administrators:
-   - Short-term: support multiple Basic Auth users via env (e.g., `BASIC_AUTH_USERS=user1:pass1,user2:pass2`) and update middleware to accept any valid pair; keep `x-auth-user` header using username.
-   - Long-term: migrate to Cloudflare Access or Auth.js with D1-backed users/roles; store salted+hashed passwords (Argon2/bcrypt), and support roles (admin, editor).
+- Explore using Vercel edge middleware for authentication.
+- Strip geotagging data from uploaded images.
 
 ## UX & Admin
 - Admin: show upload progress, thumbnails, and per-file status.
-- Admin: edit existing posts (reorder/remove media, update description).
 - Admin: keyboard shortcuts and drag-to-reorder media.
 
 ## DX & Quality

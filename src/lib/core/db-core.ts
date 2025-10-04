@@ -99,7 +99,7 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
   return { id, date, author: input.author, description: input.description, photos: input.photos, videos: input.videos };
 }
 
-export interface UpdatePostInput { description?: string; photos?: PhotoAsset[]; videos?: string[]; }
+export interface UpdatePostInput { description?: string; photos?: PhotoAsset[]; videos?: string[]; date?: string; }
 
 export async function updatePost(id: string, input: UpdatePostInput): Promise<Post | null> {
   const existing = await getPost(id);
@@ -109,11 +109,13 @@ export async function updatePost(id: string, input: UpdatePostInput): Promise<Po
     description: input.description ?? existing.description,
     photos: input.photos ?? existing.photos,
     videos: input.videos ?? existing.videos,
+    date: input.date ?? existing.date,
   };
-  await d1Query(`UPDATE posts SET description = $1, photos = $2, videos = $3 WHERE id = $4`, [
+  await d1Query(`UPDATE posts SET description = $1, photos = $2, videos = $3, date = $4 WHERE id = $5`, [
     next.description || null,
     JSON.stringify(next.photos),
     next.videos ? JSON.stringify(next.videos) : null,
+    next.date,
     id
   ]);
   return next;

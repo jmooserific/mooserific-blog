@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
   const postId = form.get('postId') as string || crypto.randomUUID();
   const urls: string[] = [];
     for (const file of files) {
-      const key = buildObjectKey(file.name, postId);
+      const kind: 'photo' | 'video' = file.type.startsWith('video/') ? 'video' : 'photo';
+      const key = buildObjectKey(file.name, postId, kind);
       const arrayBuffer = await file.arrayBuffer();
       const url = await putObject({ key, contentType: file.type || 'application/octet-stream', body: Buffer.from(arrayBuffer) });
       urls.push(url);

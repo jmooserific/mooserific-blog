@@ -19,7 +19,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const photos = Array.isArray(body.photos)
       ? body.photos.map((p: any) => (typeof p === 'string' ? { url: p, width: 800, height: 600 } : p))
       : undefined;
-    const post = await updatePost(id, { description: body.description, photos, videos: body.videos });
+    let date: string | undefined;
+    if (typeof body.date === 'string') {
+      const parsed = new Date(body.date);
+      if (Number.isNaN(parsed.getTime())) {
+        return new Response('Invalid date format', { status: 400 });
+      }
+      date = parsed.toISOString();
+    }
+    const post = await updatePost(id, { description: body.description, photos, videos: body.videos, date });
     if (!post) return new Response('Not found', { status: 404 });
     return Response.json(post);
   } catch (e: any) {

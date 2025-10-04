@@ -6,6 +6,7 @@ import { RenderImageContext, RenderImageProps } from "react-photo-album";
 import "react-photo-album/styles.css";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 const RowsPhotoAlbum = dynamic(() => import("react-photo-album").then(m => m.RowsPhotoAlbum), { ssr: false });
 const Lightbox = dynamic(() => import("yet-another-react-lightbox"), { ssr: false });
 import "yet-another-react-lightbox/styles.css";
@@ -33,6 +34,7 @@ interface PostCardProps {
 }
 
 const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
+  const router = useRouter();
   const [index, setIndex] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -128,12 +130,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
             <div className="absolute right-0 z-10 bg-white border border-gray-200 rounded shadow-md text-sm">
               <button
                 type="button"
-                disabled={true}
-                title="Edit functionality coming soon"
-                className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50"
                 onClick={() => {
                   setMenuOpen(false);
-                  window.location.href = `/admin?edit=${encodeURIComponent(post.slug)}`;
+                  router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
                 }}
               >
                 <PencilSquareIcon className="h-4 w-4 text-gray-700" />

@@ -8,8 +8,8 @@ These instructions describe the NEW architecture. All legacy filesystem post fol
 - Deployment target: **Vercel** (Next.js App Router + Edge-friendly where useful).
 - **Post metadata** persists in **Cloudflare D1** (SQLite-compatible) instead of JSON files.
 - **Media (photos/videos)** stored in **Cloudflare R2** using the S3-compatible API. Stored URLs (public or signed) are referenced in D1.
-- **Homepage (`/`)** lists posts in descending date order (query D1). Filtering by date continues via query params (future enhancement: add indexed date range queries).
-- **Admin UI (`/admin`)**: Authenticated via Basic HTTP Auth (Vercel middleware). Provides drag‑and‑drop upload (images + optional videos), markdown description, then creates a D1 record and uploads media to R2.
+- **Homepage (`/`)** lists posts in descending date order (query D1). Filtering by date continues via query params (future enhancement: add indexed date range queries). Public.
+- **Admin UI (`/admin`)**: Authenticated (Vercel middleware). Provides drag‑and‑drop upload (images + optional videos), markdown description, then creates a D1 record and uploads media to R2.
 
 ## Data Model (D1 `posts` table)
 Schema (migration 0001):
@@ -196,4 +196,4 @@ Instructions for generating high-quality Next.js applications with Tailwind CSS 
 
 
 ---
-For questions about conventions or unclear patterns, review `README.md` or ask for clarification.
+For questions about conventions or unclear patterns, review `README.md`. Ask for clarification if there is any uncertainty.
