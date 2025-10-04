@@ -10,13 +10,10 @@ A running list of future improvements and nice-to-haves. This is developer-facin
 - Automate D1 migrations in CI or a deploy script.
 
 ## Data & API
-- Pagination: add cursor-based pagination to `/api/posts` (limit + before/after).
-- Date filters: add indexed date range queries for the homepage.
 - Cascade delete: when deleting a post, optionally delete associated R2 objects.
 - Validation: stronger request validation (schema-based) on API routes.
 
 ## Media & Storage
-- Presigned/direct uploads to R2 for large files; avoid routing big uploads through the server.
 - Image optimization: consider proxying through Next Image or a lightweight image CDN/proxy; optionally signed URLs.
 - Thumbnails: generate and store smaller thumbnails/previews for faster grids. Use Vercel Image Optimization?
 
@@ -28,17 +25,12 @@ A running list of future improvements and nice-to-haves. This is developer-facin
 
 ## UX & Admin
 - Admin: show upload progress, thumbnails, and per-file status.
-- Admin: keyboard shortcuts and drag-to-reorder media.
 
 ## DX & Quality
 - Tests: unit tests for `lib/db.ts` (mock Cloudflare client) and `lib/r2.ts` (key generation URL logic).
 - Integration tests: create → list → fetch → update → delete.
 - ESLint/Rules: enforce server-only imports for `lib/db.ts` and `lib/r2.ts`.
 - Centralize env var validation and helpful error messages on boot.
-
-## Cleanup / Legacy
-- Remove legacy filesystem post route at `src/app/posts/[slug]/[filename]/route.ts` once D1/R2 migration is complete.
-- Delete any old `/posts` content from the repo after verifying migration.
 
 ## Observability
 - Add minimal request/DB error logging (server-side only), with redaction of secrets.

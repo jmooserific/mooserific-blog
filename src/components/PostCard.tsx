@@ -33,6 +33,13 @@ interface PostCardProps {
   onDeleted?: () => void;
 }
 
+const resolveMediaSrc = (value: string) => {
+  if (!value) return value;
+  if (/^https?:\/\//.test(value)) return value;
+  if (value.startsWith('/')) return value;
+  return `/${value.replace(/^\/+/, '')}`;
+};
+
 const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
   const router = useRouter();
   const [index, setIndex] = useState(-1);
@@ -63,9 +70,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
 
 
   const photos = post.photos.map((photo) => {
-    const isUrl = /^https?:\/\//.test(photo.filename) || photo.filename.startsWith('/');
     return {
-      src: isUrl ? photo.filename : `/posts/${post.slug}/${photo.filename}`,
+      src: resolveMediaSrc(photo.filename),
       width: photo.width,
       height: photo.height,
       alt: post.caption || 'Photo'
@@ -190,7 +196,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
                 className="w-full rounded-md bg-black"
                 style={{ maxHeight: 400 }}
               >
-                <source src={/^https?:\/\//.test(video) || video.startsWith('/') ? video : `/posts/${post.slug}/${video}`} />
+                <source src={resolveMediaSrc(video)} />
                 Your browser does not support the video tag.
               </video>
             ))}

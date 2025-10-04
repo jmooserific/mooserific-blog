@@ -67,7 +67,7 @@ Vercel: define the above (no secrets in repo). Local dev: `.env.local` + `wrangl
 
 ## CRUD Operations
 Expose API routes under `src/app/api/posts`:
-- `GET /api/posts` (list, newest first, optional `limit`, `before` cursor).
+- `GET /api/posts` (list, newest first, optional `limit`, `before`, `after`, `date_filter` query params).
 - `POST /api/posts` (create: expects description, media file metadata, returns created Post).
 - `GET /api/posts/:id` (fetch one).
 - `PUT /api/posts/:id` (update mutable fields: description, add/remove media).
@@ -78,11 +78,10 @@ All writes validate Basic Auth.
 ## Media Upload Flow
 1. User opens `/admin` (middleware enforces Basic Auth; sets `req.authUser`).
 2. Drag‑and‑drop selects up to N files (config constant, e.g. 20).
-3. Client requests a signed upload URL per file OR directly streams to an API route that uploads via server to R2.
-4. After uploads complete, client posts metadata to `POST /api/posts` with arrays of resulting R2 URLs.
-5. Response returns the new Post object.
-
-Simplest initial approach: upload via server route (FormData) to avoid presigned complexity; revisit presigned for large files.
+3. For each file the client calls `POST /api/media/presign` to get a presigned PUT URL plus headers (content type enforced, file size checked).
+4. The browser uploads directly to R2 via `PUT` using the presigned URL while tracking per-file progress.
+5. When all uploads resolve, the client posts metadata to `POST /api/posts` with the resulting photo objects (url + dimensions) and video URLs.
+6. The server responds with the new Post object (or the updated one when editing).
 
 ## Authentication (Basic Auth)
 - Edge Middleware in `src/middleware.ts` checks `Authorization: Basic base64(user:pass)`.
@@ -108,9 +107,9 @@ Ensure migration file includes the table + index creation above.
 - Optimize images later (initially direct R2 URL; potential future: Next Image + signed proxy).
 
 ## Admin UI
-- Components: drag-and-drop zone, file list with thumbnail preview, markdown editor (textarea ok initially), submit button.
-- After creation, optimistic add to list or redirect.
-- Provide simple progress indicators for uploads.
+- Components: drag-and-drop zone, markdown caption textarea, and a media list rendered with progress bars.
+- File list supports drag-to-reorder (within media type) and shows upload status; thumbnails are still a TODO (see `TODO.md`).
+- After creation/update, refresh the post list (currently via router refresh) instead of optimistic cache writes.
 
 ## Extensibility Guidelines
 - To add fields: update D1 schema (new migration), extend `Post` interface, adjust API validation, update admin form.
