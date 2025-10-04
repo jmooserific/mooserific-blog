@@ -93,8 +93,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
         src={photo}
         alt={alt}
         title={title}
-        sizes={sizes}
-        quality={80}
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+        quality={60}
       />
     </div>
   );
