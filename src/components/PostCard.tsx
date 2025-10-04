@@ -118,12 +118,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
             <button
               type="button"
               onClick={() => setMenuOpen(v => !v)}
-              className="text-gray-500 hover:text-gray-800 px-2 py-1"
+              className="inline-flex items-center justify-center rounded-full border border-transparent bg-white p-2 text-gray-500 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-label="Post actions"
             >
-              ⋯
+              <span className="text-lg leading-none">⋯</span>
             </button>
           </div>
           {menuOpen && (

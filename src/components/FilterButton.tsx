@@ -17,10 +17,18 @@ const FilterButton: React.FC<FilterButtonProps> = ({ onSelect, initialValue, pos
   return (
     <div className="relative">
       <button
+        type="button"
         title="Filter posts"
-        onMouseDown={e => { e.stopPropagation(); setOpen(v => !v); }}
+        aria-haspopup="true"
+        aria-expanded={open}
+        className="inline-flex items-center justify-center rounded-full border border-transparent bg-white p-2 text-gray-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        onMouseDown={e => {
+          // Prevent the global popover listener from closing immediately while still allowing focus
+          e.stopPropagation();
+        }}
+        onClick={() => setOpen(v => !v)}
       >
-        <CalendarDaysIcon className="h-6 w-6 text-gray-600" />
+        <CalendarDaysIcon className="h-5 w-5" />
       </button>
       {open && (
         <DateFilterPopover
