@@ -427,8 +427,16 @@ function AdminPageInner() {
 
   return (
     <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-      <nav className="mb-6">
+      <nav className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <a href="/" className="text-blue-600 hover:underline text-sm">← Back to posts</a>
+        <form action="/api/auth/logout?redirect=/" method="post">
+          <button
+            type="submit"
+            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+          >
+            Sign out
+          </button>
+        </form>
       </nav>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{isEditing ? 'Edit post' : 'Create a new post'}</h1>

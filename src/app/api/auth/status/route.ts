@@ -1,8 +1,10 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSessionFromRequest, authorFromUsername } from '@/lib/auth';
 
-// Simple endpoint to check if the middleware authenticated the request
 export async function GET(req: NextRequest) {
-  const user = req.headers.get('x-auth-user');
-  if (!user) return new Response(JSON.stringify({ authenticated: false }), { status: 200 });
-  return Response.json({ authenticated: true, user });
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    return NextResponse.json({ authenticated: false }, { status: 200 });
+  }
+  return NextResponse.json({ authenticated: true, user: authorFromUsername(session.user) }, { status: 200 });
 }

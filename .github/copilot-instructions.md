@@ -9,7 +9,7 @@ These instructions describe the NEW architecture. All legacy filesystem post fol
 - **Post metadata** persists in **Cloudflare D1** (SQLite-compatible) instead of JSON files.
 - **Media (photos/videos)** stored in **Cloudflare R2** using the S3-compatible API. Stored URLs (public or signed) are referenced in D1.
 - **Homepage (`/`)** lists posts in descending date order (query D1). Filtering by date continues via query params (future enhancement: add indexed date range queries). Public.
-- **Admin UI (`/admin`)**: Authenticated (Vercel middleware). Provides drag‑and‑drop upload (images + optional videos), markdown description, then creates a D1 record and uploads media to R2.
+- **Admin UI (`/admin`)**: Protected by an application-level login flow. After sign-in, users can drag‑and‑drop upload (images + optional videos), add markdown descriptions, then create D1 records and upload media to R2.
 
 ## Data Model (D1 `posts` table)
 Schema (migration 0001):
@@ -55,14 +55,16 @@ CF_API_TOKEN=              # Cloudflare API token with D1 access (and R2 if need
 # D1_ACCOUNT_ID=
 # OR reuse R2_ACCOUNT_ID above
 ENVIRONMENT=development    # or production
-BASIC_AUTH_USER=
-BASIC_AUTH_PASS=
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+SESSION_SECRET=            # used to sign/verify session cookies
 ```
 Vercel: define the above (no secrets in repo). Local dev: `.env.local` + `wrangler.toml` for D1/R2 as needed. D1 is required in dev; no local SQLite fallback exists.
 
 ## Libraries / Helpers
 - `lib/db.ts`: D1 access (minimal wrapper: getPost, listPosts, createPost, updatePost, deletePost). Use Cloudflare D1 raw API over HTTPS with positional params ($1, $2...) normalized to `?`.
 - `lib/r2.ts`: R2 client creation + `putObject`, `getSignedUrl` (optional), and helper to build object keys with dev prefix logic.
+- `lib/auth.ts` (planned): session + credential helpers (hash verification, cookie signing, timing-safe compare) used by login/logout endpoints and middleware.
 - Avoid large dependencies; prefer native `fetch` to R2 endpoint (S3-compatible) or `@aws-sdk/client-s3` (can tree-shake; if size concerns, implement direct `fetch` signed requests—initially fine to use AWS SDK v3 S3 Client configured for R2 endpoint: `https://<accountid>.r2.cloudflarestorage.com` & custom region like `auto`).
 
 ## CRUD Operations
@@ -73,20 +75,22 @@ Expose API routes under `src/app/api/posts`:
 - `PUT /api/posts/:id` (update mutable fields: description, add/remove media).
 - `DELETE /api/posts/:id` (remove post + (optional) cascade delete R2 objects).
 
-All writes validate Basic Auth.
+All write APIs require a valid authenticated session established through the login flow.
 
 ## Media Upload Flow
-1. User opens `/admin` (middleware enforces Basic Auth; sets `req.authUser`).
+1. Authenticated admin visits `/admin` (redirects to `/login` if their session cookie is missing or expired).
 2. Drag‑and‑drop selects up to N files (config constant, e.g. 20).
 3. For each file the client calls `POST /api/media/presign` to get a presigned PUT URL plus headers (content type enforced, file size checked).
 4. The browser uploads directly to R2 via `PUT` using the presigned URL while tracking per-file progress.
 5. When all uploads resolve, the client posts metadata to `POST /api/posts` with the resulting photo objects (url + dimensions) and video URLs.
 6. The server responds with the new Post object (or the updated one when editing).
 
-## Authentication (Basic Auth)
-- Edge Middleware in `src/middleware.ts` checks `Authorization: Basic base64(user:pass)`.
-- On success, add `x-auth-user` header to downstream request (username portion before `@` forms the `author`).
-- On failure, return `401` with `WWW-Authenticate: Basic realm="Mooserific"`.
+## Authentication (Session-based login)
+- A dedicated `/login` page presents a username/password form sourced from environment variables (`ADMIN_USERNAME`, `ADMIN_PASSWORD`).
+- Successful login issues an `HttpOnly`, `Secure` session cookie (use `SameSite=Lax` or `Strict`) that encodes the authenticated user; failures return a generic error without disclosing which field is wrong.
+- Middleware (or API route handlers) verifies the session cookie for protected routes (`/admin`, write APIs, media presign endpoints) and attaches `x-auth-user` to downstream requests when valid.
+- Session cookies should be signed (and optionally encrypted) with `SESSION_SECRET`, and include a short expiration (e.g. 12 hours) plus rolling renewal on active use.
+- `/logout` clears the session cookie.
 
 ## Developer Workflows
 - Install deps: `npm install`.
@@ -116,7 +120,7 @@ Ensure migration file includes the table + index creation above.
 - Keep R2 object key generation centralized (`lib/r2.ts`).
 
 ## Example: Creating a Post (New Flow)
-1. User authenticates via Basic Auth -> middleware injects `x-auth-user`.
+1. User signs in via the `/login` form -> middleware/route handler sets the session cookie and injects `x-auth-user` for subsequent requests.
 2. User drags 5 images + 1 video into admin UI.
 3. Client sends FormData to `POST /api/media` (or inlined inside post create) -> server uploads each file to R2 under `dev/` prefix if `ENVIRONMENT=development`.
 4. Collect resulting R2 object URLs.
@@ -126,6 +130,7 @@ Ensure migration file includes the table + index creation above.
 
 ## Key Directories (Updated)
 - `src/app/` — Pages, API routes (`api/posts`, `api/media`), admin UI.
+- `src/app/login/` — Login form page and any server actions related to session creation.
 - `lib/` — `db.ts`, `r2.ts`, other helpers.
 - `migrations/` — D1 SQL migration files.
 - `.github/` — Automation & these instructions.
@@ -144,6 +149,7 @@ Legacy `/posts/` directory is deprecated and should not be used for new content.
 - Sanitize markdown (e.g. `sanitize-html`) before render.
 - Validate MIME types for uploads (allow list: `image/*`, `video/mp4`, etc.).
 - Enforce max file size (config constant) & total post media count.
+- Compare credentials using a timing-safe equals helper. Store `ADMIN_PASSWORD` hashed (bcrypt or scrypt) if operationally feasible; otherwise document the trade-offs and restrict access to env vars.
 
 ## Performance Considerations
 - Use server components for data fetch to minimize client JS.
@@ -152,6 +158,7 @@ Legacy `/posts/` directory is deprecated and should not be used for new content.
 ## Testing / Quality
 - Add lightweight tests for `lib/db.ts` (mock D1 binding) and `lib/r2.ts` key generation logic.
 - Validate API handlers with basic integration tests (happy path + auth failure).
+- Cover the login flow with unit/integration tests (successful sign-in, invalid credentials, expired session refresh).
 
 ## Safety checks for contributors
 - Treat `src/lib/db.ts` as server-only and avoid importing from client components.

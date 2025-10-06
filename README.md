@@ -8,9 +8,9 @@ Private, family-oriented photo + video blog built with **Next.js (App Router)**,
 
 ## ✨ Features
 - Fast Vercel deployment (Edge-friendly where possible)
-- Cloudflare D1 as the sole source of truth for post metadata (UUID, date, author, description, media URLs)
-- Cloudflare R2 (S3-compatible) for photos & videos (no local filesystem storage)
-- Drag‑and‑drop Admin UI (Basic Auth protected) with Markdown description
+- Cloudflare D1 for post metadata (UUID, date, author, description, media URLs)
+- Cloudflare R2 (S3-compatible) for photos & videos
+- Drag‑and‑drop Admin UI
 - Responsive photo grids via `react-photo-album` (lightbox optional future)
 - Inline `<video controls>` playback for uploaded MP4s
 - Date-ordered feed with server-side filtering utilities (DB-derived metadata)
@@ -38,7 +38,7 @@ TypeScript shape:
 export interface Post {
   id: string;
   date: string;          // ISO timestamp
-  author?: string;        // from Basic Auth username (before @)
+  author?: string;        // from admin username (portion before @)
   description?: string;   // markdown
   photos: string[];       // R2 object URLs
   videos?: string[];      // R2 object URLs
@@ -51,7 +51,7 @@ export interface Post {
 - URLs stored directly in D1; currently served as-is (optionally move to signed or proxied URLs later).
 
 ## 🔐 Authentication
-Basic HTTP Auth enforced via Vercel middleware (`/admin` + write API routes). Username (portion before `@` if email) is recorded as `author` when posts are created/updated.
+A dedicated `/login` page accepts the admin username/password stored in environment variables. Successful sign-in sets a signed, HttpOnly session cookie (12-hour rolling window). Middleware validates the cookie for `/admin` and write APIs, forwarding the admin handle (portion before `@`) as the `author` value when posts are created/updated.
 
 ## 📦 Environment Variables
 Provide these in `.env.local` (local) and Vercel Project Settings (production). Example `.env.example`:
@@ -66,8 +66,9 @@ CF_API_TOKEN=             # API token with D1 access (and R2 if needed)
 # D1_ACCOUNT_ID=
 # OR reuse R2_ACCOUNT_ID above
 ENVIRONMENT=development   # or production
-BASIC_AUTH_USER=
-BASIC_AUTH_PASS=
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+SESSION_SECRET=           # signing key for session cookies
 ```
 
 ## 🚀 Getting Started (Local Dev)
@@ -88,7 +89,7 @@ BASIC_AUTH_PASS=
    ```bash
    npm run dev
    ```
-5. Open `http://localhost:3000/admin` (browser will prompt for Basic Auth).
+5. Open `http://localhost:3000/login` to sign in, then continue to `/admin`.
 
 Media uploads in dev go to R2 under `dev/` prefix; production omits it.
 
@@ -110,7 +111,7 @@ Media uploads in dev go to R2 under `dev/` prefix; production omits it.
 | POST   | `/api/media`      | Upload media (FormData) -> R2           | Yes  |
 
 ## 🧮 Admin Flow
-1. User authenticates (Basic Auth middleware)
+1. User signs in via `/login` (session cookie issued)
 2. Drag‑and‑drop selects images/videos
 3. Client sends FormData to `/api/media` (server streams to R2)
 4. Receive array of R2 URLs
@@ -149,7 +150,8 @@ Media uploads in dev go to R2 under `dev/` prefix; production omits it.
 
 ## 🗺️ Routes (User-Facing)
 - `/` – Homepage (lists newest posts; future pagination/cursor)
-- `/admin` – Admin UI (Basic Auth)
+- `/admin` – Admin UI (requires session login)
+- `/login` – Session-based sign-in form
 - (Optional) `/post/[id]` – Individual post view (if implemented)
 
 ## 📥 Legacy Import (filesystem → D1/R2)
