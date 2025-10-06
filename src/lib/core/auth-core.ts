@@ -5,12 +5,26 @@ const DEFAULT_REFRESH_THRESHOLD_SECONDS = 60 * 60; // 1 hour
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
-async function generateUUID(): Promise<string> {
-  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID();
+function getCrypto(): Crypto {
+  const cryptoObj = globalThis.crypto;
+  if (!cryptoObj) {
+    throw new Error('Web Crypto API is not available in this environment.');
   }
-  const { randomUUID } = await import('crypto');
-  return randomUUID();
+  return cryptoObj;
+}
+
+function generateUUID(): string {
+  const cryptoObj = getCrypto();
+  if (typeof cryptoObj.randomUUID === 'function') {
+    return cryptoObj.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  cryptoObj.getRandomValues(bytes);
+  // Per RFC 4122 variant/section 4.4
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export interface SessionPayload {
@@ -93,20 +107,19 @@ function fromBase64Url(input: string): Uint8Array {
 async function hmacSign(message: string): Promise<Uint8Array> {
   const secret = textEncoder.encode(getSessionSecret());
   const data = textEncoder.encode(message);
-  if (globalThis.crypto?.subtle) {
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw',
-      secret,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
-    return new Uint8Array(signature);
+  const cryptoObj = getCrypto();
+  if (!cryptoObj.subtle) {
+    throw new Error('SubtleCrypto is not available for HMAC signing.');
   }
-  const { createHmac } = await import('crypto');
-  const nodeSig = createHmac('sha256', Buffer.from(secret)).update(Buffer.from(data)).digest();
-  return new Uint8Array(nodeSig);
+  const cryptoKey = await cryptoObj.subtle.importKey(
+    'raw',
+    secret,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await cryptoObj.subtle.sign('HMAC', cryptoKey, data);
+  return new Uint8Array(signature);
 }
 
 async function hmacVerify(message: string, signature: string): Promise<boolean> {
@@ -127,7 +140,7 @@ export async function createSessionToken(username: string, ttlSeconds: number = 
     user: username,
     issuedAt,
     expiresAt,
-    nonce: await generateUUID(),
+    nonce: generateUUID(),
   };
   const payloadJson = JSON.stringify(payload);
   const payloadBase64 = toBase64Url(textEncoder.encode(payloadJson));
