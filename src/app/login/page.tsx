@@ -6,8 +6,10 @@ import {
   verifySessionToken,
 } from "@/lib/auth";
 
+type LoginSearchParams = Record<string, string | string[] | undefined>;
+
 interface LoginPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams?: LoginSearchParams | Promise<LoginSearchParams>;
 }
 
 function getSearchParamValue(value: string | string[] | undefined): string | undefined {
@@ -16,8 +18,9 @@ function getSearchParamValue(value: string | string[] | undefined): string | und
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const redirectParam = getSearchParamValue(searchParams.redirect) ?? "/admin";
-  const errorParam = getSearchParamValue(searchParams.error);
+  const resolvedSearchParams = await Promise.resolve(searchParams ?? {});
+  const redirectParam = getSearchParamValue(resolvedSearchParams.redirect) ?? "/admin";
+  const errorParam = getSearchParamValue(resolvedSearchParams.error);
   const cookieStore = await cookies();
   const existingSession = cookieStore.get(getSessionCookieName());
   if (existingSession) {
