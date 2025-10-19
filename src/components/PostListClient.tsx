@@ -84,7 +84,12 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, postMetadata }) 
         </div>
       ) : (
         posts.map((post) => (
-          <PostCard key={post.slug} post={post} isAdmin={isAdmin} onDeleted={() => router.refresh()} />
+          <PostCard
+            key={post.slug}
+            post={post}
+            isAdmin={isAdmin}
+            onDeleted={() => router.refresh()}
+          />
         ))
       )}
     </div>

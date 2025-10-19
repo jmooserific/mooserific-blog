@@ -7,209 +7,214 @@ import "react-photo-album/styles.css";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-const RowsPhotoAlbum = dynamic(() => import("react-photo-album").then(m => m.RowsPhotoAlbum), { ssr: false });
+const RowsPhotoAlbum = dynamic(
+  () => import("react-photo-album").then((m) => m.RowsPhotoAlbum),
+  {
+    ssr: true,
+    loading: () => (
+      <div className="h-56 w-full rounded-xl bg-gray-100" aria-hidden="true" />
+    ),
+  }
+);
 const Lightbox = dynamic(() => import("yet-another-react-lightbox"), { ssr: false });
 import "yet-another-react-lightbox/styles.css";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
-export type PhotoMeta = {
-  filename: string; // Can be full URL from R2
-  width: number;
-  height: number;
-};
+ export type PhotoMeta = {
+   filename: string; // Can be full URL from R2
+   width: number;
+   height: number;
+ };
 
-export type Post = {
-  date: string;
-  author: string;
-  caption: string;
-  photos: PhotoMeta[];
-  slug: string;
-  videos?: string[];
-};
+ export type Post = {
+   date: string;
+   author: string;
+   caption: string;
+   photos: PhotoMeta[];
+   slug: string;
+   videos?: string[];
+ };
 
-interface PostCardProps {
-  post: Post;
-  isAdmin?: boolean;
-  onDeleted?: () => void;
-}
+ interface PostCardProps {
+   post: Post;
+   isAdmin?: boolean;
+   onDeleted?: () => void;
+ }
 
-const resolveMediaSrc = (value: string) => {
-  if (!value) return value;
-  if (/^https?:\/\//.test(value)) return value;
-  if (value.startsWith('/')) return value;
+ const resolveMediaSrc = (value: string) => {
+   if (!value) return value;
+   if (/^https?:\/\//.test(value)) return value;
+   if (value.startsWith('/')) return value;
   return `/${value.replace(/^\/+/, '')}`;
-};
+ };
 
-const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
-  const router = useRouter();
-  const [index, setIndex] = useState(-1);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const menuContainerRef = useRef<HTMLDivElement | null>(null);
+ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
+   const router = useRouter();
+   const [index, setIndex] = useState(-1);
+   const [menuOpen, setMenuOpen] = useState(false);
+   const [deleting, setDeleting] = useState(false);
+   const menuContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Close menu on outside click or Escape
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      const el = menuContainerRef.current;
-      if (!el) return;
-      if (e.target instanceof Node && !el.contains(e.target)) {
-        setMenuOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
-    };
-    document.addEventListener('click', onDocClick);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('click', onDocClick);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [menuOpen]);
+   // Close menu on outside click or Escape
+   useEffect(() => {
+     if (!menuOpen) return;
+     const onDocClick = (e: MouseEvent) => {
+       const el = menuContainerRef.current;
+       if (!el) return;
+       if (e.target instanceof Node && !el.contains(e.target)) {
+         setMenuOpen(false);
+       }
+     };
+     const onKey = (e: KeyboardEvent) => {
+       if (e.key === 'Escape') setMenuOpen(false);
+     };
+     document.addEventListener('click', onDocClick);
+     document.addEventListener('keydown', onKey);
+     return () => {
+       document.removeEventListener('click', onDocClick);
+       document.removeEventListener('keydown', onKey);
+     };
+   }, [menuOpen]);
 
+   const photos = post.photos.map((photo) => ({
+     src: resolveMediaSrc(photo.filename),
+     width: photo.width,
+     height: photo.height,
+     alt: post.caption || 'Photo',
+   }));
 
-  const photos = post.photos.map((photo) => {
-    return {
-      src: resolveMediaSrc(photo.filename),
-      width: photo.width,
-      height: photo.height,
-      alt: post.caption || 'Photo'
-    };
-  });
+   // Custom renderPhoto for Next.js Image so SSR markup matches hydration.
+   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
+     { photo, width, height }: RenderImageContext) => (
+     <div
+       style={{
+         width: "100%",
+         position: "relative",
+         aspectRatio: `${width} / ${height}`,
+       }}
+     >
+       <Image
+         fill
+         src={photo}
+         alt={alt}
+         title={title}
+         sizes={sizes ?? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"}
+         quality={60}
+       />
+     </div>
+   );
 
-  // Custom renderPhoto for Next.js Image optimization
-  const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
-    { photo, width, height }: RenderImageContext) => (
-    <div
-      style={{
-        width: "100%",
-        position: "relative",
-        aspectRatio: `${width} / ${height}`,
-      }}
-    >
-      <Image
-        fill
-        src={photo}
-        alt={alt}
-        title={title}
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
-        quality={60}
-      />
-    </div>
-  );
+   // Format date in a UTC-stable way to avoid SSR/CSR timezone differences
+   const formatDateUTC = (iso: string) => {
+     const d = new Date(iso);
+     if (isNaN(d.getTime())) return iso;
+     const monthNames = [
+       "January", "February", "March", "April", "May", "June",
+       "July", "August", "September", "October", "November", "December"
+     ];
+     const month = monthNames[d.getUTCMonth()];
+     const day = d.getUTCDate();
+     const year = d.getUTCFullYear();
+     return `${month} ${day}, ${year}`;
+   };
 
-  // Format date in a UTC-stable way to avoid SSR/CSR timezone differences
-  const formatDateUTC = (iso: string) => {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    const month = monthNames[d.getUTCMonth()];
-    const day = d.getUTCDate();
-    const year = d.getUTCFullYear();
-    return `${month} ${day}, ${year}`;
-  };
+   return (
+     <section className="bg-white rounded-2xl p-4 mb-8">
+       <h2 className="text-xl font-semibold text-gray-800 mb-2">
+         {formatDateUTC(post.date)}
+       </h2>
+       {isAdmin && (
+         <div ref={menuContainerRef} className="relative">
+           <div className="flex justify-end -mt-8 mb-2">
+             <button
+               type="button"
+               onClick={() => setMenuOpen((v) => !v)}
+               className="inline-flex items-center justify-center rounded-full border border-transparent bg-white p-2 text-gray-500 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+               aria-haspopup="menu"
+               aria-expanded={menuOpen}
+               aria-label="Post actions"
+             >
+               <span className="text-lg leading-none">⋯</span>
+             </button>
+           </div>
+           {menuOpen && (
+             <div className="absolute right-0 z-10 bg-white border border-gray-200 rounded shadow-md text-sm">
+               <button
+                 type="button"
+                 className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50"
+                 onClick={() => {
+                   setMenuOpen(false);
+                   router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
+                 }}
+               >
+                 <PencilSquareIcon className="h-4 w-4 text-gray-700" />
+                 <span>Edit</span>
+               </button>
+               <button
+                 type="button"
+                 className="flex items-center gap-2 w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                 disabled={deleting}
+                 onClick={async () => {
+                   setMenuOpen(false);
+                   if (!confirm('Delete this post? This cannot be undone.')) return;
+                   try {
+                     setDeleting(true);
+                     const res = await fetch(`/api/posts/${encodeURIComponent(post.slug)}`, { method: 'DELETE', cache: 'no-store' });
+                     if (!res.ok) throw new Error(await res.text());
+                     onDeleted?.();
+                   } catch (e: any) {
+                     alert(`Failed to delete: ${e?.message || 'Unknown error'}`);
+                   } finally {
+                     setDeleting(false);
+                   }
+                 }}
+               >
+                 <TrashIcon className="h-4 w-4" />
+                 <span>Delete</span>
+               </button>
+             </div>
+           )}
+         </div>
+       )}
+       <div className="prose prose-base mb-6">
+         <Markdown>{post.caption}</Markdown>
+       </div>
+       <div className="pt-2">
+         <RowsPhotoAlbum
+           rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
+           photos={photos}
+           onClick={({ index }) => setIndex(index)}
+           render={{ image: renderPhoto }}
+         />
+         <Lightbox
+           slides={photos}
+           open={index >= 0}
+           index={index}
+           close={() => setIndex(-1)}
+         />
+         {Array.isArray(post.videos) && post.videos.length > 0 && (
+           <div className="mt-4 flex flex-col gap-4">
+             {post.videos.map((video: string) => (
+               <video
+                 key={video}
+                 controls
+                 className="w-full rounded-md bg-black"
+                 style={{ maxHeight: 400 }}
+               >
+                 <source src={resolveMediaSrc(video)} />
+                 Your browser does not support the video tag.
+               </video>
+             ))}
+           </div>
+         )}
+       </div>
+       {post.author && (
+         <p className="text-sm text-right text-gray-600 mt-2">
+           by <strong>{post.author}</strong>
+         </p>
+       )}
+     </section>
+   );
+ };
 
-  return (
-    <section className="bg-white rounded-2xl p-4 mb-8">
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">
-        {formatDateUTC(post.date)}
-      </h2>
-      {isAdmin && (
-        <div ref={menuContainerRef} className="relative">
-          <div className="flex justify-end -mt-8 mb-2">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(v => !v)}
-              className="inline-flex items-center justify-center rounded-full border border-transparent bg-white p-2 text-gray-500 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-label="Post actions"
-            >
-              <span className="text-lg leading-none">⋯</span>
-            </button>
-          </div>
-          {menuOpen && (
-            <div className="absolute right-0 z-10 bg-white border border-gray-200 rounded shadow-md text-sm">
-              <button
-                type="button"
-                className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50"
-                onClick={() => {
-                  setMenuOpen(false);
-                  router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
-                }}
-              >
-                <PencilSquareIcon className="h-4 w-4 text-gray-700" />
-                <span>Edit</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-2 w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                disabled={deleting}
-                onClick={async () => {
-                  setMenuOpen(false);
-                  if (!confirm('Delete this post? This cannot be undone.')) return;
-                  try {
-                    setDeleting(true);
-                    const res = await fetch(`/api/posts/${encodeURIComponent(post.slug)}`, { method: 'DELETE', cache: 'no-store' });
-                    if (!res.ok) throw new Error(await res.text());
-                    onDeleted?.();
-                  } catch (e: any) {
-                    alert(`Failed to delete: ${e?.message || 'Unknown error'}`);
-                  } finally {
-                    setDeleting(false);
-                  }
-                }}
-              >
-                <TrashIcon className="h-4 w-4" />
-                <span>Delete</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-      <div className="prose prose-base mb-6">
-        <Markdown>{post.caption}</Markdown>
-      </div>
-      <div className="pt-2">
-        <RowsPhotoAlbum
-          rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
-          photos={photos}
-          onClick={({ index }) => setIndex(index)}
-          render={{ image: renderPhoto }}
-        />
-        <Lightbox
-          slides={photos}
-          open={index >= 0}
-          index={index}
-          close={() => setIndex(-1)}
-        />
-        {Array.isArray(post.videos) && post.videos.length > 0 && (
-          <div className="mt-4 flex flex-col gap-4">
-            {post.videos.map((video: string) => (
-              <video
-                key={video}
-                controls
-                className="w-full rounded-md bg-black"
-                style={{ maxHeight: 400 }}
-              >
-                <source src={resolveMediaSrc(video)} />
-                Your browser does not support the video tag.
-              </video>
-            ))}
-          </div>
-        )}
-      </div>
-      {post.author && (
-        <p className="text-sm text-right text-gray-600 mt-2">
-          by <strong>{post.author}</strong>
-        </p>
-      )}
-    </section>
-  )
-};
-
-export default PostCard;
+ export default PostCard;
