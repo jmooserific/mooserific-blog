@@ -48,7 +48,9 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
   return `/${value.replace(/^\/+/, '')}`;
  };
 
- const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
+const DEFAULT_CONTAINER_WIDTH = 864; // matches max-w-4xl wrapper minus card padding
+
+const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
    const router = useRouter();
    const [index, setIndex] = useState(-1);
    const [menuOpen, setMenuOpen] = useState(false);
@@ -84,8 +86,10 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
    }));
 
    // Custom renderPhoto for Next.js Image so SSR markup matches hydration.
-   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
-     { photo, width, height }: RenderImageContext) => (
+  const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
+    { photo, width, height }: RenderImageContext) => {
+    const isFirstPhoto = photos.length > 0 && photo?.src === photos[0].src;
+    return (
      <div
        style={{
          width: "100%",
@@ -99,10 +103,13 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
          alt={alt}
          title={title}
          sizes={sizes ?? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"}
-         quality={60}
+        quality={60}
+        priority={isFirstPhoto}
+        loading={isFirstPhoto ? "eager" : "lazy"}
        />
      </div>
-   );
+  );
+  };
 
    // Format date in a UTC-stable way to avoid SSR/CSR timezone differences
    const formatDateUTC = (iso: string) => {
@@ -183,6 +190,7 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
          <RowsPhotoAlbum
            rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
            photos={photos}
+           defaultContainerWidth={DEFAULT_CONTAINER_WIDTH}
            onClick={({ index }) => setIndex(index)}
            render={{ image: renderPhoto }}
          />
