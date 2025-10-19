@@ -176,7 +176,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
       </div>
       <div className="pt-2">
         <RowsPhotoAlbum
-          rowConstraints={{ minPhotos: 1, maxPhotos: 3 }}
+          rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
           photos={photos}
           onClick={({ index }) => setIndex(index)}
           render={{ image: renderPhoto }}
