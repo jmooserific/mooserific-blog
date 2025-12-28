@@ -1,4 +1,4 @@
-# Copilot Instructions for Mooserific Blog (Vercel + Cloudflare R2/D1)
+# Instructions for Mooserific Blog (Vercel + Cloudflare R2/D1)
 
 Mooserific-blog is a simple photo/video blogging platform. It prioritizes easy posting and a clean, simple appearance.
 
@@ -133,7 +133,7 @@ Ensure migration file includes the table + index creation above.
 - `src/app/login/` — Login form page and any server actions related to session creation.
 - `lib/` — `db.ts`, `r2.ts`, other helpers.
 - `migrations/` — D1 SQL migration files.
-- `.github/` — Automation & these instructions.
+- `.claude/` — Automation & these instructions.
 - `public/` — Static assets (favicon, etc.).
 
 Legacy `/posts/` directory is deprecated and should not be used for new content. (Eventually remove once migration script ports old content into D1/R2.)
