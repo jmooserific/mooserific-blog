@@ -179,7 +179,7 @@ function AdminPageInner() {
   function addFilesToItems(newFiles: File[]) {
     if (newFiles.length === 0) return;
     setItems((prev) => {
-      const remaining = Math.max(0, 10 - prev.length);
+      const remaining = Math.max(0, 20 - prev.length);
       const toAdd = newFiles.slice(0, remaining);
       const created: UploadItem[] = toAdd.map((file) => ({
         id: crypto.randomUUID(),
