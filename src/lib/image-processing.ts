@@ -26,10 +26,13 @@ export async function processAndUploadImage(
   const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
   const baseKey = `${prefix}photos/${postId}/${uuid}`;
 
-  // Use .rotate() here too so width/height reflect the correctly-oriented dimensions
-  const metadata = await sharp(buffer).rotate().metadata();
-  const originalWidth = metadata.width ?? 0;
-  const originalHeight = metadata.height ?? 0;
+  // .metadata() returns the raw pre-rotation pixel dimensions. For images that need
+  // a 90°/270° rotation (EXIF orientations 5–8), we swap width and height so the
+  // stored dimensions match the correctly-oriented display size.
+  const metadata = await sharp(buffer).metadata();
+  const transposed = (metadata.orientation ?? 1) >= 5;
+  const originalWidth = (transposed ? metadata.height : metadata.width) ?? 0;
+  const originalHeight = (transposed ? metadata.width : metadata.height) ?? 0;
 
   await Promise.all(
     VARIANT_WIDTHS.map(async (width) => {

@@ -40,6 +40,7 @@ import { randomUUID } from 'node:crypto';
 const VARIANT_WIDTHS = [320, 480, 768, 1024, 2048] as const;
 const DRY_RUN = process.argv.includes('--dry-run');
 const REPROCESS = process.argv.includes('--reprocess');
+const VERBOSE = process.argv.includes('--verbose');
 const CONCURRENCY = (() => {
   const arg = process.argv.find((a) => a.startsWith('--concurrency='));
   return arg ? Math.max(1, parseInt(arg.split('=')[1], 10)) : 5;
@@ -95,7 +96,8 @@ async function uploadVariants(buffer: Buffer, baseKey: string): Promise<void> {
  */
 async function listOriginalsInFolder(folderKey: string): Promise<string[]> {
   const client = getR2Client();
-  const keys: string[] = [];
+  const allKeys: string[] = [];
+  const originalKeys: string[] = [];
   let continuationToken: string | undefined;
   do {
     const res = await client.send(new ListObjectsV2Command({
@@ -105,13 +107,19 @@ async function listOriginalsInFolder(folderKey: string): Promise<string[]> {
     }));
     for (const obj of res.Contents ?? []) {
       const key = obj.Key ?? '';
+      allKeys.push(key);
       if (IMAGE_EXTENSION_RE.test(key) && !VARIANT_SUFFIX_RE.test(key)) {
-        keys.push(key);
+        originalKeys.push(key);
       }
     }
     continuationToken = res.NextContinuationToken;
   } while (continuationToken);
-  return keys.sort();
+  if (VERBOSE) {
+    console.log(`\n  [verbose] folder: ${folderKey}/`);
+    console.log(`  [verbose] all keys (${allKeys.length}): ${allKeys.join(', ') || '(none)'}`);
+    console.log(`  [verbose] originals found (${originalKeys.length}): ${originalKeys.join(', ') || '(none)'}`);
+  }
+  return originalKeys.sort();
 }
 
 /** Run `fn` over all items with at most `concurrency` in-flight at once. */
@@ -161,18 +169,31 @@ async function main() {
     const updatedPhotos: PhotoAsset[] = [];
     let postNeedsUpdate = false;
 
-    // In reprocess mode, look up original files from R2 to match against already-migrated photos
+    // In reprocess mode, look up original files from R2 to match against already-migrated photos.
+    // Originals may live in a different prefix than the variants — e.g. variants were written to
+    // dev/photos/{postId}/ (migration ran locally with ENVIRONMENT=development) while originals
+    // were uploaded to photos/{postId}/ (legacy import ran without the dev prefix).
+    // Strategy: derive the folder from the D1 URL, and if no originals are found there, retry
+    // without the leading dev/ prefix.
     let r2Originals: string[] | null = null;
     if (REPROCESS) {
-      const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
-      const folderKey = `${prefix}photos/${post.id}`;
       const alreadyMigrated = post.photos.filter((p: PhotoAsset) => !isOldFormat(p.url));
       if (alreadyMigrated.length > 0) {
-        r2Originals = await listOriginalsInFolder(folderKey);
+        const firstKey = keyFromUrl(alreadyMigrated[0].url);
+        const variantsFolder = firstKey.substring(0, firstKey.lastIndexOf('/'));
+        r2Originals = await listOriginalsInFolder(variantsFolder);
+        if (r2Originals.length === 0 && variantsFolder.startsWith('dev/')) {
+          // Originals were uploaded without the dev/ prefix — look there instead
+          r2Originals = await listOriginalsInFolder(variantsFolder.slice(4));
+        }
       }
     }
 
     let migratedIndex = 0; // tracks position within already-migrated photos for r2Originals matching
+
+    if (VERBOSE && REPROCESS) {
+      process.stderr.write(`  [verbose] r2Originals for post ${post.id}: ${r2Originals === null ? 'null' : `${r2Originals.length} items`}\n`);
+    }
 
     for (const photo of post.photos) {
       const alreadyMigrated = !isOldFormat(photo.url);
@@ -199,12 +220,13 @@ async function main() {
           try {
             const baseKey = keyFromUrl(photo.url);
             const buffer = await fetchFromR2(originalKey);
-            const metadata = await sharp(buffer).rotate().metadata();
+            const metadata = await sharp(buffer).metadata();
+            const transposed = (metadata.orientation ?? 1) >= 5;
             await uploadVariants(buffer, baseKey);
             updatedPhotos.push({
               url: photo.url, // same base URL — variants overwritten in place
-              width: metadata.width ?? photo.width,
-              height: metadata.height ?? photo.height,
+              width: (transposed ? metadata.height : metadata.width) ?? photo.width,
+              height: (transposed ? metadata.width : metadata.height) ?? photo.height,
             });
             postNeedsUpdate = true;
             processed++;
@@ -228,12 +250,13 @@ async function main() {
       if (!DRY_RUN) {
         try {
           const buffer = await fetchFromR2(key);
-          const metadata = await sharp(buffer).rotate().metadata();
+          const metadata = await sharp(buffer).metadata();
+          const transposed = (metadata.orientation ?? 1) >= 5;
           await uploadVariants(buffer, baseKey);
           updatedPhotos.push({
             url: getPublicUrl(baseKey),
-            width: metadata.width ?? photo.width,
-            height: metadata.height ?? photo.height,
+            width: (transposed ? metadata.height : metadata.width) ?? photo.width,
+            height: (transposed ? metadata.width : metadata.height) ?? photo.height,
           });
           postNeedsUpdate = true;
           processed++;
