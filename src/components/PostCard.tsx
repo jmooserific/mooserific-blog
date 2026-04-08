@@ -5,6 +5,7 @@ import Markdown from 'react-markdown';
 import { RenderImageContext, RenderImageProps } from "react-photo-album";
 import "react-photo-album/styles.css";
 import Image from "next/image";
+import r2ImageLoader from "@/lib/image-loader";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 const RowsPhotoAlbum = dynamic(
@@ -85,6 +86,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
      alt: post.caption || 'Photo',
    }));
 
+   // Lightbox slides use the 2048w variant for sharp display on retina screens
+   const lightboxSlides = photos.map((p) => ({ ...p, src: `${p.src}-2048w.webp` }));
+
    // Custom renderPhoto for Next.js Image so SSR markup matches hydration.
   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
     { photo, width, height }: RenderImageContext) => {
@@ -98,12 +102,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
        }}
      >
        <Image
+         loader={r2ImageLoader}
          fill
          src={photo}
          alt={alt}
          title={title}
          sizes={sizes ?? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"}
-        quality={60}
         priority={isFirstPhoto}
         loading={isFirstPhoto ? "eager" : "lazy"}
        />
@@ -195,7 +199,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
            render={{ image: renderPhoto }}
          />
          <Lightbox
-           slides={photos}
+           slides={lightboxSlides}
            open={index >= 0}
            index={index}
            close={() => setIndex(-1)}

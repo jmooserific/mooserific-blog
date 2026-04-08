@@ -238,6 +238,38 @@ function AdminPageInner() {
     });
   }
 
+  function postImageWithProgress(
+    file: File,
+    folderId: string,
+    onProgress: (pct: number) => void,
+  ): Promise<{ baseUrl: string; width: number; height: number; folderId: string }> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/media/upload-image', true);
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          // Cap at 90% — the remaining 10% represents server-side Sharp processing
+          const pct = Math.min(90, Math.round((evt.loaded / evt.total) * 90));
+          onProgress(pct);
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          let msg = `Upload failed (${xhr.status})`;
+          try { msg = JSON.parse(xhr.responseText).error || msg; } catch { /* ignore */ }
+          reject(new Error(msg));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      const form = new FormData();
+      form.append('file', file);
+      form.append('folderId', folderId);
+      xhr.send(form);
+    });
+  }
+
   function reorder(array: UploadItem[], from: number, to: number) {
     const copy = array.slice();
     const [moved] = copy.splice(from, 1);
@@ -339,25 +371,40 @@ function AdminPageInner() {
       const itemsToUpload = workingItems.filter((it) => it.source === 'new' && it.file);
       for (const it of itemsToUpload) {
         const file = it.file!;
-        const presignRes = await fetch('/api/media/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: it.filename, contentType: file.type, size: file.size, folderId: effectiveId, kind: it.kind })
-        });
-        if (!presignRes.ok) {
-          throw new Error(await presignRes.text());
+        if (it.kind === 'photo') {
+          const result = await postImageWithProgress(file, effectiveId, (pct) => {
+            setUploadProgress((prev) => ({ ...prev, [it.id]: pct }));
+          });
+          setUploadProgress((prev) => ({ ...prev, [it.id]: 100 }));
+          workingItems = workingItems.map((entry) => entry.id === it.id ? {
+            ...entry,
+            url: result.baseUrl,
+            width: result.width,
+            height: result.height,
+            source: 'existing',
+            file: undefined,
+          } : entry);
+        } else {
+          const presignRes = await fetch('/api/media/presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: it.filename, contentType: file.type, size: file.size, folderId: effectiveId, kind: it.kind })
+          });
+          if (!presignRes.ok) {
+            throw new Error(await presignRes.text());
+          }
+          const presign = await presignRes.json();
+          await putWithProgress(presign.uploadUrl, file, presign.headers, (pct) => {
+            setUploadProgress((prev) => ({ ...prev, [it.id]: pct }));
+          });
+          setUploadProgress((prev) => ({ ...prev, [it.id]: 100 }));
+          workingItems = workingItems.map((entry) => entry.id === it.id ? {
+            ...entry,
+            url: presign.publicUrl,
+            source: 'existing',
+            file: undefined,
+          } : entry);
         }
-        const presign = await presignRes.json();
-        await putWithProgress(presign.uploadUrl, file, presign.headers, (pct) => {
-          setUploadProgress((prev) => ({ ...prev, [it.id]: pct }));
-        });
-        setUploadProgress((prev) => ({ ...prev, [it.id]: 100 }));
-        workingItems = workingItems.map((entry) => entry.id === it.id ? {
-          ...entry,
-          url: presign.publicUrl,
-          source: 'existing',
-          file: undefined,
-        } : entry);
       }
       if (itemsToUpload.length > 0) {
         setItems(workingItems);
