@@ -13,7 +13,8 @@
 
   Usage:
     npx tsx scripts/migrate-images.ts
-    npx tsx scripts/migrate-images.ts --dry-run   (prints what would change, no writes)
+    npx tsx scripts/migrate-images.ts --dry-run      (prints what would change, no writes)
+    npx tsx scripts/migrate-images.ts --concurrency=10
 */
 
 import fsSync from 'node:fs';
@@ -35,6 +36,10 @@ import { randomUUID } from 'node:crypto';
 
 const VARIANT_WIDTHS = [320, 480, 768, 1024, 2048] as const;
 const DRY_RUN = process.argv.includes('--dry-run');
+const CONCURRENCY = (() => {
+  const arg = process.argv.find((a) => a.startsWith('--concurrency='));
+  return arg ? Math.max(1, parseInt(arg.split('=')[1], 10)) : 5;
+})();
 
 const IMAGE_EXTENSION_RE = /\.(jpe?g|png|gif|webp|heic|heif|avif|tiff?|bmp)$/i;
 
@@ -43,12 +48,10 @@ function isOldFormat(url: string): boolean {
 }
 
 function keyFromUrl(url: string): string {
-  // Strip the public base URL prefix to get the R2 object key
   const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
   if (base && url.startsWith(base + '/')) {
     return url.slice(base.length + 1);
   }
-  // Fallback: everything after the hostname
   try {
     return new URL(url).pathname.replace(/^\//, '');
   } catch {
@@ -69,10 +72,7 @@ async function fetchFromR2(key: string): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-async function uploadVariants(
-  buffer: Buffer,
-  baseKey: string,
-): Promise<void> {
+async function uploadVariants(buffer: Buffer, baseKey: string): Promise<void> {
   const client = getR2Client();
   const bucket = process.env.R2_BUCKET_NAME!;
   await Promise.all(
@@ -91,74 +91,96 @@ async function uploadVariants(
   );
 }
 
+/** Run `fn` over all items with at most `concurrency` in-flight at once. */
+async function withConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  const queue = [...items];
+  async function worker() {
+    while (queue.length > 0) {
+      const item = queue.shift()!;
+      await fn(item);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+}
+
+async function fetchAllPosts() {
+  const all = [];
+  let before: string | undefined;
+  while (true) {
+    const page = await listPosts({ limit: 100, before });
+    if (page.length === 0) break;
+    all.push(...page);
+    before = page[page.length - 1].date;
+    if (page.length < 100) break;
+  }
+  return all;
+}
+
 async function main() {
-  console.log(DRY_RUN ? '--- DRY RUN (no changes will be written) ---\n' : '');
+  if (DRY_RUN) console.log('--- DRY RUN (no changes will be written) ---\n');
+
+  console.log('Fetching all posts from D1…');
+  const posts = await fetchAllPosts();
+  const total = posts.length;
+  console.log(`Found ${total} posts. Processing with concurrency=${CONCURRENCY}.\n`);
 
   let processed = 0;
   let skipped = 0;
   let errors = 0;
-  let before: string | undefined;
+  let postsDone = 0;
 
-  // Paginate through all posts (D1 max 100 per query)
-  while (true) {
-    const posts = await listPosts({ limit: 100, before });
-    if (posts.length === 0) break;
+  await withConcurrency(posts, CONCURRENCY, async (post) => {
+    const updatedPhotos: PhotoAsset[] = [];
+    let postNeedsUpdate = false;
 
-    for (const post of posts) {
-      const updatedPhotos: PhotoAsset[] = [];
-      let postNeedsUpdate = false;
-
-      for (const photo of post.photos) {
-        if (!isOldFormat(photo.url)) {
-          skipped++;
-          updatedPhotos.push(photo);
-          continue;
-        }
-
-        const key = keyFromUrl(photo.url);
-        const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
-        const baseKey = `${prefix}photos/${post.id}/${randomUUID()}`;
-
-        console.log(`  [post ${post.id}] ${photo.url}`);
-        console.log(`    → ${getPublicUrl(baseKey)}-{width}w.webp`);
-
-        if (!DRY_RUN) {
-          try {
-            const buffer = await fetchFromR2(key);
-            const metadata = await sharp(buffer).metadata();
-            await uploadVariants(buffer, baseKey);
-            updatedPhotos.push({
-              url: getPublicUrl(baseKey),
-              width: metadata.width ?? photo.width,
-              height: metadata.height ?? photo.height,
-            });
-            postNeedsUpdate = true;
-            processed++;
-          } catch (err: any) {
-            console.error(`    ERROR: ${err?.message ?? err}`);
-            errors++;
-            updatedPhotos.push(photo); // keep original on error
-          }
-        } else {
-          skipped++;
-          updatedPhotos.push(photo);
-        }
+    for (const photo of post.photos) {
+      if (!isOldFormat(photo.url)) {
+        skipped++;
+        updatedPhotos.push(photo);
+        continue;
       }
 
-      if (postNeedsUpdate && !DRY_RUN) {
-        await updatePost(post.id, { photos: updatedPhotos });
-        console.log(`    ✓ Post ${post.id} updated in D1`);
+      const key = keyFromUrl(photo.url);
+      const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
+      const baseKey = `${prefix}photos/${post.id}/${randomUUID()}`;
+
+      if (!DRY_RUN) {
+        try {
+          const buffer = await fetchFromR2(key);
+          const metadata = await sharp(buffer).metadata();
+          await uploadVariants(buffer, baseKey);
+          updatedPhotos.push({
+            url: getPublicUrl(baseKey),
+            width: metadata.width ?? photo.width,
+            height: metadata.height ?? photo.height,
+          });
+          postNeedsUpdate = true;
+          processed++;
+        } catch (err: any) {
+          console.error(`  ERROR [post ${post.id}] ${photo.url}: ${err?.message ?? err}`);
+          errors++;
+          updatedPhotos.push(photo);
+        }
+      } else {
+        skipped++;
+        updatedPhotos.push(photo);
       }
     }
 
-    // Advance cursor to the oldest post date in this page
-    before = posts[posts.length - 1].date;
+    if (postNeedsUpdate && !DRY_RUN) {
+      await updatePost(post.id, { photos: updatedPhotos });
+    }
 
-    // If we got fewer than 100, we're on the last page
-    if (posts.length < 100) break;
-  }
+    postsDone++;
+    const pct = Math.round((postsDone / total) * 100);
+    process.stdout.write(`\r  ${postsDone}/${total} posts (${pct}%) — ${processed} images done, ${errors} errors`);
+  });
 
-  console.log(`\nDone. Processed: ${processed}, Skipped: ${skipped}, Errors: ${errors}`);
+  console.log(`\n\nDone. Processed: ${processed}, Skipped: ${skipped}, Errors: ${errors}`);
   if (errors > 0) process.exit(1);
 }
 
