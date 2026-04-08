@@ -9,11 +9,14 @@
     3. Upload the variants to R2
     4. Update the post record in D1 with the new base URL
 
-  Already-migrated photos (URLs with no image extension) are skipped.
+  Already-migrated photos (URLs with no image extension) are skipped unless
+  --reprocess is passed, in which case the script locates the original files
+  still in R2 and re-generates the variants (useful to fix e.g. rotation bugs).
 
   Usage:
     npx tsx scripts/migrate-images.ts
-    npx tsx scripts/migrate-images.ts --dry-run      (prints what would change, no writes)
+    npx tsx scripts/migrate-images.ts --dry-run         (no writes)
+    npx tsx scripts/migrate-images.ts --reprocess       (re-process already-migrated photos)
     npx tsx scripts/migrate-images.ts --concurrency=10
 */
 
@@ -31,17 +34,19 @@ import sharp from 'sharp';
 import { getR2Client, getPublicUrl } from '../src/lib/core/r2-core';
 import { listPosts, updatePost } from '../src/lib/core/db-core';
 import type { PhotoAsset } from '../src/lib/types';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
 
 const VARIANT_WIDTHS = [320, 480, 768, 1024, 2048] as const;
 const DRY_RUN = process.argv.includes('--dry-run');
+const REPROCESS = process.argv.includes('--reprocess');
 const CONCURRENCY = (() => {
   const arg = process.argv.find((a) => a.startsWith('--concurrency='));
   return arg ? Math.max(1, parseInt(arg.split('=')[1], 10)) : 5;
 })();
 
 const IMAGE_EXTENSION_RE = /\.(jpe?g|png|gif|webp|heic|heif|avif|tiff?|bmp)$/i;
+const VARIANT_SUFFIX_RE = /-\d+w\.webp$/;
 
 function isOldFormat(url: string): boolean {
   return IMAGE_EXTENSION_RE.test(url.split('?')[0]);
@@ -49,14 +54,8 @@ function isOldFormat(url: string): boolean {
 
 function keyFromUrl(url: string): string {
   const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
-  if (base && url.startsWith(base + '/')) {
-    return url.slice(base.length + 1);
-  }
-  try {
-    return new URL(url).pathname.replace(/^\//, '');
-  } catch {
-    return url;
-  }
+  if (base && url.startsWith(base + '/')) return url.slice(base.length + 1);
+  try { return new URL(url).pathname.replace(/^\//, ''); } catch { return url; }
 }
 
 async function fetchFromR2(key: string): Promise<Buffer> {
@@ -66,9 +65,7 @@ async function fetchFromR2(key: string): Promise<Buffer> {
     Key: key,
   }));
   const chunks: Uint8Array[] = [];
-  for await (const chunk of res.Body as AsyncIterable<Uint8Array>) {
-    chunks.push(chunk);
-  }
+  for await (const chunk of res.Body as AsyncIterable<Uint8Array>) chunks.push(chunk);
   return Buffer.concat(chunks);
 }
 
@@ -78,6 +75,7 @@ async function uploadVariants(buffer: Buffer, baseKey: string): Promise<void> {
   await Promise.all(
     VARIANT_WIDTHS.map(async (width) => {
       const resized = await sharp(buffer)
+        .rotate()                               // apply EXIF orientation before resizing
         .resize({ width, withoutEnlargement: true })
         .webp({ quality: 82 })
         .toBuffer();
@@ -89,6 +87,31 @@ async function uploadVariants(buffer: Buffer, baseKey: string): Promise<void> {
       }));
     }),
   );
+}
+
+/**
+ * List original image files in an R2 folder (excludes variant files like -320w.webp).
+ * Returns keys sorted alphabetically, matching the order R2 stores them.
+ */
+async function listOriginalsInFolder(folderKey: string): Promise<string[]> {
+  const client = getR2Client();
+  const keys: string[] = [];
+  let continuationToken: string | undefined;
+  do {
+    const res = await client.send(new ListObjectsV2Command({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Prefix: folderKey.endsWith('/') ? folderKey : `${folderKey}/`,
+      ContinuationToken: continuationToken,
+    }));
+    for (const obj of res.Contents ?? []) {
+      const key = obj.Key ?? '';
+      if (IMAGE_EXTENSION_RE.test(key) && !VARIANT_SUFFIX_RE.test(key)) {
+        keys.push(key);
+      }
+    }
+    continuationToken = res.NextContinuationToken;
+  } while (continuationToken);
+  return keys.sort();
 }
 
 /** Run `fn` over all items with at most `concurrency` in-flight at once. */
@@ -122,6 +145,7 @@ async function fetchAllPosts() {
 
 async function main() {
   if (DRY_RUN) console.log('--- DRY RUN (no changes will be written) ---\n');
+  if (REPROCESS) console.log('--- REPROCESS mode: will re-generate variants for already-migrated photos ---\n');
 
   console.log('Fetching all posts from D1…');
   const posts = await fetchAllPosts();
@@ -137,13 +161,66 @@ async function main() {
     const updatedPhotos: PhotoAsset[] = [];
     let postNeedsUpdate = false;
 
+    // In reprocess mode, look up original files from R2 to match against already-migrated photos
+    let r2Originals: string[] | null = null;
+    if (REPROCESS) {
+      const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
+      const folderKey = `${prefix}photos/${post.id}`;
+      const alreadyMigrated = post.photos.filter((p: PhotoAsset) => !isOldFormat(p.url));
+      if (alreadyMigrated.length > 0) {
+        r2Originals = await listOriginalsInFolder(folderKey);
+      }
+    }
+
+    let migratedIndex = 0; // tracks position within already-migrated photos for r2Originals matching
+
     for (const photo of post.photos) {
-      if (!isOldFormat(photo.url)) {
+      const alreadyMigrated = !isOldFormat(photo.url);
+
+      if (alreadyMigrated && !REPROCESS) {
         skipped++;
         updatedPhotos.push(photo);
         continue;
       }
 
+      if (alreadyMigrated && REPROCESS) {
+        // Re-process using the original file from R2, overwriting variants at the same base key
+        const originalKey = r2Originals?.[migratedIndex];
+        migratedIndex++;
+
+        if (!originalKey) {
+          console.error(`  WARN [post ${post.id}] no R2 original found for migrated photo at index ${migratedIndex - 1}, skipping`);
+          skipped++;
+          updatedPhotos.push(photo);
+          continue;
+        }
+
+        if (!DRY_RUN) {
+          try {
+            const baseKey = keyFromUrl(photo.url);
+            const buffer = await fetchFromR2(originalKey);
+            const metadata = await sharp(buffer).rotate().metadata();
+            await uploadVariants(buffer, baseKey);
+            updatedPhotos.push({
+              url: photo.url, // same base URL — variants overwritten in place
+              width: metadata.width ?? photo.width,
+              height: metadata.height ?? photo.height,
+            });
+            postNeedsUpdate = true;
+            processed++;
+          } catch (err: any) {
+            console.error(`  ERROR [post ${post.id}] reprocess ${photo.url}: ${err?.message ?? err}`);
+            errors++;
+            updatedPhotos.push(photo);
+          }
+        } else {
+          skipped++;
+          updatedPhotos.push(photo);
+        }
+        continue;
+      }
+
+      // Standard migration path: old-format photo with a file extension
       const key = keyFromUrl(photo.url);
       const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
       const baseKey = `${prefix}photos/${post.id}/${randomUUID()}`;
@@ -151,7 +228,7 @@ async function main() {
       if (!DRY_RUN) {
         try {
           const buffer = await fetchFromR2(key);
-          const metadata = await sharp(buffer).metadata();
+          const metadata = await sharp(buffer).rotate().metadata();
           await uploadVariants(buffer, baseKey);
           updatedPhotos.push({
             url: getPublicUrl(baseKey),
