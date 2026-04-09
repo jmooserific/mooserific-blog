@@ -25,7 +25,8 @@
     "sharp": "^0.34.5",
     "sonner": "^1.5.0",
     "tailwindcss": "latest",
-    "yet-another-react-lightbox": "^3.25.0"
+    "yet-another-react-lightbox": "^3.25.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",

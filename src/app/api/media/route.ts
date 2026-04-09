@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
       urls.push(url);
     }
   return Response.json({ postId, urls });
-  } catch (e: any) {
-    return new Response(e.message, { status: 500 });
+  } catch (e: unknown) {
+    console.error('POST /api/media error', e);
+    return new Response('Internal server error', { status: 500 });
   }
 }

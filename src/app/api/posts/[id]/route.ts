@@ -1,4 +1,11 @@
 import { getPost, updatePost, deletePost } from '@/lib/db';
+import type { PhotoAsset } from '@/lib/types';
+
+function normalizePhoto(p: unknown): PhotoAsset {
+  if (typeof p === 'string') return { url: p, width: 800, height: 600 };
+  if (p && typeof p === 'object' && 'url' in p) return p as PhotoAsset;
+  return { url: String(p), width: 800, height: 600 };
+}
 
 // Dynamic route params must be awaited in App Router API routes.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -7,31 +14,39 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const post = await getPost(id);
     if (!post) return new Response('Not found', { status: 404 });
     return Response.json(post);
-  } catch (e: any) {
-    return new Response(e.message, { status: 500 });
+  } catch (e: unknown) {
+    console.error('GET /api/posts/[id] error', e);
+    return new Response('Internal server error', { status: 500 });
   }
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const body = await req.json();
-    const photos = Array.isArray(body.photos)
-      ? body.photos.map((p: any) => (typeof p === 'string' ? { url: p, width: 800, height: 600 } : p))
+    const body: unknown = await req.json();
+    if (!body || typeof body !== 'object') {
+      return new Response('Invalid request body', { status: 400 });
+    }
+    const b = body as Record<string, unknown>;
+    const photos = Array.isArray(b.photos) ? b.photos.map(normalizePhoto) : undefined;
+    const videos = Array.isArray(b.videos)
+      ? b.videos.filter((v): v is string => typeof v === 'string')
       : undefined;
     let date: string | undefined;
-    if (typeof body.date === 'string') {
-      const parsed = new Date(body.date);
+    if (typeof b.date === 'string') {
+      const parsed = new Date(b.date);
       if (Number.isNaN(parsed.getTime())) {
         return new Response('Invalid date format', { status: 400 });
       }
       date = parsed.toISOString();
     }
-    const post = await updatePost(id, { description: body.description, photos, videos: body.videos, date });
+    const description = typeof b.description === 'string' ? b.description : undefined;
+    const post = await updatePost(id, { description, photos, videos, date });
     if (!post) return new Response('Not found', { status: 404 });
     return Response.json(post);
-  } catch (e: any) {
-    return new Response(e.message, { status: 500 });
+  } catch (e: unknown) {
+    console.error('PUT /api/posts/[id] error', e);
+    return new Response('Internal server error', { status: 500 });
   }
 }
 
@@ -40,7 +55,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const ok = await deletePost(id);
     return new Response(ok ? 'Deleted' : 'Not found', { status: ok ? 200 : 404 });
-  } catch (e: any) {
-    return new Response(e.message, { status: 500 });
+  } catch (e: unknown) {
+    console.error('DELETE /api/posts/[id] error', e);
+    return new Response('Internal server error', { status: 500 });
   }
 }

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const { baseUrl, width, height } = await processAndUploadImage(buffer, postId);
 
     return NextResponse.json({ baseUrl, width, height, folderId: postId });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('upload-image error', err);
     return NextResponse.json({ error: 'Failed to process image' }, { status: 500 });
   }

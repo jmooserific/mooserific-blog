@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       expiresIn: 900,
       maxBytes: MAX_FILE_BYTES,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('presign error', err);
     return NextResponse.json({ error: 'Failed to create presigned URL' }, { status: 500 });
   }
