@@ -1,6 +1,6 @@
 node_modules
 .next
-posts/
 **/.DS_Store
 .data/
 .env.local
+tsconfig.tsbuildinfo
