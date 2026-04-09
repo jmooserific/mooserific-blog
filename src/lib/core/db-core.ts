@@ -1,7 +1,34 @@
 import type { Post, ListPostsOptions, PhotoAsset } from '../types';
 import { getCloudflareClient } from './cloudflare-core';
 
-async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ results: T[] }> {
+type SqlParam = string | number | boolean | null;
+
+interface D1QueryResponse {
+  result: Array<{ results: unknown[] }> | { results: unknown[] };
+}
+
+interface D1Api {
+  d1: {
+    database: {
+      query(
+        dbId: string,
+        body: { account_id: string; sql: string; params: SqlParam[] },
+        opts: object
+      ): Promise<D1QueryResponse>;
+    };
+  };
+}
+
+interface PostRow {
+  id: string;
+  date: string;
+  author: string | null;
+  description: string | null;
+  photos: string;
+  videos: string | null;
+}
+
+async function d1Query<T>(sql: string, params: SqlParam[] = []): Promise<{ results: T[] }> {
   const dbId = process.env.D1_DATABASE_ID;
   const token = process.env.CF_API_TOKEN;
   const accountId = process.env.D1_ACCOUNT_ID || process.env.R2_ACCOUNT_ID;
@@ -12,9 +39,9 @@ async function d1Query<T = any>(sql: string, params: any[] = []): Promise<{ resu
   if (missing.length) throw new Error(`Missing required env vars for D1: ${missing.join(', ')}`);
 
   const normalizedSql = sql.replace(/\$\d+/g, '?');
-  const cf = getCloudflareClient();
-  const resp = await (cf as any).d1.database.query(dbId, { account_id: accountId!, sql: normalizedSql, params }, {});
-  const first = Array.isArray((resp as any).result) ? (resp as any).result[0] : (resp as any).result;
+  const cf = getCloudflareClient() as unknown as D1Api;
+  const resp = await cf.d1.database.query(dbId, { account_id: accountId!, sql: normalizedSql, params }, {});
+  const first = Array.isArray(resp.result) ? resp.result[0] : resp.result;
   const rows = first?.results;
   return { results: Array.isArray(rows) ? (rows as T[]) : [] };
 }
@@ -24,7 +51,7 @@ export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
 
   // Build dynamic WHERE clauses for date filter and cursors
   const where: string[] = [];
-  const params: any[] = [];
+  const params: SqlParam[] = [];
 
   if (opts.dateFilter) {
     // Accept YYYY or YYYY-MM or YYYY-MM-DD; build range [start, end)
@@ -66,19 +93,17 @@ export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
   const orderDesc = !opts.after;
   const orderSql = `ORDER BY date ${orderDesc ? 'DESC' : 'ASC'}`;
 
-  const { results } = await d1Query<any>(
+  const { results } = await d1Query<PostRow>(
     `SELECT * FROM posts ${whereSql} ${orderSql} LIMIT $${params.length + 1}`,
     [...params, limit]
   );
-  let rows = Array.isArray(results) ? results : [];
-  if (!orderDesc) {
-    rows = rows.reverse();
-  }
+  const rows = Array.isArray(results) ? results : [];
+  if (!orderDesc) rows.reverse();
   return rows.map(deserializePost);
 }
 
 export async function getPost(id: string): Promise<Post | null> {
-  const { results } = await d1Query<Post>(`SELECT * FROM posts WHERE id = $1`, [id]);
+  const { results } = await d1Query<PostRow>(`SELECT * FROM posts WHERE id = $1`, [id]);
   const row = results[0];
   return row ? deserializePost(row) : null;
 }
@@ -166,14 +191,14 @@ export async function getDateMetadata(): Promise<{
   return { availableYears, monthsWithPosts, postCounts };
 }
 
-function deserializePost(row: any): Post {
+function deserializePost(row: PostRow): Post {
   return {
     id: row.id,
     date: row.date,
     author: row.author || undefined,
     description: row.description || undefined,
     photos: ((): PhotoAsset[] => {
-      const parsed = safeParseArray(row.photos) as any[] | undefined;
+      const parsed = safeParseArray(row.photos);
       if (!parsed) return [];
       if (parsed.length > 0) {
         const first = parsed[0];
@@ -181,17 +206,17 @@ function deserializePost(row: any): Post {
           return parsed as PhotoAsset[];
         }
       }
-      return (parsed as string[]).map(url => ({ url, width: 800, height: 600 }));
+      return (parsed as unknown as string[]).map(url => ({ url, width: 800, height: 600 }));
     })(),
-    videos: safeParseArray(row.videos)
+    videos: safeParseArray(row.videos) as string[] | undefined
   };
 }
 
-function safeParseArray(val: any): any[] | undefined {
+function safeParseArray(val: string | null | undefined): unknown[] | undefined {
   if (val == null) return undefined;
   try {
-    const parsed = typeof val === 'string' ? JSON.parse(val) : val;
-    if (Array.isArray(parsed)) return parsed;
+    const parsed: unknown = typeof val === 'string' ? JSON.parse(val) : val;
+    if (Array.isArray(parsed)) return parsed as unknown[];
     return [parsed];
   } catch {
     return undefined;
