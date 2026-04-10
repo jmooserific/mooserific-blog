@@ -81,7 +81,7 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
   return (
     <div
       ref={ref}
-      className="absolute left-4 top-4 z-50 bg-white rounded-xl shadow-lg border border-gray-200 w-80"
+      className="absolute z-50 bg-white rounded-xl shadow-lg border border-gray-200 w-80 left-1/2 -translate-x-1/2 top-full mt-1 sm:left-auto sm:translate-x-0 sm:right-0 sm:top-1/2 sm:mt-0"
       onMouseDown={e => e.stopPropagation()}
     >
       {/* Year Navigation Header */}
