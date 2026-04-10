@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   authenticateCredentials,
-  buildSessionCookie,
   createSessionToken,
   getConfiguredCredentials,
   authorFromUsername,
+  getSessionCookieName,
+  SESSION_DEFAULT_TTL_SECONDS,
 } from '@/lib/auth';
 
 type LoginInput = {
@@ -66,10 +67,15 @@ export async function POST(req: NextRequest) {
 
   const { username: configuredUsername } = getConfiguredCredentials();
   const token = await createSessionToken(configuredUsername);
-  const cookie = buildSessionCookie(token);
   const targetUrl = resolveRedirect(req, redirect);
   const res = NextResponse.redirect(targetUrl, { status: 303 });
-  res.headers.append('Set-Cookie', cookie);
+  res.cookies.set(getSessionCookieName(), token, {
+    httpOnly: true,
+    maxAge: SESSION_DEFAULT_TTL_SECONDS,
+    path: '/',
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'lax',
+  });
   res.headers.set('Cache-Control', 'no-store');
   res.headers.set('x-auth-user', authorFromUsername(configuredUsername));
   return res;
