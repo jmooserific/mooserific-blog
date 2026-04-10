@@ -37,7 +37,8 @@ export async function putObject(opts: { key: string; contentType: string; body: 
     Bucket: bucket,
     Key: opts.key,
     Body: opts.body as any,
-    ContentType: opts.contentType
+    ContentType: opts.contentType,
+    CacheControl: 'public, max-age=31536000, immutable'
   }));
   return getPublicUrl(opts.key);
 }
@@ -54,7 +55,8 @@ export async function getPresignedPutUrl(opts: { key: string; contentType: strin
   const cmd = new PutObjectCommand({
     Bucket: bucket,
     Key: opts.key,
-    ContentType: opts.contentType
+    ContentType: opts.contentType,
+    CacheControl: 'public, max-age=31536000, immutable'
   });
   const url = await getSignedUrl(client, cmd, { expiresIn: opts.expiresIn ?? 900 });
   return url;

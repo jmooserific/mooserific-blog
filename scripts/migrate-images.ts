@@ -85,6 +85,7 @@ async function uploadVariants(buffer: Buffer, baseKey: string): Promise<void> {
         Key: `${baseKey}-${width}w.webp`,
         Body: resized,
         ContentType: 'image/webp',
+        CacheControl: 'public, max-age=31536000, immutable',
       }));
     }),
   );

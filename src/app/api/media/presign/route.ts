@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       key,
       uploadUrl,
-      headers: { 'Content-Type': contentType },
+      headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' },
       publicUrl,
   folderId: groupId,
   kind,

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "import:legacy": "tsx scripts/import-legacy.ts posts",
-    "migrate:images": "tsx scripts/migrate-images.ts"
+    "migrate:images": "tsx scripts/migrate-images.ts",
+    "backfill:cache-control": "tsx scripts/backfill-cache-control.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
