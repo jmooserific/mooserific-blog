@@ -61,15 +61,15 @@ const HeaderButtons: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center sm:justify-end sm:ml-auto gap-2 flex-wrap">
+      {dateFilter && (
+        <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
+      )}
       {postMetadata && (
         <FilterButton
           onSelect={handleSelectDate}
           initialValue={dateFilter}
           postMetadata={postMetadata}
         />
-      )}
-      {dateFilter && (
-        <ActiveFilterBadge value={dateFilter} onClear={handleClearFilter} />
       )}
       {isAdmin ? <CreatePostButton /> : <SignInButton />}
     </div>
