@@ -4,7 +4,6 @@ import PostListClient from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
 import { listPosts } from '@/lib/db';
-import { getPostMetadata } from '../utils/postMetadata';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -33,8 +32,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     videos: r.videos
   }));
 
-  const postMetadata = await getPostMetadata();
-
   // Determine cursors for pagination controls
   let nextCursor: string | undefined = undefined; // older
   let prevCursor: string | undefined = undefined; // newer
@@ -53,7 +50,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <>
       <Suspense fallback={<div className="text-center text-gray-500 py-12 text-lg">Loading posts...</div>}>
-        <PostListClient posts={posts} postMetadata={postMetadata} />
+        <PostListClient posts={posts} />
       </Suspense>
       <Pagination 
         dateFilter={dateFilter}

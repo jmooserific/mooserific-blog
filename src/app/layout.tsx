@@ -1,7 +1,7 @@
 import "../globals.css";
-import { quicksand, sacramento } from './fonts'
-import Link from "next/link";
+import { quicksand } from './fonts'
 import { Toaster } from "sonner";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,9 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="description" content="A family photo blog!" />
       </head>
       <body className={`${quicksand.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}>
-        <header>
-          <h1 className={`${sacramento.className} text-6xl font-bold m-6 text-gray-900 text-center`}><Link href="/">Mooserific!</Link></h1>
-        </header>
+        <SiteHeader />
         <main>
           {children}
         </main>
