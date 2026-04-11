@@ -45,6 +45,11 @@ Family photo blog built with Next.js (App Router), TypeScript, and Tailwind CSS.
 - Avoid `useEffect` for data that can be fetched on the server.
 - Prefer `Map` and `Set` over repeated array `.find()`/`.includes()` when operating on large collections.
 
+## Media Storage
+
+- Always store the original uploaded file in R2 alongside generated variants. The `PhotoAsset` type tracks both the optimized base URL and the original via `originalUrl`/`originalContentType`.
+- Never discard or skip uploading the original — we need it to re-optimize or recover from processing bugs.
+
 ## Error Handling & Security
 
 - Validate all external input (URL params, form data, API request bodies) at the boundary using Zod schemas. Never trust client input.
