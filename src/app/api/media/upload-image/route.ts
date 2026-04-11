@@ -23,9 +23,10 @@ export async function POST(req: NextRequest) {
 
     const postId = typeof folderId === 'string' && folderId ? folderId : crypto.randomUUID();
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { baseUrl, width, height } = await processAndUploadImage(buffer, postId);
+    const { baseUrl, width, height, originalUrl, originalContentType } =
+      await processAndUploadImage(buffer, postId, file.name, file.type);
 
-    return NextResponse.json({ baseUrl, width, height, folderId: postId });
+    return NextResponse.json({ baseUrl, width, height, originalUrl, originalContentType, folderId: postId });
   } catch (err: unknown) {
     console.error('upload-image error', err);
     return NextResponse.json({ error: 'Failed to process image' }, { status: 500 });

@@ -14,17 +14,28 @@ export function variantUrl(baseUrl: string, width: VariantWidth): string {
   return `${baseUrl}-${width}w.webp`;
 }
 
+interface ProcessImageResult {
+  baseUrl: string;
+  width: number;
+  height: number;
+  originalUrl: string;
+  originalContentType: string;
+}
+
 /**
  * Process an image buffer with Sharp, upload 5 WebP variants to R2,
- * and return the base URL (without width suffix) plus original dimensions.
+ * store the original file alongside them, and return URLs plus dimensions.
  */
 export async function processAndUploadImage(
   buffer: Buffer,
   postId: string,
-): Promise<{ baseUrl: string; width: number; height: number }> {
+  originalFilename: string,
+  contentType: string,
+): Promise<ProcessImageResult> {
   const uuid = randomUUID();
   const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
   const baseKey = `${prefix}photos/${postId}/${uuid}`;
+  const originalKey = `${prefix}photos/${postId}/${uuid}/${originalFilename}`;
 
   // .metadata() returns the raw pre-rotation pixel dimensions. For images that need
   // a 90°/270° rotation (EXIF orientations 5–8), we swap width and height so the
@@ -34,8 +45,11 @@ export async function processAndUploadImage(
   const originalWidth = (transposed ? metadata.height : metadata.width) ?? 0;
   const originalHeight = (transposed ? metadata.width : metadata.height) ?? 0;
 
-  await Promise.all(
-    VARIANT_WIDTHS.map(async (width) => {
+  await Promise.all([
+    // Upload the original file
+    putObject({ key: originalKey, contentType, body: buffer }),
+    // Upload WebP variants
+    ...VARIANT_WIDTHS.map(async (width) => {
       const resized = await sharp(buffer)
         .rotate()                               // apply EXIF orientation before resizing
         .resize({ width, withoutEnlargement: true })
@@ -43,7 +57,13 @@ export async function processAndUploadImage(
         .toBuffer();
       await putObject({ key: `${baseKey}-${width}w.webp`, contentType: 'image/webp', body: resized });
     }),
-  );
+  ]);
 
-  return { baseUrl: getPublicUrl(baseKey), width: originalWidth, height: originalHeight };
+  return {
+    baseUrl: getPublicUrl(baseKey),
+    width: originalWidth,
+    height: originalHeight,
+    originalUrl: getPublicUrl(originalKey),
+    originalContentType: contentType,
+  };
 }

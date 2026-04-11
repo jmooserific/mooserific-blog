@@ -102,7 +102,7 @@ function postImageWithProgress(
   file: File,
   folderId: string,
   onProgress: (pct: number) => void,
-): Promise<{ baseUrl: string; width: number; height: number }> {
+): Promise<{ baseUrl: string; width: number; height: number; originalUrl: string; originalContentType: string }> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/media/upload-image', true);
@@ -137,6 +137,8 @@ interface PostPhoto {
   url: string;
   width?: number;
   height?: number;
+  originalUrl?: string;
+  originalContentType?: string;
 }
 
 interface PostApiResponse {
@@ -155,7 +157,7 @@ interface PresignResponse {
 
 interface PostPayload {
   description: string;
-  photos: Array<{ url: string; width: number; height: number }>;
+  photos: Array<{ url: string; width: number; height: number; originalUrl?: string; originalContentType?: string }>;
   videos: string[];
   id?: string;
   date?: string;
@@ -238,7 +240,9 @@ export function usePostEditor(): PostEditorState {
           const url = typeof photo === 'string' ? photo : photo.url;
           const width = typeof photo === 'object' ? (photo.width ?? 800) : 800;
           const height = typeof photo === 'object' ? (photo.height ?? 600) : 600;
-          fetched.push({ id: crypto.randomUUID(), kind: "photo", source: "existing", filename: filenameFromUrl(url, `photo-${index + 1}`), url, width, height });
+          const originalUrl = typeof photo === 'object' ? photo.originalUrl : undefined;
+          const originalContentType = typeof photo === 'object' ? photo.originalContentType : undefined;
+          fetched.push({ id: crypto.randomUUID(), kind: "photo", source: "existing", filename: filenameFromUrl(url, `photo-${index + 1}`), url, width, height, originalUrl, originalContentType });
         });
       }
       if (Array.isArray(post.videos)) {
@@ -385,7 +389,7 @@ export function usePostEditor(): PostEditorState {
           });
           setUploadProgress((prev) => ({ ...prev, [it.id]: 100 }));
           workingItems = workingItems.map((entry) => entry.id === it.id
-            ? { ...entry, url: result.baseUrl, width: result.width, height: result.height, source: 'existing' as const, file: undefined }
+            ? { ...entry, url: result.baseUrl, width: result.width, height: result.height, originalUrl: result.originalUrl, originalContentType: result.originalContentType, source: 'existing' as const, file: undefined }
             : entry);
         } else {
           const presignRes = await fetch('/api/media/presign', {
@@ -408,7 +412,13 @@ export function usePostEditor(): PostEditorState {
 
       const photoAssets = workingItems.filter((i) => i.kind === 'photo').map((p) => {
         if (!p.url) throw new Error(`Missing URL for photo ${p.filename}`);
-        return { url: p.url, width: p.width ?? 800, height: p.height ?? 600 };
+        return {
+          url: p.url,
+          width: p.width ?? 800,
+          height: p.height ?? 600,
+          ...(p.originalUrl ? { originalUrl: p.originalUrl } : {}),
+          ...(p.originalContentType ? { originalContentType: p.originalContentType } : {}),
+        };
       });
       const videoUrls = workingItems.filter((i) => i.kind === 'video').map((v) => {
         if (!v.url) throw new Error(`Missing URL for video ${v.filename}`);

@@ -7,4 +7,6 @@ export type UploadItem = {
   url?: string;
   width?: number;
   height?: number;
+  originalUrl?: string;
+  originalContentType?: string;
 };

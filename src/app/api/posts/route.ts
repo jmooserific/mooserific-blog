@@ -4,7 +4,16 @@ import type { PhotoAsset } from '@/lib/types';
 
 function normalizePhoto(p: unknown): PhotoAsset {
   if (typeof p === 'string') return { url: p, width: 800, height: 600 };
-  if (p && typeof p === 'object' && 'url' in p) return p as PhotoAsset;
+  if (p && typeof p === 'object' && 'url' in p) {
+    const obj = p as Record<string, unknown>;
+    return {
+      url: String(obj.url),
+      width: typeof obj.width === 'number' ? obj.width : 800,
+      height: typeof obj.height === 'number' ? obj.height : 600,
+      ...(typeof obj.originalUrl === 'string' ? { originalUrl: obj.originalUrl } : {}),
+      ...(typeof obj.originalContentType === 'string' ? { originalContentType: obj.originalContentType } : {}),
+    };
+  }
   return { url: String(p), width: 800, height: 600 };
 }
 

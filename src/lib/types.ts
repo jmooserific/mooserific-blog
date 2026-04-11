@@ -2,6 +2,8 @@ export interface PhotoAsset {
   url: string;
   width: number;
   height: number;
+  originalUrl?: string;
+  originalContentType?: string;
 }
 
 export interface Post {
