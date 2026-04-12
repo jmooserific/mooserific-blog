@@ -11,7 +11,7 @@ interface DateTimePopoverProps {
 }
 
 // Simple date/time popover inspired by DateFilterPopover styling.
-export default function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopoverProps) {
+export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [temp, setTemp] = useState<Date>(() => initialDate ?? new Date());
 

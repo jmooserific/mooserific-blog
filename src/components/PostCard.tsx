@@ -229,4 +229,4 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
    );
  };
 
- export default PostCard;
+ export { PostCard };

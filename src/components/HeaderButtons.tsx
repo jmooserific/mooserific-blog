@@ -2,8 +2,8 @@
 
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import FilterButton from "./FilterButton";
-import ActiveFilterBadge from "./ActiveFilterBadge";
+import { FilterButton } from "./FilterButton";
+import { ActiveFilterBadge } from "./ActiveFilterBadge";
 import { SignInButton } from "./SignInButton";
 import { CreatePostButton } from "./CreatePostButton";
 import type { PostMetadata } from "../utils/postMetadata";

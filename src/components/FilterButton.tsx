@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CalendarDaysIcon } from "@heroicons/react/24/outline";
-import DateFilterPopover from "./DateFilterPopover";
+import { DateFilterPopover } from "./DateFilterPopover";
 import { PostMetadata } from "../utils/postMetadata";
 
 interface FilterButtonProps {
@@ -42,4 +42,4 @@ const FilterButton: React.FC<FilterButtonProps> = ({ onSelect, initialValue, pos
   );
 };
 
-export default FilterButton;
+export { FilterButton };

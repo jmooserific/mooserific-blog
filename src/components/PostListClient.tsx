@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import PostCard, { Post } from "./PostCard";
+import { PostCard, Post } from "./PostCard";
 
 interface PostListClientProps {
   posts: Post[];
@@ -33,4 +33,4 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, isAdmin }) => {
   );
 };
 
-export default PostListClient;
+export { PostListClient };

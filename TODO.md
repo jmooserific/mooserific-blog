@@ -31,8 +31,8 @@ A running list of future improvements and nice-to-haves. This is developer-facin
 - Integration tests: create → list → fetch → update → delete.
 - ESLint/Rules: enforce server-only imports for `lib/db.ts` and `lib/r2.ts`.
 - Centralize env var validation and helpful error messages on boot.
-- Code style: convert default exports to named exports in component files (`PostCard`, `PostListClient`, `FilterButton`, `DateTimePopover`, `ActiveFilterBadge`, `DateFilterPopover`).
-- Code style: replace `let` with `const` where variables are never reassigned (scattered across route handlers, db-core, admin page, login page).
+- ~~Code style: convert default exports to named exports in component files (`PostCard`, `PostListClient`, `FilterButton`, `DateTimePopover`, `ActiveFilterBadge`, `DateFilterPopover`).~~ Done.
+- ~~Code style: replace `let` with `const` where variables are never reassigned (scattered across route handlers, db-core, admin page, login page).~~ Already clean — all `let` usages are reassigned.
 
 ## Observability
 - Add minimal request/DB error logging (server-side only), with redaction of secrets.

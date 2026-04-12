@@ -154,4 +154,4 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
   );
 };
 
-export default DateFilterPopover;
+export { DateFilterPopover };

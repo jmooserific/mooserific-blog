@@ -60,4 +60,4 @@ const ActiveFilterBadge: React.FC<ActiveFilterBadgeProps> = ({ value, onClear })
   </div>
 );
 
-export default ActiveFilterBadge;
+export { ActiveFilterBadge };

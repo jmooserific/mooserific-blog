@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense } from "react";
-import DateTimePopover from "@/components/DateTimePopover";
+import { DateTimePopover } from "@/components/DateTimePopover";
 import { usePostEditor } from "./usePostEditor";
 import { MediaUploader } from "./MediaUploader";
 

@@ -1,7 +1,7 @@
 
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import PostListClient from "@/components/PostListClient";
+import { PostListClient } from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
 import { listPosts } from '@/lib/db';
