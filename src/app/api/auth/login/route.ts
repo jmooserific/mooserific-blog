@@ -39,7 +39,7 @@ async function parseLoginInput(req: NextRequest): Promise<LoginInput> {
 }
 
 function resolveRedirect(req: NextRequest, target?: string | null): URL {
-  if (target && target.startsWith('/')) {
+  if (target && target.startsWith('/') && !target.startsWith('//')) {
     return new URL(target, req.url);
   }
   return new URL('/admin', req.url);
