@@ -42,6 +42,7 @@ Family photo blog built with Next.js (App Router), TypeScript, and Tailwind CSS.
 - Minimize client-side JavaScript. Every `'use client'` component adds to the bundle.
 - Use dynamic `import()` with `next/dynamic` for heavy client components that aren't above the fold.
 - Use `loading="lazy"` behavior via Next.js `<Image>` for below-fold images. Use `priority` for the LCP image.
+- **Cumulative Layout Shift (CLS):** Reserve space for all content that loads asynchronously or after hydration. Use appropriately-sized Suspense fallbacks (never `fallback={null}` for visible UI). Mark images in above-the-fold posts with `priority` and `loading="eager"` so they don't pop in and shift layout.
 - Avoid `useEffect` for data that can be fetched on the server.
 - Prefer `Map` and `Set` over repeated array `.find()`/`.includes()` when operating on large collections.
 
