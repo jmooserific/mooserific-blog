@@ -30,7 +30,7 @@ function buildLoginRedirect(req: NextRequest) {
   return loginUrl;
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const cookieHeader = req.headers.get('cookie');
