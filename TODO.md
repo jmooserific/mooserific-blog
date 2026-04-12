@@ -33,7 +33,6 @@ A running list of future improvements and nice-to-haves. This is developer-facin
 - Centralize env var validation and helpful error messages on boot.
 - Code style: convert default exports to named exports in component files (`PostCard`, `PostListClient`, `FilterButton`, `DateTimePopover`, `ActiveFilterBadge`, `DateFilterPopover`).
 - Code style: replace `let` with `const` where variables are never reassigned (scattered across route handlers, db-core, admin page, login page).
-- Performance: move auth status fetch in `PostListClient` from `useEffect` to a Server Component prop to avoid a client-side waterfall.
 
 ## Observability
 - Add minimal request/DB error logging (server-side only), with redaction of secrets.

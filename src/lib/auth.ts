@@ -10,6 +10,7 @@ export {
   getConfiguredCredentials,
   getSessionCookieName,
   getSessionFromRequest,
+  getSessionFromToken,
   parseCookies,
   SESSION_DEFAULT_TTL_SECONDS,
   shouldRefreshSession,

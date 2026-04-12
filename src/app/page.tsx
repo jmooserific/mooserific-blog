@@ -1,9 +1,11 @@
 
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import PostListClient from "@/components/PostListClient";
 import { Post } from "@/components/PostCard";
 import Pagination from "./Pagination";
 import { listPosts } from '@/lib/db';
+import { getSessionCookieName, getSessionFromToken } from '@/lib/auth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -19,6 +21,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const dateFilter = params.date_filter || "";
   const before = params.before || undefined;
   const after = params.after || undefined;
+
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(getSessionCookieName())?.value;
+  const session = await getSessionFromToken(sessionToken);
+  const isAdmin = session !== null;
 
   // Fetch page
   const rows = await listPosts({ limit: POSTS_PER_PAGE, before, after, dateFilter: dateFilter || undefined });
@@ -50,7 +57,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <>
       <Suspense fallback={<div className="text-center text-gray-500 py-12 text-lg">Loading posts...</div>}>
-        <PostListClient posts={posts} />
+        <PostListClient posts={posts} isAdmin={isAdmin} />
       </Suspense>
       <Pagination 
         dateFilter={dateFilter}

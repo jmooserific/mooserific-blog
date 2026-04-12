@@ -208,13 +208,16 @@ export function parseCookies(header: string | null | undefined): Record<string, 
   return cookies;
 }
 
+export async function getSessionFromToken(token: string | undefined): Promise<SessionPayload | null> {
+  if (!token) return null;
+  return verifySessionToken(token);
+}
+
 export async function getSessionFromRequest(req: Request): Promise<SessionPayload | null> {
   const cookieHeader = req.headers.get('cookie');
   if (!cookieHeader) return null;
   const cookies = parseCookies(cookieHeader);
-  const token = cookies[SESSION_COOKIE_NAME];
-  if (!token) return null;
-  return verifySessionToken(token);
+  return getSessionFromToken(cookies[SESSION_COOKIE_NAME]);
 }
 
 export async function authenticateCredentials(username: string, password: string): Promise<boolean> {
