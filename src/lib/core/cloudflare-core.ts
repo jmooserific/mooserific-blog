@@ -1,11 +1,10 @@
 import Cloudflare from 'cloudflare';
+import { env } from '../env';
 
 let cfSingleton: Cloudflare | undefined;
 
 export function getCloudflareClient(): Cloudflare {
   if (cfSingleton) return cfSingleton;
-  const apiToken = process.env.CF_API_TOKEN;
-  if (!apiToken) throw new Error('Missing CF_API_TOKEN for Cloudflare client');
-  cfSingleton = new Cloudflare({ apiToken });
+  cfSingleton = new Cloudflare({ apiToken: env().CF_API_TOKEN });
   return cfSingleton;
 }

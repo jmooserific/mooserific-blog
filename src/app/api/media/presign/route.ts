@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { buildObjectKey, getPresignedPutUrl, getPublicUrl } from '@/lib/r2';
+import { env } from '@/lib/env';
 
 export const runtime = 'nodejs';
 
-const MAX_FILE_BYTES = Number(process.env.MAX_FILE_BYTES || 500 * 1024 * 1024); // 500 MB default
+const MAX_FILE_BYTES = env().MAX_FILE_BYTES;
 
 function isAllowedType(t: string) {
   return t.startsWith('image/') || t === 'video/mp4' || t === 'video/quicktime' || t === 'video/webm';

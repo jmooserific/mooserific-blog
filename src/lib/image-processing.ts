@@ -2,6 +2,7 @@ import 'server-only';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { putObject, getPublicUrl } from './r2';
+import { env } from './env';
 
 export const VARIANT_WIDTHS = [320, 480, 768, 1024, 2048] as const;
 export type VariantWidth = (typeof VARIANT_WIDTHS)[number];
@@ -33,7 +34,7 @@ export async function processAndUploadImage(
   contentType: string,
 ): Promise<ProcessImageResult> {
   const uuid = randomUUID();
-  const prefix = process.env.ENVIRONMENT === 'development' ? 'dev/' : '';
+  const prefix = env().ENVIRONMENT === 'development' ? 'dev/' : '';
   const baseKey = `${prefix}photos/${postId}/${uuid}`;
   const originalKey = `${prefix}photos/${postId}/${uuid}/${originalFilename}`;
 

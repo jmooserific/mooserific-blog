@@ -1,3 +1,5 @@
+import { env } from '../env';
+
 const SESSION_COOKIE_NAME = 'mooserific_session';
 const DEFAULT_SESSION_TTL_SECONDS = 12 * 60 * 60; // 12 hours
 const DEFAULT_REFRESH_THRESHOLD_SECONDS = 60 * 60; // 1 hour
@@ -34,22 +36,12 @@ export interface SessionPayload {
   nonce: string;
 }
 
-function getEnvVar(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required env var: ${name}`);
-  }
-  return value;
-}
-
 function getSessionSecret(): string {
-  return getEnvVar('SESSION_SECRET');
+  return env().SESSION_SECRET;
 }
 
 export function getConfiguredCredentials(): { username: string; password: string } {
-  const username = getEnvVar('ADMIN_USERNAME');
-  const password = getEnvVar('ADMIN_PASSWORD');
-  return { username, password };
+  return { username: env().ADMIN_USERNAME, password: env().ADMIN_PASSWORD };
 }
 
 function normalizeUsername(raw: string): string {

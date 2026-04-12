@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processAndUploadImage } from '@/lib/image-processing';
+import { env } from '@/lib/env';
 
 export const runtime = 'nodejs';
 
-const MAX_FILE_BYTES = Number(process.env.MAX_FILE_BYTES || 500 * 1024 * 1024);
+const MAX_FILE_BYTES = env().MAX_FILE_BYTES;
 
 export async function POST(req: NextRequest) {
   try {

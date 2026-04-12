@@ -1,5 +1,6 @@
 import type { Post, ListPostsOptions, PhotoAsset } from '../types';
 import { getCloudflareClient } from './cloudflare-core';
+import { env } from '../env';
 
 type SqlParam = string | number | boolean | null;
 
@@ -29,14 +30,7 @@ interface PostRow {
 }
 
 async function d1Query<T>(sql: string, params: SqlParam[] = []): Promise<{ results: T[] }> {
-  const dbId = process.env.D1_DATABASE_ID;
-  const token = process.env.CF_API_TOKEN;
-  const accountId = process.env.D1_ACCOUNT_ID || process.env.R2_ACCOUNT_ID;
-  const missing: string[] = [];
-  if (!dbId) missing.push('D1_DATABASE_ID');
-  if (!token) missing.push('CF_API_TOKEN');
-  if (!accountId) missing.push('D1_ACCOUNT_ID (or R2_ACCOUNT_ID)');
-  if (missing.length) throw new Error(`Missing required env vars for D1: ${missing.join(', ')}`);
+  const { D1_DATABASE_ID: dbId, D1_ACCOUNT_ID: accountId } = env();
 
   const normalizedSql = sql.replace(/\$\d+/g, '?');
   const cf = getCloudflareClient() as unknown as D1Api;
