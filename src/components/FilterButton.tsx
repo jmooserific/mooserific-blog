@@ -18,7 +18,7 @@ const FilterButton: React.FC<FilterButtonProps> = ({ onSelect, initialValue, pos
     <div className="relative">
       <button
         type="button"
-        title="Filter posts"
+        title="Filter posts by date"
         aria-haspopup="true"
         aria-expanded={open}
         className="inline-flex items-center justify-center rounded-full border border-transparent bg-white p-2 text-gray-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
