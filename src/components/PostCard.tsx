@@ -39,6 +39,7 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
  interface PostCardProps {
    post: Post;
    isAdmin?: boolean;
+   isAboveFold?: boolean;
    onDeleted?: () => void;
  }
 
@@ -51,7 +52,7 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 const DEFAULT_CONTAINER_WIDTH = 864; // matches max-w-4xl wrapper minus card padding
 
-const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold = false, onDeleted }) => {
    const router = useRouter();
    const [index, setIndex] = useState(-1);
    const [menuOpen, setMenuOpen] = useState(false);
@@ -92,7 +93,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
    // Custom renderPhoto for Next.js Image so SSR markup matches hydration.
   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
     { photo, width, height }: RenderImageContext) => {
-    const isFirstPhoto = photos.length > 0 && photo?.src === photos[0].src;
     return (
      <div
        style={{
@@ -108,8 +108,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, onDeleted })
          alt={alt}
          title={title}
          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        priority={isFirstPhoto}
-        loading={isFirstPhoto ? "eager" : "lazy"}
+        priority={isAboveFold}
+        loading={isAboveFold ? "eager" : "lazy"}
        />
      </div>
   );

@@ -9,7 +9,7 @@ const SiteHeader: React.FC = () => (
       <h1 className={`${sacramento.className} text-5xl font-bold text-gray-900 text-center sm:text-left shrink-0`}>
         <Link href="/">Mooserific!</Link>
       </h1>
-      <Suspense fallback={null}>
+      <Suspense fallback={<div className="h-9 sm:ml-auto" aria-hidden="true" />}>
         <HeaderButtons />
       </Suspense>
     </div>

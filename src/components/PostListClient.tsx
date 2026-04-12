@@ -20,11 +20,12 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, isAdmin }) => {
           {dateFilter ? `No posts found for ${dateFilter}.` : "No posts found."}
         </div>
       ) : (
-        posts.map((post) => (
+        posts.map((post, i) => (
           <PostCard
             key={post.slug}
             post={post}
             isAdmin={isAdmin}
+            isAboveFold={i < 2}
             onDeleted={() => router.refresh()}
           />
         ))
