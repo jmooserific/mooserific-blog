@@ -11,20 +11,20 @@ A running list of future improvements and nice-to-haves. This is developer-facin
 
 ## Data & API
 - Cascade delete: when deleting a post, optionally delete associated R2 objects.
-- Validation: stronger request validation (schema-based) on API routes.
+- ~~Validation: stronger request validation (schema-based) on API routes.~~ Done — Zod schemas in use.
 
 ## Media & Storage
-- Image optimization: consider proxying through Next Image or a lightweight image CDN/proxy; optionally signed URLs.
-- Thumbnails: generate and store smaller thumbnails/previews for faster grids. Use Vercel Image Optimization?
+- Image optimization: consider proxying through a lightweight image CDN/proxy; optionally signed URLs.
+- ~~Thumbnails: generate and store smaller thumbnails/previews for faster grids.~~ Done — Sharp generates 5 WebP variants (320–2048px).
 
 ## Security & Auth
-- Sanitize markdown at render time; consider an allowlist sanitizer.
-- Enforce MIME types and file size limits on uploads.
-- Explore using Vercel edge middleware for authentication.
-- Strip geotagging data from uploaded images.
+- Sanitize markdown at render time; consider an allowlist sanitizer (e.g., rehype-sanitize).
+- ~~Enforce MIME types and file size limits on uploads.~~ Done — validated in upload route handler.
+- ~~Explore using Vercel edge middleware for authentication.~~ Done — Basic Auth enforced in `middleware.ts`.
+- ~~Strip geotagging data from uploaded images.~~ Done — Sharp strips EXIF when re-encoding to WebP.
 
 ## UX & Admin
-- Admin: show upload progress, thumbnails, and per-file status.
+- ~~Admin: show upload progress, thumbnails, and per-file status.~~ Done — per-file progress and previews in admin UI.
 
 ## DX & Quality
 - Tests: unit tests for `lib/db.ts` (mock Cloudflare client) and `lib/r2.ts` (key generation URL logic).
