@@ -1,5 +1,5 @@
 import "../globals.css";
-import { quicksand } from './fonts'
+import { inter } from './fonts'
 import { Toaster } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <title>Mooserific Blog!</title>
         <meta name="description" content="A family photo blog!" />
       </head>
-      <body className={`${quicksand.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}>
+      <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}>
         <SiteHeader />
         <main>
           {children}

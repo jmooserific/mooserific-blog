@@ -52,6 +52,11 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 const DEFAULT_CONTAINER_WIDTH = 864; // matches max-w-4xl wrapper minus card padding
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
 const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold = false, onDeleted }) => {
    const router = useRouter();
    const [index, setIndex] = useState(-1);
@@ -95,6 +100,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
     { photo, width, height }: RenderImageContext) => {
     return (
      <div
+       className="rounded-xl overflow-hidden"
        style={{
          width: "100%",
          position: "relative",
@@ -115,28 +121,42 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
   );
   };
 
-   // Format date in a UTC-stable way to avoid SSR/CSR timezone differences
-   const formatDateUTC = (iso: string) => {
-     const d = new Date(iso);
-     if (isNaN(d.getTime())) return iso;
-     const monthNames = [
-       "January", "February", "March", "April", "May", "June",
-       "July", "August", "September", "October", "November", "December"
-     ];
-     const month = monthNames[d.getUTCMonth()];
-     const day = d.getUTCDate();
-     const year = d.getUTCFullYear();
-     return `${month} ${day}, ${year}`;
-   };
+   // Parse date in a UTC-stable way to avoid SSR/CSR timezone differences
+   const parsedDate = new Date(post.date);
+   const isValidDate = !isNaN(parsedDate.getTime());
+   const dayNumeral = isValidDate ? parsedDate.getUTCDate() : null;
+   const monthName = isValidDate ? MONTH_NAMES[parsedDate.getUTCMonth()] : null;
+   const yearText = isValidDate ? parsedDate.getUTCFullYear() : null;
+   const fullDate = isValidDate ? `${monthName} ${dayNumeral}, ${yearText}` : post.date;
 
    return (
-     <section className="bg-white rounded-2xl p-4 mb-8">
-       <h2 className="text-xl font-semibold text-gray-800 mb-2">
-         {formatDateUTC(post.date)}
-       </h2>
-       {isAdmin && (
-         <div ref={menuContainerRef} className="relative">
-           <div className="flex justify-end -mt-8 mb-2">
+     <article className="relative overflow-hidden bg-white rounded-[20px] mb-8">
+       {isValidDate && (
+         <div
+           aria-hidden="true"
+           className="pointer-events-none select-none absolute font-black z-1 leading-[0.78] tracking-[-0.05em] -top-8 -right-2 text-[150px] sm:-top-12 sm:-right-3 sm:text-[220px]"
+           style={{ color: 'rgba(0, 0, 0, 0.04)' }}
+         >
+           {dayNumeral}
+         </div>
+       )}
+       <div className="relative h-25 sm:h-35 z-2">
+         {isValidDate && (
+           <time
+             dateTime={post.date}
+             className="absolute right-4 top-4 text-right sm:right-7 sm:top-7"
+           >
+             <span className="sr-only">{fullDate}</span>
+             <span aria-hidden="true" className="block uppercase font-bold text-[14px] tracking-[0.08em] text-[#845A2C]">
+               {monthName}
+             </span>
+             <span aria-hidden="true" className="block font-light text-[13px] text-[#A87941] mt-0.75">
+               {yearText}
+             </span>
+           </time>
+         )}
+         {isAdmin && (
+           <div ref={menuContainerRef} className="absolute left-4 top-4">
              <button
                type="button"
                onClick={() => setMenuOpen((v) => !v)}
@@ -147,85 +167,87 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              >
                <span className="text-lg leading-none">⋯</span>
              </button>
-           </div>
-           {menuOpen && (
-             <div className="absolute right-0 z-10 bg-white border border-gray-200 rounded shadow-md text-sm">
-               <button
-                 type="button"
-                 className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50"
-                 onClick={() => {
-                   setMenuOpen(false);
-                   router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
-                 }}
-               >
-                 <PencilSquareIcon className="h-4 w-4 text-gray-700" />
-                 <span>Edit</span>
-               </button>
-               <button
-                 type="button"
-                 className="flex items-center gap-2 w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                 disabled={deleting}
-                 onClick={async () => {
-                   setMenuOpen(false);
-                   if (!confirm('Delete this post? This cannot be undone.')) return;
-                   try {
-                     setDeleting(true);
-                     const res = await fetch(`/api/posts/${encodeURIComponent(post.slug)}`, { method: 'DELETE', cache: 'no-store' });
-                     if (!res.ok) throw new Error(await res.text());
-                     onDeleted?.();
-                   } catch (e: any) {
-                     alert(`Failed to delete: ${e?.message || 'Unknown error'}`);
-                   } finally {
-                     setDeleting(false);
-                   }
-                 }}
-               >
-                 <TrashIcon className="h-4 w-4" />
-                 <span>Delete</span>
-               </button>
-             </div>
-           )}
-         </div>
-       )}
-       <div className="prose prose-base mb-6">
-         <Markdown>{post.caption}</Markdown>
-       </div>
-       <div className="pt-2">
-         <RowsPhotoAlbum
-           rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
-           photos={photos}
-           defaultContainerWidth={DEFAULT_CONTAINER_WIDTH}
-           onClick={({ index }) => setIndex(index)}
-           render={{ image: renderPhoto }}
-         />
-         <Lightbox
-           slides={lightboxSlides}
-           open={index >= 0}
-           index={index}
-           close={() => setIndex(-1)}
-         />
-         {Array.isArray(post.videos) && post.videos.length > 0 && (
-           <div className="mt-4 flex flex-col gap-4">
-             {post.videos.map((video: string) => (
-               <video
-                 key={video}
-                 controls
-                 className="w-full rounded-md bg-black"
-                 style={{ maxHeight: 400 }}
-               >
-                 <source src={resolveMediaSrc(video)} />
-                 Your browser does not support the video tag.
-               </video>
-             ))}
+             {menuOpen && (
+               <div className="absolute left-0 mt-1 z-10 bg-white border border-gray-200 rounded shadow-md text-sm">
+                 <button
+                   type="button"
+                   className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50"
+                   onClick={() => {
+                     setMenuOpen(false);
+                     router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
+                   }}
+                 >
+                   <PencilSquareIcon className="h-4 w-4 text-gray-700" />
+                   <span>Edit</span>
+                 </button>
+                 <button
+                   type="button"
+                   className="flex items-center gap-2 w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                   disabled={deleting}
+                   onClick={async () => {
+                     setMenuOpen(false);
+                     if (!confirm('Delete this post? This cannot be undone.')) return;
+                     try {
+                       setDeleting(true);
+                       const res = await fetch(`/api/posts/${encodeURIComponent(post.slug)}`, { method: 'DELETE', cache: 'no-store' });
+                       if (!res.ok) throw new Error(await res.text());
+                       onDeleted?.();
+                     } catch (e: any) {
+                       alert(`Failed to delete: ${e?.message || 'Unknown error'}`);
+                     } finally {
+                       setDeleting(false);
+                     }
+                   }}
+                 >
+                   <TrashIcon className="h-4 w-4" />
+                   <span>Delete</span>
+                 </button>
+               </div>
+             )}
            </div>
          )}
        </div>
-       {post.author && (
-         <p className="text-sm text-right text-gray-600 mt-2">
-           by <strong>{post.author}</strong>
-         </p>
-       )}
-     </section>
+       <div className="relative z-2 px-4 pb-4">
+         <div className="prose prose-base mb-2">
+           <Markdown>{post.caption}</Markdown>
+         </div>
+         {post.author && (
+           <p className="text-[13px] text-[#845A2C] mb-4">
+             by <strong>{post.author}</strong>
+           </p>
+         )}
+         <div className="pt-2">
+           <RowsPhotoAlbum
+             rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
+             photos={photos}
+             defaultContainerWidth={DEFAULT_CONTAINER_WIDTH}
+             onClick={({ index }) => setIndex(index)}
+             render={{ image: renderPhoto }}
+           />
+           <Lightbox
+             slides={lightboxSlides}
+             open={index >= 0}
+             index={index}
+             close={() => setIndex(-1)}
+           />
+           {Array.isArray(post.videos) && post.videos.length > 0 && (
+             <div className="mt-4 flex flex-col gap-4">
+               {post.videos.map((video: string) => (
+                 <video
+                   key={video}
+                   controls
+                   className="w-full rounded-xl bg-black"
+                   style={{ maxHeight: 400 }}
+                 >
+                   <source src={resolveMediaSrc(video)} />
+                   Your browser does not support the video tag.
+                 </video>
+               ))}
+             </div>
+           )}
+         </div>
+       </div>
+     </article>
    );
  };
 

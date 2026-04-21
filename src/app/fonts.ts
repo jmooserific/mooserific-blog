@@ -1,10 +1,10 @@
-import { Quicksand, Sacramento } from 'next/font/google'
+import { Inter, Sacramento } from 'next/font/google'
 
-export const quicksand = Quicksand({
+export const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
-  weight: ['500'],
+  weight: ['300', '400', '500', '700', '900'],
 })
 
 export const sacramento = Sacramento({
