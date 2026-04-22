@@ -139,9 +139,13 @@ The moose watercolor used as the site's mascot is a warm brown palette. Using Um
 
 ## Buttons
 
-Every button on the site uses the same quiet ghost treatment: no fill, no visible border, Umber foreground, Umber-wash hover. There is intentionally no "primary" variant — keeping chrome uniformly subtle ensures the photo grid stays the visual focal point. Include a transparent 1px border so the hover wash doesn't shift surrounding layout.
+The site uses two button treatments: a default **ghost** treatment that covers all chrome, and a single **primary** treatment reserved for the main submit button on traditional forms. Keeping the primary scoped this narrowly ensures the photo grid stays the visual focal point on reader-facing surfaces.
 
-Applies to: Create Post, Sign In, filter icon, pagination — and any future button additions.
+### Ghost (default)
+
+A quiet ghost treatment: no fill, no visible border, Umber foreground, Umber-wash hover. Include a transparent 1px border so the hover wash doesn't shift surrounding layout.
+
+Applies to: Create Post, Sign In (header icon), filter icon, pagination, Back to site, Sign out — and any future button that isn't a form submit.
 
 ```css
 background: transparent;
@@ -156,6 +160,23 @@ font-weight: 500;
 Hover adds a `rgba(132, 90, 44, 0.06)` wash. Focus ring uses Umber at 2px with a 2px offset. In dark mode, the foreground becomes `#C09F6B`.
 
 Square icon variants (Create Post, Sign In, filter trigger) keep the same styling and use `padding: 8px` with a 20px icon — no explicit width/height.
+
+### Primary
+
+Used **only** for the main submit button on a traditional form — the button that signifies what happens when the user submits. This is the single place filled chrome appears on the site. On form-centric pages the photo grid isn't the focal point, so a real primary helps users complete the task.
+
+Applies to: the admin editor's Post / Update post button, and the login page's Sign in button. Do not use for navigation, toggles, icon actions, or anything on a photo-viewing surface — those stay ghost.
+
+```css
+background: #845A2C;             /* Umber */
+color: #fff;
+border-radius: 10px;
+padding: 8px 16px;
+font-size: 14px;
+font-weight: 500;
+```
+
+Hover darkens to `#6d4a24`. Focus ring uses Umber at 2px with a 2px offset. Disabled state sets `opacity: 0.5` and suppresses the hover darken. One primary per form — if a screen has more than one submit-shaped action, the secondary one stays ghost.
 
 ### Menus & popovers
 
