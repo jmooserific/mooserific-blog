@@ -81,17 +81,17 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
   return (
     <div
       ref={ref}
-      className="absolute z-50 bg-white rounded-xl shadow-lg border border-gray-200 w-80 left-1/2 -translate-x-1/2 top-full mt-1 sm:left-auto sm:translate-x-0 sm:right-0 sm:top-1/2 sm:mt-0"
+      className="absolute z-50 bg-white rounded-[10px] shadow-md border border-[#845A2C]/15 w-80 left-1/2 -translate-x-1/2 top-full mt-1 sm:left-auto sm:translate-x-0 sm:right-0 sm:top-1/2 sm:mt-0"
       onMouseDown={e => e.stopPropagation()}
     >
       {/* Year Navigation Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-100">
+      <div className="flex items-center justify-between p-3 border-b border-[#845A2C]/10">
         <button
           onClick={handlePreviousYear}
           disabled={!canGoPrevious}
-          className={`p-2 rounded-md transition-colors ${canGoPrevious
-              ? 'hover:bg-gray-100 text-gray-700'
-              : 'text-gray-300 cursor-not-allowed'
+          className={`p-2 rounded-lg transition-colors ${canGoPrevious
+              ? 'text-[#845A2C] hover:bg-[#845A2C]/6'
+              : 'text-[#845A2C]/25 cursor-not-allowed'
             }`}
         >
           <ChevronLeftIcon className="h-5 w-5" />
@@ -99,7 +99,7 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
 
         <button
           onClick={handleYearClick}
-          className="text-2xl font-semibold text-gray-800 hover:text-blue-600 transition-colors px-4 py-2 rounded-md hover:bg-blue-50"
+          className="text-2xl font-semibold text-[#845A2C] transition-colors px-4 py-1 rounded-lg hover:bg-[#845A2C]/6"
           title={`Filter by ${currentYear} (${getPostCount(currentYear.toString())} posts)`}
         >
           {currentYear}
@@ -108,9 +108,9 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
         <button
           onClick={handleNextYear}
           disabled={!canGoNext}
-          className={`p-2 rounded-md transition-colors ${canGoNext
-              ? 'hover:bg-gray-100 text-gray-700'
-              : 'text-gray-300 cursor-not-allowed'
+          className={`p-2 rounded-lg transition-colors ${canGoNext
+              ? 'text-[#845A2C] hover:bg-[#845A2C]/6'
+              : 'text-[#845A2C]/25 cursor-not-allowed'
             }`}
         >
           <ChevronRightIcon className="h-5 w-5" />
@@ -118,8 +118,8 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
       </div>
 
       {/* Month Grid */}
-      <div className="p-4">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="p-3">
+        <div className="grid grid-cols-3 gap-1">
           {monthNames.map((month, index) => {
             const isDisabled = isMonthDisabled(index);
             const monthKey = `${currentYear}-${(index + 1).toString().padStart(2, '0')}`;
@@ -131,17 +131,17 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
                 onClick={() => !isDisabled && handleMonthClick(index)}
                 disabled={isDisabled}
                 className={`
-                  relative p-3 rounded-lg text-sm font-medium transition-all duration-150
+                  relative p-3 rounded-lg text-sm font-medium transition-colors
                   ${isDisabled
-                    ? 'text-gray-300 cursor-not-allowed bg-gray-50'
-                    : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700 border border-transparent hover:border-blue-200'
+                    ? 'text-[#845A2C]/25 cursor-not-allowed'
+                    : 'text-[#845A2C] hover:bg-[#845A2C]/6'
                   }
                 `}
                 title={isDisabled ? 'No posts this month' : `${month} ${currentYear} (${postCount} posts)`}
               >
                 <div>{month}</div>
                 {!isDisabled && postCount > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-sm">
+                  <div className="absolute -top-0.5 -right-0.5 bg-[#845A2C]/10 text-[#845A2C] text-xs font-semibold rounded-full min-w-5 h-5 flex items-center justify-center px-1.5">
                     {postCount > 99 ? '99+' : postCount}
                   </div>
                 )}
