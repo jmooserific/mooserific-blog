@@ -150,7 +150,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              <span aria-hidden="true" className="block uppercase font-bold text-[14px] tracking-[0.08em] text-[#845A2C]">
                {monthName}
              </span>
-             <span aria-hidden="true" className="block font-light text-[13px] text-[#A87941] mt-0.75">
+             <span aria-hidden="true" className="block font-light text-[13px] text-[#845A2C] mt-0.75">
                {yearText}
              </span>
            </time>
