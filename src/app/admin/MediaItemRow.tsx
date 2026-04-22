@@ -33,7 +33,7 @@ export function MediaItemRow({ item: it, uploadProgress, isSubmitting, draggingI
     <Fragment>
       {showTopIndicator && (
         <li
-          className="h-px bg-blue-500/70 rounded"
+          className="h-px bg-[#845A2C]/70 rounded"
           role="separator"
           aria-hidden
           onDragOver={(e) => { e.preventDefault(); }}
@@ -42,7 +42,7 @@ export function MediaItemRow({ item: it, uploadProgress, isSubmitting, draggingI
       )}
       <li
         ref={itemRef}
-        className={`relative text-sm text-gray-700 rounded ${isDragging ? 'opacity-50 bg-blue-50 ring-1 ring-blue-200' : ''}`}
+        className={`relative text-sm text-gray-700 rounded ${isDragging ? 'opacity-50 bg-[#845A2C]/6 ring-1 ring-[#845A2C]/20' : ''}`}
         draggable={!dropDisabled}
         onDragStart={(e) => onDragStart(e, it.id)}
         onDragEnd={onDragEnd}
@@ -60,7 +60,7 @@ export function MediaItemRow({ item: it, uploadProgress, isSubmitting, draggingI
           </span>
           <button
             type="button"
-            className="text-gray-400 hover:text-red-600"
+            className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-red-900/6 hover:text-red-700/80 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 disabled:opacity-50"
             onClick={() => onRemove(it.id)}
             disabled={dropDisabled}
             aria-label={`Remove ${it.filename}`}
@@ -71,13 +71,13 @@ export function MediaItemRow({ item: it, uploadProgress, isSubmitting, draggingI
         </div>
         {showProgressBar && (
           <div className="w-full h-1 mt-1">
-            <div className="bg-blue-600 h-1 transition-all" style={{ width: `${pct}%` }} />
+            <div className="bg-[#845A2C] h-1 transition-all" style={{ width: `${pct}%` }} />
           </div>
         )}
       </li>
       {showBottomIndicator && (
         <li
-          className="h-px bg-blue-500/70 rounded"
+          className="h-px bg-[#845A2C]/70 rounded"
           role="separator"
           aria-hidden
           onDragOver={(e) => { e.preventDefault(); }}

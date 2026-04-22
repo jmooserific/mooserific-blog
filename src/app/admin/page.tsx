@@ -1,6 +1,8 @@
 "use client"
 
 import { Suspense } from "react";
+import Link from "next/link";
+import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 import { DateTimePopover } from "@/components/DateTimePopover";
 import { usePostEditor } from "./usePostEditor";
 import { MediaUploader } from "./MediaUploader";
@@ -19,95 +21,114 @@ function AdminPageInner() {
   } = usePostEditor();
 
   return (
-    <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-      <nav className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <a href="/" className="text-blue-600 hover:underline text-sm">← Back to posts</a>
-        <form action="/api/auth/logout?redirect=/" method="post">
+    <div className="max-w-xl mx-auto px-4 sm:px-6 py-6">
+      <nav className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 self-start rounded-[10px] border border-transparent bg-transparent px-2 py-1.5 text-sm text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+        >
+          <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
+          <span>Back to posts</span>
+        </Link>
+        <form action="/api/auth/logout?redirect=/" method="post" className="self-start sm:self-auto">
           <button
             type="submit"
-            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
           >
             Sign out
           </button>
         </form>
       </nav>
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">{isEditing ? 'Edit post' : 'Create a new post'}</h1>
-      </div>
-      {isEditing && editingId && (
-        <p className="mb-4 text-sm text-gray-500">
-          Editing post ID: <code className="rounded bg-gray-100 px-1 py-0.5 text-xs">{editingId}</code>
-        </p>
-      )}
-      {loadingExisting && (
-        <div className="mb-4 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
-          Loading selected post…
-        </div>
-      )}
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-        <textarea
-          className="appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500 my-0"
-          rows={3}
-          placeholder="Caption (optional)"
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-        />
-        <p className="prose text-gray-600 text-xs italic">
-          Use <a href="https://commonmark.org/help/" target="_blank">Markdown</a> to style
-        </p>
-        <MediaUploader
-          items={items}
-          uploadProgress={uploadProgress}
-          isSubmitting={isSubmitting}
-          loadingExisting={loadingExisting}
-          dropDisabled={dropDisabled}
-          draggingId={draggingId}
-          dragOver={dragOver}
-          itemRefs={itemRefs}
-          onDrop={handleDrop}
-          onFiles={addFilesToItems}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragOver={handleDragOverItem}
-          onItemDrop={handleItemDrop}
-          onRemove={removeItem}
-        />
-        <details className="mt-4" open={showAdvanced} onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}>
-          <summary className="cursor-pointer select-none py-2 text-sm font-medium text-gray-600">
-            Advanced
-          </summary>
-          <div className="pb-4 pt-2 space-y-3">
-            <div className="relative">
-              <button
-                type="button"
-                className="w-full text-left rounded-md border border-gray-300 px-3 py-2 text-gray-800 bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-haspopup="dialog"
-                aria-expanded={showDatePopover}
-                onClick={() => setShowDatePopover((v) => !v)}
-              >
-                {postDate ? new Date(postDate).toLocaleString() : 'Use current date/time'}
-              </button>
-              {showDatePopover && (
-                <div className="absolute left-0 top-full mt-2">
-                  <DateTimePopover
-                    initialDate={postDate ?? undefined}
-                    onApply={(d) => setPostDate(d)}
-                    onClose={() => setShowDatePopover(false)}
-                  />
-                </div>
-              )}
-            </div>
+      <article className="bg-white rounded-[20px] p-6 sm:p-8">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-4">
+          {isEditing ? 'Edit post' : 'Create a new post'}
+        </h1>
+        {isEditing && editingId && (
+          <p className="mb-4 text-sm text-gray-500">
+            Editing post ID: <code className="rounded bg-[#845A2C]/6 text-[#845A2C] px-1 py-0.5 text-xs">{editingId}</code>
+          </p>
+        )}
+        {loadingExisting && (
+          <div className="mb-4 rounded-[10px] border border-[#845A2C]/15 bg-[#845A2C]/6 px-3 py-2 text-sm text-[#845A2C]">
+            Loading selected post…
           </div>
-        </details>
-        <button
-          type="submit"
-          className={`bg-blue-600 text-white px-4 py-2 rounded ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={isSubmitting}
-          aria-busy={isSubmitting}
-        >
-          {isSubmitting ? (isEditing ? 'Updating…' : 'Posting…') : (isEditing ? 'Update Post' : 'Post')}
-        </button>
-      </form>
+        )}
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+          <textarea
+            className="appearance-none w-full rounded-[10px] border border-[#845A2C]/15 bg-white py-2 px-4 text-gray-800 leading-relaxed transition-colors placeholder:text-gray-400 focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
+            rows={3}
+            placeholder="Caption (optional)"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+          />
+          <p className="text-xs text-gray-500 italic">
+            Use{' '}
+            <a
+              href="https://commonmark.org/help/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#845A2C] hover:underline"
+            >
+              Markdown
+            </a>{' '}
+            to style
+          </p>
+          <MediaUploader
+            items={items}
+            uploadProgress={uploadProgress}
+            isSubmitting={isSubmitting}
+            loadingExisting={loadingExisting}
+            dropDisabled={dropDisabled}
+            draggingId={draggingId}
+            dragOver={dragOver}
+            itemRefs={itemRefs}
+            onDrop={handleDrop}
+            onFiles={addFilesToItems}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOverItem}
+            onItemDrop={handleItemDrop}
+            onRemove={removeItem}
+          />
+          <details className="mt-4" open={showAdvanced} onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}>
+            <summary className="cursor-pointer select-none py-2 text-sm font-medium text-[#845A2C]">
+              Advanced
+            </summary>
+            <div className="pb-4 pt-2 space-y-3">
+              <div className="relative">
+                <button
+                  type="button"
+                  className="w-full rounded-[10px] border border-[#845A2C]/15 bg-white px-3 py-2 text-left text-gray-800 transition-colors hover:border-[#845A2C]/30 focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
+                  aria-haspopup="dialog"
+                  aria-expanded={showDatePopover}
+                  onClick={() => setShowDatePopover((v) => !v)}
+                >
+                  {postDate ? new Date(postDate).toLocaleString() : 'Use current date/time'}
+                </button>
+                {showDatePopover && (
+                  <div className="absolute left-0 top-full mt-2 z-10">
+                    <DateTimePopover
+                      initialDate={postDate ?? undefined}
+                      onApply={(d) => setPostDate(d)}
+                      onClose={() => setShowDatePopover(false)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </details>
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              className="inline-flex items-center rounded-[10px] bg-[#845A2C] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6d4a24] focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#845A2C]"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting ? (isEditing ? 'Updating…' : 'Posting…') : (isEditing ? 'Update post' : 'Post')}
+            </button>
+          </div>
+        </form>
+      </article>
     </div>
   );
 }

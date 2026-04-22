@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
-import { format } from "date-fns";
 
 interface DateTimePopoverProps {
   initialDate?: Date;
@@ -10,12 +8,9 @@ interface DateTimePopoverProps {
   onClose: () => void;
 }
 
-// Simple date/time popover inspired by DateFilterPopover styling.
 export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [temp, setTemp] = useState<Date>(() => initialDate ?? new Date());
-
-  const monthLabel = useMemo(() => format(temp, "MMMM yyyy"), [temp]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -26,14 +21,6 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
-
-  const shiftMonth = (delta: number) => {
-    setTemp((d) => {
-      const nd = new Date(d);
-      nd.setMonth(nd.getMonth() + delta);
-      return nd;
-    });
-  };
 
   const setFromDateInput = (val: string) => {
     // val is YYYY-MM-DD (local)
@@ -74,12 +61,12 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
   return (
     <div
       ref={ref}
-      className="absolute z-50 bg-white rounded-xl shadow-lg border border-gray-200 w-80"
+      className="absolute z-50 bg-white rounded-[10px] shadow-md border border-[#845A2C]/15 w-80"
       onMouseDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-100">
-        <div className="text-lg font-semibold text-gray-800 select-none">Post Date/Time</div>
+      <div className="flex items-center justify-between p-4 border-b border-[#845A2C]/10">
+        <div className="text-lg font-semibold text-[#845A2C] select-none">Post Date/Time</div>
       </div>
 
       {/* Body */}
@@ -88,7 +75,7 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
           <span className="block mb-1">Date</span>
           <input
             type="date"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full rounded-[10px] border border-[#845A2C]/15 px-3 py-2 text-gray-800 transition-colors focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
             value={localDateValue}
             onChange={(e) => setFromDateInput(e.target.value)}
           />
@@ -98,32 +85,30 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
           <input
             type="time"
             step={60}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full rounded-[10px] border border-[#845A2C]/15 px-3 py-2 text-gray-800 transition-colors focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
             value={localTimeValue}
             onChange={(e) => setFromTimeInput(e.target.value)}
           />
         </label>
         <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+            onClick={() => setTemp(new Date())}
+          >
+            Now
+          </button>
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              className="text-sm text-gray-600 hover:text-gray-900 underline"
-              onClick={() => setTemp(new Date())}
-            >
-              Now
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              className="rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
               onClick={onClose}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="px-3 py-1.5 rounded-md text-sm bg-blue-600 text-white hover:bg-blue-700"
+              className="rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm font-medium text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
               onClick={() => {
                 onApply(temp);
                 onClose();
