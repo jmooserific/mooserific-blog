@@ -160,7 +160,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              <button
                type="button"
                onClick={() => setMenuOpen((v) => !v)}
-               className="inline-flex items-center justify-center rounded-full border border-transparent bg-white p-2 text-gray-500 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
                aria-haspopup="menu"
                aria-expanded={menuOpen}
                aria-label="Post actions"
@@ -168,21 +168,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                <span className="text-lg leading-none">⋯</span>
              </button>
              {menuOpen && (
-               <div className="absolute left-0 mt-1 z-10 bg-white border border-gray-200 rounded shadow-md text-sm">
+               <div className="absolute left-0 mt-1 z-10 bg-white border border-[#845A2C]/15 rounded-[10px] shadow-md text-sm p-1">
                  <button
                    type="button"
-                   className="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-gray-50"
+                   className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-[#845A2C] transition-colors hover:bg-[#845A2C]/6"
                    onClick={() => {
                      setMenuOpen(false);
                      router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
                    }}
                  >
-                   <PencilSquareIcon className="h-4 w-4 text-gray-700" />
+                   <PencilSquareIcon className="h-4 w-4" />
                    <span>Edit</span>
                  </button>
                  <button
                    type="button"
-                   className="flex items-center gap-2 w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                   className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-red-700/80 transition-colors hover:bg-red-900/6 disabled:opacity-50"
                    disabled={deleting}
                    onClick={async () => {
                      setMenuOpen(false);

@@ -157,6 +157,27 @@ Hover adds a `rgba(132, 90, 44, 0.06)` wash. Focus ring uses Umber at 2px with a
 
 Square icon variants (Create Post, Sign In, filter trigger) keep the same styling and use `padding: 8px` with a 20px icon — no explicit width/height.
 
+### Menus & popovers
+
+Surfaces that open from a ghost button — dropdown menus, date filter popovers, etc. — carry the same quiet language: white panel, Umber-tinted hairline border, 10px panel radius, and 1px internal padding so item hover washes stay inset from the panel edge. Items use an 8px radius and the same Umber/6 hover wash as buttons.
+
+```css
+/* Panel */
+background: #fff;
+border: 1px solid rgba(132, 90, 44, 0.15);  /* Umber/15 */
+border-radius: 10px;
+padding: 4px;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);  /* shadow-md */
+
+/* Item */
+color: #845A2C;                              /* Umber */
+border-radius: 8px;
+padding: 8px 12px;
+/* hover */ background: rgba(132, 90, 44, 0.06);
+```
+
+Destructive items (Delete, etc.) are the single allowed accent departure: muted red foreground (`text-red-700/80`) with a `rgba(127, 29, 29, 0.06)` hover wash (`red-900/6`) that mirrors the Umber/6 structure. Avoid stronger reds — the `confirm()` dialog carries the safety weight, the menu item only needs to read as "different kind of action."
+
 ---
 
 ## Border radius
