@@ -12,7 +12,7 @@ Each post card features an oversized day numeral rendered at 220px in Inter Blac
 
 The month name and year are superimposed in the top-right corner of the card, right-aligned, sitting on top of the ghost numeral. The month uses Inter 700 at 14px with wide letter-spacing; the year uses Inter 300 at 13px. The extreme weight contrast between month (Bold), year (Light), and ghost numeral (Black) creates hierarchy through a single typeface.
 
-```
+```text
 ┌──────────────────────────────────────────────┐
 │                                    APRIL     │ ← Inter 700, 14px, Umber
 │                                    2026      │ ← Inter 300, 13px, lighter brown
@@ -205,10 +205,10 @@ Destructive items (Delete, etc.) are the single allowed accent departure: muted 
 
 Two radius values increase from the current design:
 
-| Element        | Current          | New              |
-|----------------|------------------|------------------|
-| Post cards     | `rounded-2xl` 16px | 20px           |
-| Gallery images | `rounded-md` 6px  | 12px (`rounded-xl`) |
+| Element        | Current            | New                 |
+|----------------|--------------------|---------------------|
+| Post cards     | `rounded-2xl` 16px | 20px                |
+| Gallery images | `rounded-md` 6px   | 12px (`rounded-xl`) |
 
 The larger card radius provides cleaner clipping edges for the ghost numeral. The larger image radius matches the card's interior visual language.
 
