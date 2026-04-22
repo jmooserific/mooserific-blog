@@ -26,17 +26,17 @@ export default function Pagination({ nextCursor, prevCursor, dateFilter }: Pagin
       {prevCursor && (
         <Link
           href={buildUrl({ after: prevCursor })}
-          className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800"
+          className="inline-flex items-center gap-1 rounded-[10px] border border-transparent bg-transparent px-5 py-2 text-sm font-medium text-[#845A2C] transition-colors hover:bg-[#845A2C]/6"
         >
-          <ArrowLeftIcon className="h-4 w-4 inline-block" /> Newer
+          <ArrowLeftIcon className="h-4 w-4" /> Newer
         </Link>
       )}
       {nextCursor && (
         <Link
           href={buildUrl({ before: nextCursor })}
-          className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800"
+          className="inline-flex items-center gap-1 rounded-[10px] border border-transparent bg-transparent px-5 py-2 text-sm font-medium text-[#845A2C] transition-colors hover:bg-[#845A2C]/6"
         >
-          Older <ArrowRightIcon className="h-4 w-4 inline-block" />
+          Older <ArrowRightIcon className="h-4 w-4" />
         </Link>
       )}
     </nav>

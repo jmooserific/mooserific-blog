@@ -139,36 +139,23 @@ The moose watercolor used as the site's mascot is a warm brown palette. Using Um
 
 ## Buttons
 
-All buttons use brown tones derived from the same Umber family.
+Every button on the site uses the same quiet ghost treatment: no fill, no visible border, Umber foreground, Umber-wash hover. There is intentionally no "primary" variant — keeping chrome uniformly subtle ensures the photo grid stays the visual focal point. Include a transparent 1px border so the hover wash doesn't shift surrounding layout.
 
-### Primary buttons (Sign In, Create Post)
+Applies to: Create Post, Sign In, filter icon, pagination — and any future button additions.
 
 ```css
-background: #845A2C;     /* Umber */
-color: #ffffff;
+background: transparent;
+border: 1px solid transparent;
+color: #845A2C;                  /* Umber */
 border-radius: 10px;
-padding: 8px 20px;
+padding: 8px (icon) or 8px 20px (text);
 font-size: 14px;
 font-weight: 500;
 ```
 
-Hover darkens to `#62472D`. In dark mode, the fill lightens to `#C09F6B` with dark text.
+Hover adds a `rgba(132, 90, 44, 0.06)` wash. Focus ring uses Umber at 2px with a 2px offset. In dark mode, the foreground becomes `#C09F6B`.
 
-### Secondary buttons (date filter trigger, pagination)
-
-```css
-background: transparent;
-color: inherit;
-border: 1px solid #845A2C;
-border-radius: 10px;
-padding: 8px 20px;
-```
-
-Hover adds a `rgba(132, 90, 44, 0.06)` wash. In dark mode, the border becomes `#C09F6B`.
-
-### Icon buttons (filter icon)
-
-Same as secondary but square: `padding: 8px; width: 38px; height: 38px`.
+Square icon variants (Create Post, Sign In, filter trigger) keep the same styling and use `padding: 8px` with a 20px icon — no explicit width/height.
 
 ---
 
@@ -213,6 +200,5 @@ Everything not mentioned above remains unchanged from the existing `design.md`:
 5. Update gallery image border-radius to 12px
 6. Change author/meta text color from `text-gray-500` to Umber `#845A2C`
 7. Change footer text color to Umber `#845A2C`
-8. Style primary buttons with Umber fill, white text, 10px radius
-9. Style secondary/icon buttons with Umber border, 10px radius
-10. Add dark mode mappings for Umber → `#C09F6B` and ghost numeral → `rgba(255,255,255,0.035)`
+8. Style all buttons (Create Post, Sign In, filter icon, pagination) with the shared ghost treatment: transparent bg + transparent border, Umber fg, 10px radius, 6% Umber hover wash
+9. Add dark mode mappings for Umber → `#C09F6B` and ghost numeral → `rgba(255,255,255,0.035)`
