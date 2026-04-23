@@ -147,10 +147,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              className="absolute right-4 top-4 text-right sm:right-7 sm:top-7"
            >
              <span className="sr-only">{fullDate}</span>
-             <span aria-hidden="true" className="block uppercase font-bold text-[14px] tracking-[0.08em] text-[#845A2C]">
+             <span aria-hidden="true" className="block uppercase font-bold text-[14px] tracking-[0.08em] text-accent">
                {monthName}
              </span>
-             <span aria-hidden="true" className="block font-light text-[13px] text-[#845A2C] mt-0.75">
+             <span aria-hidden="true" className="block font-light text-[13px] text-accent mt-0.75">
                {yearText}
              </span>
            </time>
@@ -160,7 +160,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              <button
                type="button"
                onClick={() => setMenuOpen((v) => !v)}
-               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                aria-haspopup="menu"
                aria-expanded={menuOpen}
                aria-label="Post actions"
@@ -168,10 +168,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                <span className="text-lg leading-none">⋯</span>
              </button>
              {menuOpen && (
-               <div className="absolute left-0 mt-1 z-10 bg-white border border-[#845A2C]/15 rounded-[10px] shadow-md text-sm p-1">
+               <div className="absolute left-0 mt-1 z-10 bg-white border border-accent/15 rounded-[10px] shadow-md text-sm p-1">
                  <button
                    type="button"
-                   className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-[#845A2C] transition-colors hover:bg-[#845A2C]/6"
+                   className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-accent transition-colors hover:bg-accent/6"
                    onClick={() => {
                      setMenuOpen(false);
                      router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
@@ -212,7 +212,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
            <Markdown>{post.caption}</Markdown>
          </div>
          {post.author && (
-           <p className="text-[13px] text-[#845A2C] mb-4">
+           <p className="text-[13px] text-accent mb-4">
              by <strong>{post.author}</strong>
            </p>
          )}

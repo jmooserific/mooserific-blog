@@ -61,12 +61,12 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
   return (
     <div
       ref={ref}
-      className="absolute z-50 bg-white rounded-[10px] shadow-md border border-[#845A2C]/15 w-80"
+      className="absolute z-50 bg-white rounded-[10px] shadow-md border border-accent/15 w-80"
       onMouseDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[#845A2C]/10">
-        <div className="text-lg font-semibold text-[#845A2C] select-none">Post Date/Time</div>
+      <div className="flex items-center justify-between p-4 border-b border-accent/10">
+        <div className="text-lg font-semibold text-accent select-none">Post Date/Time</div>
       </div>
 
       {/* Body */}
@@ -75,7 +75,7 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
           <span className="block mb-1">Date</span>
           <input
             type="date"
-            className="w-full rounded-[10px] border border-[#845A2C]/15 px-3 py-2 text-gray-800 transition-colors focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
+            className="w-full rounded-[10px] border border-accent/15 px-3 py-2 text-gray-800 transition-colors focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
             value={localDateValue}
             onChange={(e) => setFromDateInput(e.target.value)}
           />
@@ -85,7 +85,7 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
           <input
             type="time"
             step={60}
-            className="w-full rounded-[10px] border border-[#845A2C]/15 px-3 py-2 text-gray-800 transition-colors focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
+            className="w-full rounded-[10px] border border-accent/15 px-3 py-2 text-gray-800 transition-colors focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
             value={localTimeValue}
             onChange={(e) => setFromTimeInput(e.target.value)}
           />
@@ -93,7 +93,7 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
         <div className="flex items-center justify-between pt-2">
           <button
             type="button"
-            className="rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+            className="rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
             onClick={() => setTemp(new Date())}
           >
             Now
@@ -108,7 +108,7 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
             </button>
             <button
               type="button"
-              className="rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm font-medium text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+              className="rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               onClick={() => {
                 onApply(temp);
                 onClose();

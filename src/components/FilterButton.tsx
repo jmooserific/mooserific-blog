@@ -21,7 +21,7 @@ const FilterButton: React.FC<FilterButtonProps> = ({ onSelect, initialValue, pos
         title="Filter posts by date"
         aria-haspopup="true"
         aria-expanded={open}
-        className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+        className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
         onMouseDown={e => {
           // Prevent the global popover listener from closing immediately while still allowing focus
           e.stopPropagation();

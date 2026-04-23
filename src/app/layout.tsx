@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <Toaster position="top-right" richColors />
-        <footer className="text-center text-sm text-[#845A2C] py-6">
+        <footer className="text-center text-sm text-accent py-6">
           &copy; {new Date().getUTCFullYear()} Mooserific | Powered by <a href="https://github.com/jmooserific/mooserific-blog">Mooserific Blog!</a>
         </footer>
       </body>

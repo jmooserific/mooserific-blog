@@ -42,7 +42,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-[20px] bg-white p-6 sm:p-8">
         <h1 className="text-2xl font-semibold text-gray-900 text-center">Mooserific Admin</h1>
-        <p className="mt-2 text-sm text-[#845A2C] text-center">
+        <p className="mt-2 text-sm text-accent text-center">
           Sign in with your administrator credentials.
         </p>
         {errorMessage ? (
@@ -61,7 +61,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               type="text"
               autoComplete="username"
               required
-              className="appearance-none w-full rounded-[10px] border border-[#845A2C]/15 bg-white py-2 px-4 text-gray-800 transition-colors placeholder:text-gray-400 focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
+              className="appearance-none w-full rounded-[10px] border border-accent/15 bg-white py-2 px-4 text-gray-800 transition-colors placeholder:text-gray-400 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
           </div>
           <div className="space-y-2">
@@ -74,13 +74,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               type="password"
               autoComplete="current-password"
               required
-              className="appearance-none w-full rounded-[10px] border border-[#845A2C]/15 bg-white py-2 px-4 text-gray-800 transition-colors placeholder:text-gray-400 focus:outline-none focus:border-[#845A2C] focus:ring-2 focus:ring-[#845A2C]/30"
+              className="appearance-none w-full rounded-[10px] border border-accent/15 bg-white py-2 px-4 text-gray-800 transition-colors placeholder:text-gray-400 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
           </div>
           <input type="hidden" name="redirect" value={redirectParam} />
           <button
             type="submit"
-            className="w-full inline-flex items-center justify-center rounded-[10px] bg-[#845A2C] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6d4a24] focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+            className="w-full inline-flex items-center justify-center rounded-[10px] bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
           >
             Sign in
           </button>
@@ -88,7 +88,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="mt-6 text-center">
           <Link
             href="/"
-            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-[#845A2C] transition-colors hover:bg-[#845A2C]/6 focus:outline-none focus:ring-2 focus:ring-[#845A2C] focus:ring-offset-2"
+            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
           >
             ← Back to site
           </Link>

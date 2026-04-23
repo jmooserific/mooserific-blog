@@ -48,10 +48,10 @@ const formatDateFilter = (value: string): string => {
 };
 
 const ActiveFilterBadge: React.FC<ActiveFilterBadgeProps> = ({ value, onClear }) => (
-  <div className="flex items-center gap-2 bg-[#845A2C]/10 text-[#845A2C] px-3 py-1 rounded-full text-sm font-medium">
+  <div className="flex items-center gap-2 bg-accent/10 text-accent px-3 py-1 rounded-full text-sm font-medium">
     <span>Filter: {formatDateFilter(value)}</span>
     <button
-      className="text-[#845A2C]/60 hover:text-[#845A2C] transition-colors focus:outline-none"
+      className="text-accent/60 hover:text-accent transition-colors focus:outline-none"
       onClick={onClear}
       aria-label="Clear date filter"
     >

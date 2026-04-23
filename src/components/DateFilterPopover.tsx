@@ -81,17 +81,17 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
   return (
     <div
       ref={ref}
-      className="absolute z-50 bg-white rounded-[10px] shadow-md border border-[#845A2C]/15 w-80 left-1/2 -translate-x-1/2 top-full mt-1 sm:left-auto sm:translate-x-0 sm:right-0 sm:top-1/2 sm:mt-0"
+      className="absolute z-50 bg-white rounded-[10px] shadow-md border border-accent/15 w-80 left-1/2 -translate-x-1/2 top-full mt-1 sm:left-auto sm:translate-x-0 sm:right-0 sm:top-1/2 sm:mt-0"
       onMouseDown={e => e.stopPropagation()}
     >
       {/* Year Navigation Header */}
-      <div className="flex items-center justify-between p-3 border-b border-[#845A2C]/10">
+      <div className="flex items-center justify-between p-3 border-b border-accent/10">
         <button
           onClick={handlePreviousYear}
           disabled={!canGoPrevious}
           className={`p-2 rounded-lg transition-colors ${canGoPrevious
-              ? 'text-[#845A2C] hover:bg-[#845A2C]/6'
-              : 'text-[#845A2C]/25 cursor-not-allowed'
+              ? 'text-accent hover:bg-accent/6'
+              : 'text-accent/25 cursor-not-allowed'
             }`}
         >
           <ChevronLeftIcon className="h-5 w-5" />
@@ -99,7 +99,7 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
 
         <button
           onClick={handleYearClick}
-          className="text-2xl font-semibold text-[#845A2C] transition-colors px-4 py-1 rounded-lg hover:bg-[#845A2C]/6"
+          className="text-2xl font-semibold text-accent transition-colors px-4 py-1 rounded-lg hover:bg-accent/6"
           title={`Filter by ${currentYear} (${getPostCount(currentYear.toString())} posts)`}
         >
           {currentYear}
@@ -109,8 +109,8 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
           onClick={handleNextYear}
           disabled={!canGoNext}
           className={`p-2 rounded-lg transition-colors ${canGoNext
-              ? 'text-[#845A2C] hover:bg-[#845A2C]/6'
-              : 'text-[#845A2C]/25 cursor-not-allowed'
+              ? 'text-accent hover:bg-accent/6'
+              : 'text-accent/25 cursor-not-allowed'
             }`}
         >
           <ChevronRightIcon className="h-5 w-5" />
@@ -133,15 +133,15 @@ const DateFilterPopover: React.FC<DateFilterPopoverProps> = ({ onClose, onSelect
                 className={`
                   relative p-3 rounded-lg text-sm font-medium transition-colors
                   ${isDisabled
-                    ? 'text-[#845A2C]/25 cursor-not-allowed'
-                    : 'text-[#845A2C] hover:bg-[#845A2C]/6'
+                    ? 'text-accent/25 cursor-not-allowed'
+                    : 'text-accent hover:bg-accent/6'
                   }
                 `}
                 title={isDisabled ? 'No posts this month' : `${month} ${currentYear} (${postCount} posts)`}
               >
                 <div>{month}</div>
                 {!isDisabled && postCount > 0 && (
-                  <div className="absolute -top-0.5 -right-0.5 bg-[#845A2C]/10 text-[#845A2C] text-xs font-semibold rounded-full min-w-5 h-5 flex items-center justify-center px-1.5">
+                  <div className="absolute -top-0.5 -right-0.5 bg-accent/10 text-accent text-xs font-semibold rounded-full min-w-5 h-5 flex items-center justify-center px-1.5">
                     {postCount > 99 ? '99+' : postCount}
                   </div>
                 )}

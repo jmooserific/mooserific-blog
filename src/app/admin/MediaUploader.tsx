@@ -25,13 +25,13 @@ export function MediaUploader({ items, uploadProgress, isSubmitting, loadingExis
   return (
     <>
       <div
-        className={`rounded-[10px] border-2 border-dashed p-8 text-center transition-colors ${dropDisabled ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400' : 'cursor-pointer border-[#845A2C]/20 text-[#845A2C] hover:border-[#845A2C]/40 hover:bg-[#845A2C]/6'}`}
+        className={`rounded-[10px] border-2 border-dashed p-8 text-center transition-colors ${dropDisabled ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400' : 'cursor-pointer border-accent/20 text-accent hover:border-accent/40 hover:bg-accent/6'}`}
         onDrop={onDrop}
         onDragOver={(e) => { if (!dropDisabled) e.preventDefault(); }}
         onClick={() => { if (!dropDisabled) document.getElementById('file-upload')?.click(); }}
       >
         {dropDisabled ? 'Uploading or loading…' : 'Drop photos or videos here'}<br />
-        {!dropDisabled && <span className="text-xs text-[#845A2C]/70">or click to select</span>}
+        {!dropDisabled && <span className="text-xs text-accent/70">or click to select</span>}
         <input
           id="file-upload"
           type="file"

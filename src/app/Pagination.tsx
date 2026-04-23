@@ -26,7 +26,7 @@ export default function Pagination({ nextCursor, prevCursor, dateFilter }: Pagin
       {prevCursor && (
         <Link
           href={buildUrl({ after: prevCursor })}
-          className="inline-flex items-center gap-1 rounded-[10px] border border-transparent bg-transparent px-5 py-2 text-sm font-medium text-[#845A2C] transition-colors hover:bg-[#845A2C]/6"
+          className="inline-flex items-center gap-1 rounded-[10px] border border-transparent bg-transparent px-5 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/6"
         >
           <ArrowLeftIcon className="h-4 w-4" /> Newer
         </Link>
@@ -34,7 +34,7 @@ export default function Pagination({ nextCursor, prevCursor, dateFilter }: Pagin
       {nextCursor && (
         <Link
           href={buildUrl({ before: nextCursor })}
-          className="inline-flex items-center gap-1 rounded-[10px] border border-transparent bg-transparent px-5 py-2 text-sm font-medium text-[#845A2C] transition-colors hover:bg-[#845A2C]/6"
+          className="inline-flex items-center gap-1 rounded-[10px] border border-transparent bg-transparent px-5 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/6"
         >
           Older <ArrowRightIcon className="h-4 w-4" />
         </Link>
