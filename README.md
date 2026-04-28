@@ -1,7 +1,7 @@
 # Mooserific Blog
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jmooserific/mooserific-blog/refs/heads/main/public/Screenshot.png" alt="screenshot of Mooserific Blog" style="max-width: 800px;"/>
+  <img src="docs/Screenshot.png" alt="screenshot of Mooserific Blog" style="max-width: 800px;"/>
 </p>
 
 A private, family-friendly blog for sharing photos and videos. Upload memories, add a caption, and they show up in a clean, scrollable feed — no social media required.
