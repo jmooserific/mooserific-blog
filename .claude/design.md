@@ -5,7 +5,7 @@ Let’s design a clean, modern, and family-friendly blog layout that focuses on 
 
 We want something that feels calm, personal, and clutter-free — like a digital family album.
 
-> This document captures **design intent** — the what and the why. The concrete implementation — exact colors, sizes, radii, fonts, and component CSS — lives in [`design-system.md`](./design-system.md). When the two could drift, intent wins here and values win there.
+> This document captures **design intent** — the what and the why. The concrete implementation — exact colors, sizes, radii, fonts, and component CSS — lives in [`design-system.md`](./design-system.md). When the two could drift, intent wins here and values win there. Known places where the current design pulls against this intent are tracked in [`design-backlog.md`](./design-backlog.md).
 
 ---
 
