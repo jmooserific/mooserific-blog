@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npm outdated:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm ls *)",
+      "Bash(npm view *)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m :*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$(basename \"$f\")\" in .env.example) ;; .env|.env.*) printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Editing .env files is blocked: they may contain secrets. Edit .env.example instead.\"}}';; esac",
+            "statusMessage": "Checking for .env edits"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.ts|*.tsx) out=$(cd \"${CLAUDE_PROJECT_DIR:-.}\" && npx tsc --noEmit 2>&1); if [ $? -ne 0 ]; then jq -n --arg r \"$out\" '{decision:\"block\",reason:(\"tsc --noEmit reported type errors after the edit:\\n\"+$r)}'; fi;; esac",
+            "statusMessage": "Type-checking (tsc --noEmit)",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
