@@ -11,6 +11,12 @@
       "Bash(npx tsc:*)",
       "Bash(git add:*)",
       "Bash(git commit -m :*)"
+    ],
+    "deny": [
+      "mcp__cloudflare-bindings__d1_database_create",
+      "mcp__cloudflare-bindings__d1_database_delete",
+      "mcp__cloudflare-bindings__r2_bucket_create",
+      "mcp__cloudflare-bindings__r2_bucket_delete"
     ]
   },
   "hooks": {
