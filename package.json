@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "import:legacy": "tsx scripts/import-legacy.ts posts",
     "migrate:images": "tsx scripts/migrate-images.ts",
     "backfill:cache-control": "tsx scripts/backfill-cache-control.ts"
   },
@@ -31,12 +30,10 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
-    "@types/mime-types": "^3.0.1",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "autoprefixer": "latest",
     "dotenv": "^17.4.1",
-    "mime-types": "^3.0.2",
     "postcss": "^8.5.12",
     "tsx": "^4.15.7",
     "typescript": "^6.0.2"
