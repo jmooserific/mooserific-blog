@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "migrate:images": "tsx scripts/migrate-images.ts",
-    "backfill:cache-control": "tsx scripts/backfill-cache-control.ts"
+    "backfill:cache-control": "tsx scripts/backfill-cache-control.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
@@ -32,11 +35,13 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
+    "@vitest/coverage-v8": "^4.1.7",
     "autoprefixer": "latest",
     "dotenv": "^17.4.1",
     "postcss": "^8.5.12",
     "tsx": "^4.15.7",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.7"
   },
   "overrides": {
     "next": {
