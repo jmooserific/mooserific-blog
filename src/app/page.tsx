@@ -31,11 +31,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const rows = await listPosts({ limit: POSTS_PER_PAGE, before, after, dateFilter: dateFilter || undefined });
 
   const posts: Post[] = rows.map(r => ({
+    id: r.id,
     date: r.date,
     author: r.author || '',
     caption: r.description || '',
     photos: (r.photos || []).map(p => ({ filename: p.url, width: p.width, height: p.height })),
-    slug: r.id,
+    slug: r.slug,
     videos: r.videos
   }));
 

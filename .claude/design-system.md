@@ -274,7 +274,33 @@ Destructive items (Delete, etc.) are the single allowed accent departure: muted 
 ### Seams (not the timeline's own job)
 
 - **Photo-first feed** (full-bleed heroes, date-as-divider): a separate workstream — the timeline drops onto the current feed and does not require it.
-- **URL / permalinks:** build so the playhead can read and write a canonical URL; ship on scroll-position first, wire URL sync when permalinks land.
+- **URL / permalinks:** build so the playhead can read and write a canonical URL; ship on scroll-position first, wire URL sync when permalinks land. Per-post permalinks have landed (see _Permalinks_ below); the timeline's _position_ URL is a separate concern from a post's canonical address.
+
+---
+
+## Permalinks
+
+Each post has a canonical URL: **`/p/<slug>`** (route `src/app/p/[slug]/page.tsx`, server-rendered).
+
+### Slug format
+
+- **Default:** derived from the post's date as **`YYYY-MM-DD-HHMM`** in **UTC** (e.g. `2026-05-31-1430`). UTC matches the post card's date rendering, so the slug always agrees with the date shown.
+- **Collisions:** same-minute posts auto-suffix — `…-1430`, then `…-1430-2`, `…-1430-3`, … (`nextAvailableSlug` in `src/utils/slug.ts`).
+- **Custom slugs:** charset `^[a-z0-9]+(?:-[a-z0-9]+)*$` — lowercase letters, digits, single hyphens as separators, no leading/trailing/doubled hyphens; max 120 chars (`isValidSlug`). Validated at the API boundary with Zod; a duplicate custom slug is rejected with **409**, a malformed one with **400**.
+- **Storage:** `posts.slug TEXT` with a `UNIQUE` index (migration `0002_post_slug.sql`). Backfill existing rows with `npm run backfill:slugs` (supports `--dry-run`).
+
+### Lifecycle
+
+- **Frozen on publish.** Editing a post — including changing its date — never auto-changes the slug. While _drafting a new_ post the slug tracks the date live until the author types their own (then it's pinned).
+- **Editable, with a warning.** On the edit form the slug stays editable; changing it shows a warning that existing links will break (amber by default, red once actually changed).
+
+### Form field
+
+Lives in the **Advanced** `<details>` of the create/edit form, below the date control. Rendered as a `/p/` prefix followed by a borderless text input inside the standard bordered field shell (`border-accent/15`, focus ring `accent/30`). Helper text: charset + "Defaults to the post date."
+
+### Share affordance
+
+Each `PostCard` footer carries a single ghost **share** icon (`ShareIcon`, heroicons 24/outline) linking to `/p/<slug>` — same ghost treatment as other chrome (transparent, `text-accent`, `hover:bg-accent/6`, focus ring). It's the discoverable way to grab a post's stable link.
 
 ---
 

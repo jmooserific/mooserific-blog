@@ -19,7 +19,8 @@ const RowsPhotoAlbum = dynamic(
 );
 const Lightbox = dynamic(() => import("yet-another-react-lightbox"), { ssr: false });
 import "yet-another-react-lightbox/styles.css";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { PencilSquareIcon, TrashIcon, ShareIcon } from "@heroicons/react/24/outline";
 
  export type PhotoMeta = {
    filename: string; // Can be full URL from R2
@@ -28,11 +29,12 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
  };
 
  export type Post = {
+   id: string;        // stable record id, used for admin edit/delete
    date: string;
    author: string;
    caption: string;
    photos: PhotoMeta[];
-   slug: string;
+   slug: string;      // canonical permalink segment, used for /p/<slug>
    videos?: string[];
  };
 
@@ -174,7 +176,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                    className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-accent transition-colors hover:bg-accent/6"
                    onClick={() => {
                      setMenuOpen(false);
-                     router.push(`/admin?edit=${encodeURIComponent(post.slug)}`);
+                     router.push(`/admin?edit=${encodeURIComponent(post.id)}`);
                    }}
                  >
                    <PencilSquareIcon className="h-4 w-4" />
@@ -189,7 +191,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                      if (!confirm('Delete this post? This cannot be undone.')) return;
                      try {
                        setDeleting(true);
-                       const res = await fetch(`/api/posts/${encodeURIComponent(post.slug)}`, { method: 'DELETE', cache: 'no-store' });
+                       const res = await fetch(`/api/posts/${encodeURIComponent(post.id)}`, { method: 'DELETE', cache: 'no-store' });
                        if (!res.ok) throw new Error(await res.text());
                        onDeleted?.();
                      } catch (e: any) {
@@ -245,6 +247,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                ))}
              </div>
            )}
+         </div>
+         <div className="mt-4 flex justify-end">
+           <Link
+             href={`/p/${post.slug}`}
+             aria-label="Permalink to this post"
+             title="Permalink to this post"
+             className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+           >
+             <ShareIcon className="h-4 w-4" aria-hidden="true" />
+           </Link>
          </div>
        </div>
      </article>

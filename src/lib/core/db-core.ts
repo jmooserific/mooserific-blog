@@ -1,6 +1,15 @@
 import type { Post, ListPostsOptions, PhotoAsset } from '../types';
 import { getCloudflareClient } from './cloudflare-core';
 import { env } from '../env';
+import { slugFromDate, nextAvailableSlug } from '../../utils/slug';
+
+/** Thrown when a caller-supplied custom slug is already taken by another post. */
+export class SlugConflictError extends Error {
+  constructor(public readonly slug: string) {
+    super(`Slug already in use: ${slug}`);
+    this.name = 'SlugConflictError';
+  }
+}
 
 type SqlParam = string | number | boolean | null;
 
@@ -22,6 +31,7 @@ interface D1Api {
 
 interface PostRow {
   id: string;
+  slug: string | null;
   date: string;
   author: string | null;
   description: string | null;
@@ -102,35 +112,96 @@ export async function getPost(id: string): Promise<Post | null> {
   return row ? deserializePost(row) : null;
 }
 
-export interface CreatePostInput { id?: string; description?: string; photos: PhotoAsset[]; videos?: string[]; author?: string; date?: string; }
+export async function getPostBySlug(slug: string): Promise<Post | null> {
+  const { results } = await d1Query<PostRow>(`SELECT * FROM posts WHERE slug = $1`, [slug]);
+  const row = results[0];
+  return row ? deserializePost(row) : null;
+}
+
+// Note: d1Query rewrites every `$N` to a positional `?`, so each placeholder must
+// appear once and params must match left-to-right. We branch on `excludeId` rather
+// than reuse a placeholder for an `IS NULL` guard.
+
+/** Whether `slug` is already used by a post other than `excludeId`. */
+async function slugTaken(slug: string, excludeId?: string): Promise<boolean> {
+  const { results } = excludeId
+    ? await d1Query<{ id: string }>(
+        `SELECT id FROM posts WHERE slug = $1 AND id != $2 LIMIT 1`,
+        [slug, excludeId]
+      )
+    : await d1Query<{ id: string }>(
+        `SELECT id FROM posts WHERE slug = $1 LIMIT 1`,
+        [slug]
+      );
+  return results.length > 0;
+}
+
+/**
+ * Return a free slug derived from `base`, auto-suffixing (`base-2`, `base-3`, …)
+ * when same-minute collisions exist. Used for the date-derived default.
+ */
+async function ensureUniqueSlug(base: string, excludeId?: string): Promise<string> {
+  const { results } = excludeId
+    ? await d1Query<{ slug: string }>(
+        `SELECT slug FROM posts WHERE (slug = $1 OR slug LIKE $2) AND id != $3`,
+        [base, `${base}-%`, excludeId]
+      )
+    : await d1Query<{ slug: string }>(
+        `SELECT slug FROM posts WHERE slug = $1 OR slug LIKE $2`,
+        [base, `${base}-%`]
+      );
+  const taken = results.map(r => r.slug).filter((s): s is string => Boolean(s));
+  return nextAvailableSlug(base, taken);
+}
+
+export interface CreatePostInput { id?: string; slug?: string; description?: string; photos: PhotoAsset[]; videos?: string[]; author?: string; date?: string; }
 
 export async function createPost(input: CreatePostInput): Promise<Post> {
   const id = input.id || crypto.randomUUID();
   const date = input.date || new Date().toISOString();
-  await d1Query(`INSERT INTO posts (id, date, author, description, photos, videos) VALUES ($1,$2,$3,$4,$5,$6)`, [
+  // A caller-supplied slug is treated as a deliberate choice and must be unique;
+  // otherwise derive the default from the date and auto-suffix any collision.
+  let slug: string;
+  if (input.slug) {
+    if (await slugTaken(input.slug)) throw new SlugConflictError(input.slug);
+    slug = input.slug;
+  } else {
+    slug = await ensureUniqueSlug(slugFromDate(date));
+  }
+  await d1Query(`INSERT INTO posts (id, slug, date, author, description, photos, videos) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [
     id,
+    slug,
     date,
     input.author || null,
     input.description || null,
     JSON.stringify(input.photos || []),
     input.videos ? JSON.stringify(input.videos) : null
   ]);
-  return { id, date, author: input.author, description: input.description, photos: input.photos, videos: input.videos };
+  return { id, slug, date, author: input.author, description: input.description, photos: input.photos, videos: input.videos };
 }
 
-export interface UpdatePostInput { description?: string; photos?: PhotoAsset[]; videos?: string[]; date?: string; }
+export interface UpdatePostInput { slug?: string; description?: string; photos?: PhotoAsset[]; videos?: string[]; date?: string; }
 
 export async function updatePost(id: string, input: UpdatePostInput): Promise<Post | null> {
   const existing = await getPost(id);
   if (!existing) return null;
+  // Slugs are frozen on publish: only change it when a new one is explicitly passed.
+  // A changed slug is a deliberate choice and must be unique.
+  let slug = existing.slug;
+  if (input.slug && input.slug !== existing.slug) {
+    if (await slugTaken(input.slug, id)) throw new SlugConflictError(input.slug);
+    slug = input.slug;
+  }
   const next: Post = {
     ...existing,
+    slug,
     description: input.description ?? existing.description,
     photos: input.photos ?? existing.photos,
     videos: input.videos ?? existing.videos,
     date: input.date ?? existing.date,
   };
-  await d1Query(`UPDATE posts SET description = $1, photos = $2, videos = $3, date = $4 WHERE id = $5`, [
+  await d1Query(`UPDATE posts SET slug = $1, description = $2, photos = $3, videos = $4, date = $5 WHERE id = $6`, [
+    next.slug,
     next.description || null,
     JSON.stringify(next.photos),
     next.videos ? JSON.stringify(next.videos) : null,
@@ -188,6 +259,8 @@ export async function getDateMetadata(): Promise<{
 function deserializePost(row: PostRow): Post {
   return {
     id: row.id,
+    // Fall back to the id for any row not yet backfilled, so it still has a usable key.
+    slug: row.slug || row.id,
     date: row.date,
     author: row.author || undefined,
     description: row.description || undefined,

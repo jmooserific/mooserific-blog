@@ -1,5 +1,15 @@
-import { getPost, updatePost, deletePost } from '@/lib/db';
+import { z } from 'zod';
+import { getPost, updatePost, deletePost, SlugConflictError } from '@/lib/db';
 import type { PhotoAsset } from '@/lib/types';
+import { isValidSlug } from '@/utils/slug';
+
+const updatePostSchema = z.object({
+  slug: z.string().optional(),
+  description: z.string().optional(),
+  date: z.string().optional(),
+  photos: z.array(z.unknown()).optional(),
+  videos: z.array(z.unknown()).optional(),
+});
 
 function normalizePhoto(p: unknown): PhotoAsset {
   if (typeof p === 'string') return { url: p, width: 800, height: 600 };
@@ -32,28 +42,34 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const body: unknown = await req.json();
-    if (!body || typeof body !== 'object') {
+    const json: unknown = await req.json().catch(() => undefined);
+    const parsed = updatePostSchema.safeParse(json);
+    if (!parsed.success) {
       return new Response('Invalid request body', { status: 400 });
     }
-    const b = body as Record<string, unknown>;
-    const photos = Array.isArray(b.photos) ? b.photos.map(normalizePhoto) : undefined;
-    const videos = Array.isArray(b.videos)
+    const b = parsed.data;
+    if (b.slug !== undefined && !isValidSlug(b.slug)) {
+      return new Response('Invalid permalink: use lowercase letters, numbers, and hyphens', { status: 400 });
+    }
+    const photos = b.photos ? b.photos.map(normalizePhoto) : undefined;
+    const videos = b.videos
       ? b.videos.filter((v): v is string => typeof v === 'string')
       : undefined;
     let date: string | undefined;
-    if (typeof b.date === 'string') {
-      const parsed = new Date(b.date);
-      if (Number.isNaN(parsed.getTime())) {
+    if (b.date !== undefined) {
+      const parsedDate = new Date(b.date);
+      if (Number.isNaN(parsedDate.getTime())) {
         return new Response('Invalid date format', { status: 400 });
       }
-      date = parsed.toISOString();
+      date = parsedDate.toISOString();
     }
-    const description = typeof b.description === 'string' ? b.description : undefined;
-    const post = await updatePost(id, { description, photos, videos, date });
+    const post = await updatePost(id, { slug: b.slug, description: b.description, photos, videos, date });
     if (!post) return new Response('Not found', { status: 404 });
     return Response.json(post);
   } catch (e: unknown) {
+    if (e instanceof SlugConflictError) {
+      return new Response('That permalink is already in use', { status: 409 });
+    }
     console.error('PUT /api/posts/[id] error', e);
     return new Response('Internal server error', { status: 500 });
   }

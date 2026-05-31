@@ -1,6 +1,20 @@
 import { NextRequest } from 'next/server';
-import { listPosts, createPost } from '@/lib/db';
+import { z } from 'zod';
+import { listPosts, createPost, SlugConflictError } from '@/lib/db';
 import type { PhotoAsset } from '@/lib/types';
+import { isValidSlug } from '@/utils/slug';
+
+// Shape validation at the boundary; photos/videos are validated loosely here and
+// coerced by normalizePhoto, since they accept both string and object forms.
+const createPostSchema = z.object({
+  id: z.string().optional(),
+  slug: z.string().optional(),
+  description: z.string().optional(),
+  author: z.string().optional(),
+  date: z.string().optional(),
+  photos: z.array(z.unknown()).optional(),
+  videos: z.array(z.unknown()).optional(),
+});
 
 function normalizePhoto(p: unknown): PhotoAsset {
   if (typeof p === 'string') return { url: p, width: 800, height: 600 };
@@ -37,23 +51,27 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: unknown = await req.json();
-    if (!body || typeof body !== 'object') {
+    const json: unknown = await req.json().catch(() => undefined);
+    const parsed = createPostSchema.safeParse(json);
+    if (!parsed.success) {
       return new Response('Invalid request body', { status: 400 });
     }
-    const b = body as Record<string, unknown>;
-    const rawPhotos: unknown[] = Array.isArray(b.photos) ? b.photos : [];
-    const rawVideos: unknown[] = Array.isArray(b.videos) ? b.videos : [];
+    const b = parsed.data;
+    const rawPhotos: unknown[] = b.photos ?? [];
+    const rawVideos: unknown[] = b.videos ?? [];
 
     if (rawPhotos.length === 0 && rawVideos.length === 0) {
       return new Response('At least one photo or video is required', { status: 400 });
     }
+    if (b.slug !== undefined && !isValidSlug(b.slug)) {
+      return new Response('Invalid permalink: use lowercase letters, numbers, and hyphens', { status: 400 });
+    }
     // Normalize photos: if array of strings convert to objects with placeholder dims
     const photos = rawPhotos.map(normalizePhoto);
     const videos = rawVideos.filter((v): v is string => typeof v === 'string');
-    const author = req.headers.get('x-auth-user') || (typeof b.author === 'string' ? b.author : undefined);
+    const author = req.headers.get('x-auth-user') || b.author;
     let date: string | undefined;
-    if (typeof b.date === 'string') {
+    if (b.date !== undefined) {
       const d = new Date(b.date);
       if (isNaN(d.getTime())) {
         return new Response('Invalid date format', { status: 400 });
@@ -61,15 +79,19 @@ export async function POST(req: NextRequest) {
       date = d.toISOString();
     }
     const post = await createPost({
-      id: typeof b.id === 'string' ? b.id : undefined,
+      id: b.id,
+      slug: b.slug,
       photos,
       videos,
-      description: typeof b.description === 'string' ? b.description : undefined,
+      description: b.description,
       author,
       date,
     });
     return Response.json(post, { status: 201 });
   } catch (e: unknown) {
+    if (e instanceof SlugConflictError) {
+      return new Response('That permalink is already in use', { status: 409 });
+    }
     console.error('POST /api/posts error', e);
     return new Response('Internal server error', { status: 500 });
   }

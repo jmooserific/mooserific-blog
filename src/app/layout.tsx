@@ -5,6 +5,8 @@ import { Toaster } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
+  // Lets per-page canonical/OG URLs resolve to absolute links when NEXT_PUBLIC_SITE_URL is set.
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
   title: "Mooserific Blog!",
   description: "A family photo blog!",
   manifest: "/site.webmanifest",
