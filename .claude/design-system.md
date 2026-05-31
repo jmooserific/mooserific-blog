@@ -244,6 +244,40 @@ Destructive items (Delete, etc.) are the single allowed accent departure: muted 
 
 ---
 
+## Timeline navigation (target — pre-implementation)
+
+> This section is the **build brief** for the timeline described in [`design.md`](./design.md). The _behavior_ below is settled; the exact numbers (radii, blur, tints, breakpoints, durations) are **provisional** and live in the working prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html). Treat that prototype as the reference implementation, and finalize the values here as "as-built" once the component ships in React.
+
+### Surfaces & states
+
+- **Two layouts, chosen by viewport aspect:** a horizontal bar on the bottom edge when the viewport is wider than tall, a vertical rail on the right edge when taller than wide. Newest sits at the **right** (horizontal) / **top** (vertical) — consistent under a clockwise quarter-turn, so the playhead tracks scroll the same way in both.
+- **Floating "liquid glass" panel:** translucent, blurred, rounded on all four corners, with a soft drop shadow. (Floating surfaces get a shadow; cards do not — consistent with the menu/popover rule above.) Radius sits between the image (12px) and card (20px) so it reads as its own floating control. It floats _over_ the photos and reserves no column; the horizontal bar reserves a little foot-room only so the last post clears it.
+- **Width (horizontal):** centered and capped so it is always narrower than the photo column at every responsive width — never edge-aligned with the photos.
+- **Expanded ↔ collapsed:** a ghost toggle minimizes the timeline to a small **read-only** pill showing just the current date (still live as you scroll). The toggle lives at the bottom-right of the timeline in both orientations, and the collapsed pill sits bottom-right with its expand control landing where the toggle was — so the control does not slip out from under the cursor when toggled. Default is **expanded** (collapsing-by-default would hurt discoverability).
+
+### Markers (reusing the button language)
+
+- **Playhead** ("you are here"): the **ghost** treatment — umber, a small arrow into the feed, a date label. Tracks the in-view post as you scroll.
+- **Cursor** ("Enter commits this jump"): the **primary/filled** treatment — filled umber, white text — the same signal a form's submit button uses. It sits in front of the playhead, which recedes (dims, drops its label) while you steer, so only one date label is read at a time.
+- The cursor is a transient keyboard tool: it rides _with_ the playhead and stays hidden, becomes visible only once moved by keyboard, and rejoins the playhead (hides) on commit or blur. No second accent hue is introduced — the distinction is ghost vs. primary, staying inside the single-umber system. If the fill/dim contrast ever proves too subtle, the only safe alternative is a **neutral** (e.g. slate), never a colored hue — red is reserved for destructive actions.
+
+### Density read-out
+
+- One mark per month across the whole span; fixed thickness along the time axis, length scaled by that month's post count; empty months render as a faint baseline; the active month brightens. It is a texture to aim at, not a row of click targets.
+
+### Interaction contract
+
+- **Pointer:** hover shows a date chip offset _off_ the pointer (above it in horizontal, left of it in vertical) so it never covers the spot being aimed at; click/drag scrolls the feed to the nearest post at that time.
+- **Keyboard (the accessible path that replaces the date picker):** the timeline is a `role="slider"` with `aria-valuemin/max/now`, `aria-valuetext` (the month), and `aria-orientation` per layout. Right/Up = forward in time, Left/Down = back (true in both orientations); Shift = jump by year; Home/End = ends of the archive; Enter/Space = scroll to the cursor. The focus ring sits on the floating panel (not the inner track) so it is never crammed against the first/last year.
+- **What drives the playhead:** scroll position → the in-view post → the marker. Jumps map a point in time to the **nearest post**. (Nearest-post is right for a sparse archive; at hundreds of posts, revisit whether jumps should scroll proportionally and snap.)
+
+### Seams (not the timeline's own job)
+
+- **Photo-first feed** (full-bleed heroes, date-as-divider): a separate workstream — the timeline drops onto the current feed and does not require it.
+- **URL / permalinks:** build so the playhead can read and write a canonical URL; ship on scroll-position first, wire URL sync when permalinks land.
+
+---
+
 ## Dark mode (planned)
 
 Dark mode isn't implemented yet (it's a future item in `design.md`). When it lands, use these mappings:
