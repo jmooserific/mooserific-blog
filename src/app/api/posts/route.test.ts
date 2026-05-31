@@ -2,12 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import type { Post } from '@/lib/types';
 
-vi.mock('@/lib/db', () => ({
-  listPosts: vi.fn(),
-  createPost: vi.fn(),
-}));
+vi.mock('@/lib/db', () => {
+  class SlugConflictError extends Error {}
+  return {
+    listPosts: vi.fn(),
+    createPost: vi.fn(),
+    SlugConflictError,
+  };
+});
 
-import { listPosts, createPost } from '@/lib/db';
+import { listPosts, createPost, SlugConflictError } from '@/lib/db';
 import { GET, POST } from './route';
 
 function jsonReq(body: unknown, headers: Record<string, string> = {}) {
@@ -20,6 +24,7 @@ function jsonReq(body: unknown, headers: Record<string, string> = {}) {
 
 const samplePost: Post = {
   id: 'p1',
+  slug: '2026-05-01-0000',
   date: '2026-05-01T00:00:00.000Z',
   photos: [{ url: 'https://cdn/a', width: 100, height: 100 }],
 };
@@ -59,6 +64,16 @@ describe('POST /api/posts', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400s for a malformed JSON body', async () => {
+    const req = new NextRequest('http://localhost/api/posts', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{ not json',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
   it('400s when no photos or videos are provided', async () => {
     const res = await POST(jsonReq({ description: 'empty' }));
     expect(res.status).toBe(400);
@@ -72,6 +87,7 @@ describe('POST /api/posts', () => {
   it('creates a post, normalizing string photos and preferring the auth header author', async () => {
     vi.mocked(createPost).mockImplementation(async (input) => ({
       id: 'new',
+      slug: input.slug ?? '2026-05-01-0000',
       date: '2026-05-01T00:00:00.000Z',
       photos: input.photos,
       author: input.author,
@@ -86,6 +102,7 @@ describe('POST /api/posts', () => {
   it('normalizes object-shaped photos and accepts the author from the body and a valid date', async () => {
     vi.mocked(createPost).mockImplementation(async (input) => ({
       id: input.id ?? 'new',
+      slug: input.slug ?? '2026-05-01-0000',
       date: input.date ?? '2026-05-01T00:00:00.000Z',
       photos: input.photos,
       author: input.author,
@@ -110,6 +127,32 @@ describe('POST /api/posts', () => {
     });
     expect(arg.videos).toEqual(['https://cdn/v.mp4']); // non-string filtered out
     expect(arg.date).toBe('2026-01-02T00:00:00.000Z');
+  });
+
+  it('coerces a non-string, non-object photo into a placeholder asset', async () => {
+    vi.mocked(createPost).mockResolvedValue(samplePost);
+    const res = await POST(jsonReq({ photos: [42] }));
+    expect(res.status).toBe(201);
+    expect(vi.mocked(createPost).mock.calls[0][0].photos[0]).toEqual({ url: '42', width: 800, height: 600 });
+  });
+
+  it('passes a valid custom slug through to createPost', async () => {
+    vi.mocked(createPost).mockResolvedValue(samplePost);
+    const res = await POST(jsonReq({ photos: ['https://cdn/a'], slug: 'summer-at-the-lake' }));
+    expect(res.status).toBe(201);
+    expect(vi.mocked(createPost).mock.calls[0][0].slug).toBe('summer-at-the-lake');
+  });
+
+  it('400s for a malformed custom slug', async () => {
+    const res = await POST(jsonReq({ photos: ['https://cdn/a'], slug: 'Not A Slug' }));
+    expect(res.status).toBe(400);
+    expect(vi.mocked(createPost)).not.toHaveBeenCalled();
+  });
+
+  it('409s when the slug collides with an existing post', async () => {
+    vi.mocked(createPost).mockRejectedValue(new SlugConflictError('summer-at-the-lake'));
+    const res = await POST(jsonReq({ photos: ['https://cdn/a'], slug: 'summer-at-the-lake' }));
+    expect(res.status).toBe(409);
   });
 
   it('500s when creation throws', async () => {

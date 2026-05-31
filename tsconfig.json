@@ -6,6 +6,9 @@
       ],
       "@/lib/*": [
         "./src/lib/*"
+      ],
+      "@/utils/*": [
+        "./src/utils/*"
       ]
     },
     "target": "ES2017",

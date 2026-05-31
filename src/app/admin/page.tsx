@@ -13,6 +13,7 @@ function AdminPageInner() {
     editingId, isEditing, isSubmitting, loadingExisting,
     showAdvanced, setShowAdvanced,
     postDate, setPostDate,
+    slug, setSlug, slugChanged,
     showDatePopover, setShowDatePopover,
     items, uploadProgress, dropDisabled, draggingId, dragOver, itemRefs,
     handleDrop, addFilesToItems,
@@ -113,6 +114,34 @@ function AdminPageInner() {
                       onClose={() => setShowDatePopover(false)}
                     />
                   </div>
+                )}
+              </div>
+              <div>
+                <label htmlFor="post-slug" className="block text-sm text-gray-600 mb-1">
+                  Permalink
+                </label>
+                <div className="flex items-center rounded-[10px] border border-accent/15 bg-white px-3 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
+                  <span className="select-none text-sm text-gray-400">/p/</span>
+                  <input
+                    id="post-slug"
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    className="w-full bg-transparent py-2 pl-0.5 text-gray-800 focus:outline-none"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Lowercase letters, numbers, and hyphens. Defaults to the post date.
+                </p>
+                {isEditing && (
+                  <p className={`mt-1 text-xs ${slugChanged ? 'text-red-700/80' : 'text-amber-700/80'}`}>
+                    {slugChanged
+                      ? 'Heads up: changing the permalink will break existing links to this post.'
+                      : 'Changing the permalink will break existing links to this post.'}
+                  </p>
                 )}
               </div>
             </div>

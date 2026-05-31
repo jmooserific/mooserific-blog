@@ -22,7 +22,7 @@ const PostListClient: React.FC<PostListClientProps> = ({ posts, isAdmin }) => {
       ) : (
         posts.map((post, i) => (
           <PostCard
-            key={post.slug}
+            key={post.id}
             post={post}
             isAdmin={isAdmin}
             isAboveFold={i < 2}

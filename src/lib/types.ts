@@ -8,6 +8,7 @@ export interface PhotoAsset {
 
 export interface Post {
   id: string;
+  slug: string; // canonical permalink segment, e.g. "2026-05-31-1430"
   date: string; // ISO string
   author?: string;
   description?: string;

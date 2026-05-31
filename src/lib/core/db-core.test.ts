@@ -8,6 +8,7 @@ import { getCloudflareClient } from './cloudflare-core';
 import {
   listPosts,
   getPost,
+  getPostBySlug,
   createPost,
   updatePost,
   deletePost,
@@ -138,13 +139,21 @@ describe('getPost', () => {
 });
 
 describe('createPost', () => {
-  it('inserts with generated id/date and returns the post', async () => {
+  it('inserts with generated id/date and a date-derived slug, and returns the post', async () => {
     const { calls } = installDb(() => []);
-    const post = await createPost({ photos: [{ url: 'u', width: 1, height: 1 }] });
-    expect(calls[0].sql).toContain('INSERT INTO posts');
+    const post = await createPost({ date: '2026-01-01T00:00:00.000Z', photos: [{ url: 'u', width: 1, height: 1 }] });
+    const insert = calls.find((c) => c.sql.includes('INSERT INTO posts'));
+    expect(insert).toBeDefined();
     expect(post.id).toBeTruthy();
-    expect(post.date).toBeTruthy();
+    expect(post.slug).toBe('2026-01-01-0000');
     expect(post.photos).toEqual([{ url: 'u', width: 1, height: 1 }]);
+  });
+
+  it('auto-suffixes the slug when the date-derived default is taken', async () => {
+    // ensureUniqueSlug's lookup reports the base slug as already used.
+    installDb((call) => (call.sql.includes('SELECT slug') ? [{ slug: '2026-01-01-0000' }] : []));
+    const post = await createPost({ date: '2026-01-01T00:00:00.000Z', photos: [] });
+    expect(post.slug).toBe('2026-01-01-0000-2');
   });
 
   it('uses provided id, date, author and serializes videos', async () => {
@@ -158,7 +167,52 @@ describe('createPost', () => {
       videos: ['v1'],
     });
     expect(post.id).toBe('fixed');
-    expect(calls[0].params).toContain(JSON.stringify(['v1']));
+    const insert = calls.find((c) => c.sql.includes('INSERT INTO posts'));
+    expect(insert?.params).toContain(JSON.stringify(['v1']));
+  });
+
+  it('accepts a unique custom slug', async () => {
+    // slugTaken lookup returns no rows → slug is free.
+    const post = await createPost({ slug: 'summer-at-the-lake', date: '2026-01-01T00:00:00.000Z', photos: [] });
+    expect(post.slug).toBe('summer-at-the-lake');
+  });
+
+  it('throws SlugConflictError when a custom slug is taken', async () => {
+    installDb((call) => (call.sql.includes('SELECT id FROM posts WHERE slug') ? [{ id: 'other' }] : []));
+    await expect(
+      createPost({ slug: 'summer-at-the-lake', date: '2026-01-01T00:00:00.000Z', photos: [] }),
+    ).rejects.toThrow('Slug already in use');
+  });
+
+  // d1Query rewrites every `$N` to a positional `?`; a query that binds the wrong
+  // number of params would shift bindings and defeat the uniqueness check.
+  it('binds exactly one param per placeholder on the auto-slug path', async () => {
+    const { calls } = installDb(() => []);
+    await createPost({ date: '2026-01-01T00:00:00.000Z', photos: [] });
+    for (const { sql, params } of calls) {
+      expect(params.length).toBe((sql.match(/\?/g) ?? []).length);
+    }
+  });
+});
+
+describe('getPostBySlug', () => {
+  it('looks up by slug and deserializes', async () => {
+    const { calls } = installDb(() => [{ ...sampleRow, slug: '2026-05-01-0000' }]);
+    const post = await getPostBySlug('2026-05-01-0000');
+    expect(calls[0].sql).toContain('WHERE slug = ?');
+    expect(post?.slug).toBe('2026-05-01-0000');
+  });
+
+  it('returns null when no row matches', async () => {
+    installDb(() => []);
+    expect(await getPostBySlug('missing')).toBeNull();
+  });
+
+  it('falls back to the id as slug for a not-yet-backfilled row', async () => {
+    // sampleRow has no slug column → deserializePost should use the id.
+    installDb(() => [sampleRow]);
+    const post = await getPost('p1');
+    expect(post?.slug).toBe('p1');
   });
 });
 
@@ -180,6 +234,42 @@ describe('updatePost', () => {
     const post = await updatePost('p1', { description: 'updated' });
     expect(post?.description).toBe('updated');
     expect(post?.author).toBe('moose'); // unchanged field preserved
+  });
+
+  it('sets a new slug when a free one is provided', async () => {
+    installDb((call) =>
+      call.sql.includes('SELECT * FROM posts WHERE id') ? [{ ...sampleRow, slug: 'old-slug' }] : []
+    );
+    const post = await updatePost('p1', { slug: 'new-slug' });
+    expect(post?.slug).toBe('new-slug');
+  });
+
+  it('throws SlugConflictError when the new slug is taken', async () => {
+    installDb((call) => {
+      if (call.sql.includes('SELECT * FROM posts WHERE id')) return [{ ...sampleRow, slug: 'old-slug' }];
+      if (call.sql.includes('SELECT id FROM posts WHERE slug')) return [{ id: 'other' }];
+      return [];
+    });
+    await expect(updatePost('p1', { slug: 'taken' })).rejects.toThrow('Slug already in use');
+  });
+
+  it('skips the uniqueness check when the slug is unchanged', async () => {
+    const { calls } = installDb((call) =>
+      call.sql.includes('SELECT * FROM posts WHERE id') ? [{ ...sampleRow, slug: 'same' }] : []
+    );
+    await updatePost('p1', { slug: 'same', description: 'x' });
+    expect(calls.some((c) => c.sql.includes('SELECT id FROM posts WHERE slug'))).toBe(false);
+  });
+
+  // Regression: the slugTaken check (excludeId branch) must bind one param per `?`.
+  it('binds exactly one param per placeholder when changing the slug', async () => {
+    const { calls } = installDb((call) =>
+      call.sql.includes('SELECT * FROM posts WHERE id') ? [{ ...sampleRow, slug: '2026-05-01-0000' }] : []
+    );
+    await updatePost('p1', { slug: 'a-new-slug' });
+    for (const { sql, params } of calls) {
+      expect(params.length).toBe((sql.match(/\?/g) ?? []).length);
+    }
   });
 });
 

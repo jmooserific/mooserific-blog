@@ -42,7 +42,7 @@ Because _browsing_ and _pinpoint lookup_ are genuinely different needs, the smal
 
 When a chosen point in time has no posts, say so gently rather than showing an empty feed.
 
-> The timeline's _position_ should be reflected in the page's URL, so a moment in the archive can be linked and shared. How that URL is shaped is settled together with per-post permalinks (see _Export, Print & Photo Books_ and the longevity goal), not here — the timeline only needs to read and write it.
+> The timeline's _position_ should be reflected in the page's URL, so a moment in the archive can be linked and shared. That position URL is distinct from a post's own canonical address (see _Permalinks_ below) — the timeline only needs to read and write the position.
 
 ---
 
@@ -50,9 +50,23 @@ When a chosen point in time has no posts, say so gently rather than showing an e
 
 The homepage shows a single page of the most recent posts (currently 15 at a time) rather than loading the whole archive at once. **Newer** and **Older** links at the foot of the list move between pages, and they respect any active date filter so paging never silently drops the filter. The controls only appear when there's actually a page to move to.
 
-This mechanism will replace the traditional blog post "permalink" mechanism.
+Pagination and the date filter are how you _browse_ the archive. Addressing a single moment is a separate need, met by permalinks (below) — the two coexist rather than one replacing the other.
 
 In the future, we may add additional filtering mechanisms, like tags or authors.
+
+---
+
+### Permalinks
+
+Every post has its own stable, shareable address — a canonical URL that points at exactly that post. This is the archive's most important durability feature: for a collection meant to outlast the website itself, a link you can bookmark, text to a relative, or paste into an email needs to keep working for years.
+
+Posts don't have titles or subjects (we don't want that friction when posting), so a post's default address is **derived from its date**. When two posts share the same moment, the address quietly disambiguates so each stays unique. An author who wants something more memorable can override the default when creating or editing a post.
+
+Once a post is published its address is **frozen** — editing the post, even changing its date, leaves the link intact so anything already shared keeps working. The address _can_ still be changed by hand, but doing so is a deliberate act and the editor warns that it will break existing links.
+
+Each post surfaces a quiet **share** control that hands you its permalink, so the stable link is always one click away rather than something you have to know to construct.
+
+> The timeline writes a browsable _position_ into the URL; permalinks give each post its own canonical address. The exact URL shapes live in [`design-system.md`](./design-system.md).
 
 ---
 

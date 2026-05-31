@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import type { UploadItem } from "./types";
+import { slugFromDate } from "@/utils/slug";
 
 // --- Pure utilities ---
 
@@ -143,6 +144,7 @@ interface PostPhoto {
 
 interface PostApiResponse {
   id: string;
+  slug?: string;
   date?: string;
   description?: string;
   photos: Array<PostPhoto | string>;
@@ -160,6 +162,7 @@ interface PostPayload {
   photos: Array<{ url: string; width: number; height: number; originalUrl?: string; originalContentType?: string }>;
   videos: string[];
   id?: string;
+  slug?: string;
   date?: string;
 }
 
@@ -176,6 +179,9 @@ export interface PostEditorState {
   setShowAdvanced: (v: boolean) => void;
   postDate: Date | null;
   setPostDate: (d: Date | null) => void;
+  slug: string;
+  setSlug: (v: string) => void;
+  slugChanged: boolean; // true while editing once the slug differs from the published one
   showDatePopover: boolean;
   setShowDatePopover: React.Dispatch<React.SetStateAction<boolean>>;
   dropDisabled: boolean;
@@ -209,9 +215,29 @@ export function usePostEditor(): PostEditorState {
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [postDate, setPostDate] = useState<Date | null>(new Date());
+  // Permalink slug. While creating a new post the slug tracks the date automatically
+  // until the author types their own; once published it's frozen (only changes if
+  // explicitly edited). `originalSlug` is the published value we compare against on edit.
+  const [slug, setSlugValue] = useState<string>(() => slugFromDate(new Date().toISOString()));
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState<boolean>(false);
+  const [originalSlug, setOriginalSlug] = useState<string | null>(null);
   const [showDatePopover, setShowDatePopover] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const editParam = searchParams.get("edit");
+
+  // Author typed their own slug — stop auto-deriving it from the date.
+  const setSlug = useCallback((v: string) => {
+    setSlugValue(v);
+    setSlugManuallyEdited(true);
+  }, []);
+
+  // For a new post, keep the slug in sync with the chosen date until the author
+  // overrides it. On edit the slug is frozen, so this is a no-op there.
+  useEffect(() => {
+    if (editParam) return;
+    if (slugManuallyEdited) return;
+    if (postDate) setSlugValue(slugFromDate(postDate.toISOString()));
+  }, [postDate, editParam, slugManuallyEdited]);
 
   const loadPost = useCallback(async (id: string) => {
     setEditingId(id);
@@ -257,6 +283,11 @@ export function usePostEditor(): PostEditorState {
       setFolderId(post.id);
       const parsedDate = typeof post.date === "string" ? new Date(post.date) : null;
       setPostDate(parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : new Date());
+      // Load the published slug; frozen unless the author changes it.
+      const loadedSlug = post.slug || post.id;
+      setSlugValue(loadedSlug);
+      setOriginalSlug(loadedSlug);
+      setSlugManuallyEdited(false);
       setUploadProgress({});
       setShowAdvanced(true);
     } catch (e: unknown) {
@@ -279,6 +310,9 @@ export function usePostEditor(): PostEditorState {
       setItems([]);
       setFolderId(crypto.randomUUID());
       setPostDate(new Date());
+      // Back to a fresh draft: slug auto-tracks the date again.
+      setSlugManuallyEdited(false);
+      setOriginalSlug(null);
       setUploadProgress({});
       setShowAdvanced(false);
     }
@@ -429,6 +463,14 @@ export function usePostEditor(): PostEditorState {
       const payload: PostPayload = { description: caption, photos: photoAssets, videos: videoUrls };
       if (!editingId) payload.id = effectiveId;
       if (postDate) payload.date = postDate.toISOString();
+      // Send the slug only when it's a deliberate choice: a custom slug on a new
+      // post, or a changed slug on an edit. Otherwise let the server derive it.
+      const trimmedSlug = slug.trim();
+      if (!editingId) {
+        if (slugManuallyEdited && trimmedSlug) payload.slug = trimmedSlug;
+      } else if (trimmedSlug && trimmedSlug !== originalSlug) {
+        payload.slug = trimmedSlug;
+      }
 
       const endpoint = editingId ? `/api/posts/${encodeURIComponent(editingId)}` : '/api/posts';
       const res = await fetch(endpoint, { method: editingId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -446,6 +488,9 @@ export function usePostEditor(): PostEditorState {
         setFolderId(crypto.randomUUID());
         setUploadProgress({});
         setPostDate(new Date());
+        // Fresh draft: let the slug auto-track the date again.
+        setSlugManuallyEdited(false);
+        setOriginalSlug(null);
         router.refresh();
       }
     } catch (e: unknown) {
@@ -464,6 +509,8 @@ export function usePostEditor(): PostEditorState {
     uploadProgress,
     showAdvanced, setShowAdvanced,
     postDate, setPostDate,
+    slug, setSlug,
+    slugChanged: Boolean(editingId) && slug.trim() !== originalSlug,
     showDatePopover, setShowDatePopover,
     dropDisabled: loadingExisting || isSubmitting,
     handleDrop, addFilesToItems,

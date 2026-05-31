@@ -1,19 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Post } from '@/lib/types';
 
-vi.mock('@/lib/db', () => ({
-  getPost: vi.fn(),
-  updatePost: vi.fn(),
-  deletePost: vi.fn(),
-}));
+vi.mock('@/lib/db', () => {
+  class SlugConflictError extends Error {}
+  return {
+    getPost: vi.fn(),
+    updatePost: vi.fn(),
+    deletePost: vi.fn(),
+    SlugConflictError,
+  };
+});
 
-import { getPost, updatePost, deletePost } from '@/lib/db';
+import { getPost, updatePost, deletePost, SlugConflictError } from '@/lib/db';
 import { GET, PUT, DELETE } from './route';
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) });
 
 const samplePost: Post = {
   id: 'p1',
+  slug: '2026-05-01-0000',
   date: '2026-05-01T00:00:00.000Z',
   photos: [{ url: 'https://cdn/a', width: 100, height: 100 }],
 };
@@ -58,6 +63,16 @@ describe('PUT /api/posts/[id]', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400s for a malformed JSON body', async () => {
+    const req = new Request('http://localhost/api/posts/p1', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: '{ not json',
+    });
+    const res = await PUT(req, params('p1'));
+    expect(res.status).toBe(400);
+  });
+
   it('400s for an invalid date', async () => {
     const res = await PUT(jsonReq({ date: 'nope' }), params('p1'));
     expect(res.status).toBe(400);
@@ -98,6 +113,32 @@ describe('PUT /api/posts/[id]', () => {
     });
     expect(arg.videos).toEqual(['https://cdn/v.mp4']);
     expect(arg.date).toBe('2026-02-03T00:00:00.000Z');
+  });
+
+  it('coerces a non-string, non-object photo into a placeholder asset', async () => {
+    vi.mocked(updatePost).mockImplementation(async (_id, input) => ({ ...samplePost, ...input }));
+    const res = await PUT(jsonReq({ photos: [42] }), params('p1'));
+    expect(res.status).toBe(200);
+    expect(vi.mocked(updatePost).mock.calls[0][1].photos?.[0]).toEqual({ url: '42', width: 800, height: 600 });
+  });
+
+  it('passes a changed slug through to updatePost', async () => {
+    vi.mocked(updatePost).mockImplementation(async (_id, input) => ({ ...samplePost, ...input }));
+    const res = await PUT(jsonReq({ slug: 'a-new-permalink' }), params('p1'));
+    expect(res.status).toBe(200);
+    expect(vi.mocked(updatePost).mock.calls[0][1].slug).toBe('a-new-permalink');
+  });
+
+  it('400s for a malformed slug', async () => {
+    const res = await PUT(jsonReq({ slug: 'Bad Slug!' }), params('p1'));
+    expect(res.status).toBe(400);
+    expect(vi.mocked(updatePost)).not.toHaveBeenCalled();
+  });
+
+  it('409s when the new slug collides', async () => {
+    vi.mocked(updatePost).mockRejectedValue(new SlugConflictError('taken'));
+    const res = await PUT(jsonReq({ slug: 'taken' }), params('p1'));
+    expect(res.status).toBe(409);
   });
 
   it('500s on error', async () => {
