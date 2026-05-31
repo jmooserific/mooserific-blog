@@ -1,6 +1,8 @@
 import 'server-only';
 export {
   listPosts,
+  listPostIndex,
+  getPostsByIds,
   getPost,
   getPostBySlug,
   createPost,
@@ -10,5 +12,5 @@ export {
   SlugConflictError,
 }
 from './core/db-core';
-export type { CreatePostInput, UpdatePostInput } from './core/db-core';
+export type { CreatePostInput, UpdatePostInput, PostIndexEntry } from './core/db-core';
 

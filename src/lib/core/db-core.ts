@@ -106,6 +106,39 @@ export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
   return rows.map(deserializePost);
 }
 
+export interface PostIndexEntry {
+  id: string;
+  date: string;
+}
+
+/**
+ * Lightweight index of every post (newest first) for the continuous feed: it
+ * drives both the timeline and the virtual list without loading photo bodies.
+ * One small row each, so the whole archive is cheap to ship to the client.
+ */
+export async function listPostIndex(): Promise<PostIndexEntry[]> {
+  const { results } = await d1Query<PostIndexEntry>(
+    `SELECT id, date FROM posts ORDER BY date DESC`
+  );
+  return results;
+}
+
+/**
+ * Fetch a batch of full posts by explicit id. Placeholders are generated from
+ * the id count (never interpolated) so this stays a parameterized query. Rows
+ * come back in arbitrary order; callers re-sort by their index. Unlike cursor
+ * windows, this is robust to duplicate/same-minute dates.
+ */
+export async function getPostsByIds(ids: string[]): Promise<Post[]> {
+  if (ids.length === 0) return [];
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+  const { results } = await d1Query<PostRow>(
+    `SELECT * FROM posts WHERE id IN (${placeholders})`,
+    ids
+  );
+  return results.map(deserializePost);
+}
+
 export async function getPost(id: string): Promise<Post | null> {
   const { results } = await d1Query<PostRow>(`SELECT * FROM posts WHERE id = $1`, [id]);
   const row = results[0];

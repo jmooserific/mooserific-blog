@@ -7,6 +7,8 @@ vi.mock('./cloudflare-core', () => ({
 import { getCloudflareClient } from './cloudflare-core';
 import {
   listPosts,
+  listPostIndex,
+  getPostsByIds,
   getPost,
   getPostBySlug,
   createPost,
@@ -135,6 +137,46 @@ describe('getPost', () => {
   it('returns null when no row matches', async () => {
     installDb(() => []);
     expect(await getPost('missing')).toBeNull();
+  });
+});
+
+describe('listPostIndex', () => {
+  it('selects only id+date, newest first', async () => {
+    const { calls } = installDb(() => [
+      { id: 'a', date: '2026-05-01T00:00:00.000Z' },
+      { id: 'b', date: '2026-04-01T00:00:00.000Z' },
+    ]);
+    const index = await listPostIndex();
+    expect(calls[0].sql).toContain('SELECT id, date FROM posts');
+    expect(calls[0].sql).toContain('ORDER BY date DESC');
+    expect(index).toEqual([
+      { id: 'a', date: '2026-05-01T00:00:00.000Z' },
+      { id: 'b', date: '2026-04-01T00:00:00.000Z' },
+    ]);
+  });
+});
+
+describe('getPostsByIds', () => {
+  it('returns an empty array without querying when given no ids', async () => {
+    const { calls } = installDb(() => [sampleRow]);
+    const posts = await getPostsByIds([]);
+    expect(posts).toEqual([]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('builds one placeholder per id and passes them as params', async () => {
+    const { calls } = installDb(() => [sampleRow]);
+    await getPostsByIds(['p1', 'p2', 'p3']);
+    // d1Query normalizes `$N` placeholders to positional `?`.
+    expect(calls[0].sql).toContain('WHERE id IN (?, ?, ?)');
+    expect(calls[0].params).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('deserializes returned rows', async () => {
+    installDb(() => [sampleRow]);
+    const posts = await getPostsByIds(['p1']);
+    expect(posts[0].id).toBe('p1');
+    expect(posts[0].photos[0].url).toBe('https://cdn/a');
   });
 });
 
