@@ -63,6 +63,16 @@ describe('PUT /api/posts/[id]', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400s for a malformed JSON body', async () => {
+    const req = new Request('http://localhost/api/posts/p1', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: '{ not json',
+    });
+    const res = await PUT(req, params('p1'));
+    expect(res.status).toBe(400);
+  });
+
   it('400s for an invalid date', async () => {
     const res = await PUT(jsonReq({ date: 'nope' }), params('p1'));
     expect(res.status).toBe(400);
@@ -103,6 +113,13 @@ describe('PUT /api/posts/[id]', () => {
     });
     expect(arg.videos).toEqual(['https://cdn/v.mp4']);
     expect(arg.date).toBe('2026-02-03T00:00:00.000Z');
+  });
+
+  it('coerces a non-string, non-object photo into a placeholder asset', async () => {
+    vi.mocked(updatePost).mockImplementation(async (_id, input) => ({ ...samplePost, ...input }));
+    const res = await PUT(jsonReq({ photos: [42] }), params('p1'));
+    expect(res.status).toBe(200);
+    expect(vi.mocked(updatePost).mock.calls[0][1].photos?.[0]).toEqual({ url: '42', width: 800, height: 600 });
   });
 
   it('passes a changed slug through to updatePost', async () => {

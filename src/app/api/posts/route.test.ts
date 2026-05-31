@@ -64,6 +64,16 @@ describe('POST /api/posts', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400s for a malformed JSON body', async () => {
+    const req = new NextRequest('http://localhost/api/posts', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{ not json',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
   it('400s when no photos or videos are provided', async () => {
     const res = await POST(jsonReq({ description: 'empty' }));
     expect(res.status).toBe(400);
@@ -117,6 +127,13 @@ describe('POST /api/posts', () => {
     });
     expect(arg.videos).toEqual(['https://cdn/v.mp4']); // non-string filtered out
     expect(arg.date).toBe('2026-01-02T00:00:00.000Z');
+  });
+
+  it('coerces a non-string, non-object photo into a placeholder asset', async () => {
+    vi.mocked(createPost).mockResolvedValue(samplePost);
+    const res = await POST(jsonReq({ photos: [42] }));
+    expect(res.status).toBe(201);
+    expect(vi.mocked(createPost).mock.calls[0][0].photos[0]).toEqual({ url: '42', width: 800, height: 600 });
   });
 
   it('passes a valid custom slug through to createPost', async () => {

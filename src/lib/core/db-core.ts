@@ -138,18 +138,13 @@ async function slugTaken(slug: string, excludeId?: string): Promise<boolean> {
 
 /**
  * Return a free slug derived from `base`, auto-suffixing (`base-2`, `base-3`, …)
- * when same-minute collisions exist. Used for the date-derived default.
+ * when same-minute collisions exist. Used for the date-derived default on create.
  */
-async function ensureUniqueSlug(base: string, excludeId?: string): Promise<string> {
-  const { results } = excludeId
-    ? await d1Query<{ slug: string }>(
-        `SELECT slug FROM posts WHERE (slug = $1 OR slug LIKE $2) AND id != $3`,
-        [base, `${base}-%`, excludeId]
-      )
-    : await d1Query<{ slug: string }>(
-        `SELECT slug FROM posts WHERE slug = $1 OR slug LIKE $2`,
-        [base, `${base}-%`]
-      );
+async function ensureUniqueSlug(base: string): Promise<string> {
+  const { results } = await d1Query<{ slug: string }>(
+    `SELECT slug FROM posts WHERE slug = $1 OR slug LIKE $2`,
+    [base, `${base}-%`]
+  );
   const taken = results.map(r => r.slug).filter((s): s is string => Boolean(s));
   return nextAvailableSlug(base, taken);
 }

@@ -202,6 +202,18 @@ describe('getPostBySlug', () => {
     expect(calls[0].sql).toContain('WHERE slug = ?');
     expect(post?.slug).toBe('2026-05-01-0000');
   });
+
+  it('returns null when no row matches', async () => {
+    installDb(() => []);
+    expect(await getPostBySlug('missing')).toBeNull();
+  });
+
+  it('falls back to the id as slug for a not-yet-backfilled row', async () => {
+    // sampleRow has no slug column → deserializePost should use the id.
+    installDb(() => [sampleRow]);
+    const post = await getPost('p1');
+    expect(post?.slug).toBe('p1');
+  });
 });
 
 describe('updatePost', () => {
@@ -222,6 +234,31 @@ describe('updatePost', () => {
     const post = await updatePost('p1', { description: 'updated' });
     expect(post?.description).toBe('updated');
     expect(post?.author).toBe('moose'); // unchanged field preserved
+  });
+
+  it('sets a new slug when a free one is provided', async () => {
+    installDb((call) =>
+      call.sql.includes('SELECT * FROM posts WHERE id') ? [{ ...sampleRow, slug: 'old-slug' }] : []
+    );
+    const post = await updatePost('p1', { slug: 'new-slug' });
+    expect(post?.slug).toBe('new-slug');
+  });
+
+  it('throws SlugConflictError when the new slug is taken', async () => {
+    installDb((call) => {
+      if (call.sql.includes('SELECT * FROM posts WHERE id')) return [{ ...sampleRow, slug: 'old-slug' }];
+      if (call.sql.includes('SELECT id FROM posts WHERE slug')) return [{ id: 'other' }];
+      return [];
+    });
+    await expect(updatePost('p1', { slug: 'taken' })).rejects.toThrow('Slug already in use');
+  });
+
+  it('skips the uniqueness check when the slug is unchanged', async () => {
+    const { calls } = installDb((call) =>
+      call.sql.includes('SELECT * FROM posts WHERE id') ? [{ ...sampleRow, slug: 'same' }] : []
+    );
+    await updatePost('p1', { slug: 'same', description: 'x' });
+    expect(calls.some((c) => c.sql.includes('SELECT id FROM posts WHERE slug'))).toBe(false);
   });
 
   // Regression: the slugTaken check (excludeId branch) must bind one param per `?`.
