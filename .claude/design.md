@@ -25,16 +25,24 @@ We want something that feels calm, personal, and clutter-free — like a digital
 
 ---
 
-### Filtering
-Our family blog will contain hundreds of posts made over the past decade. It is essential that there be a good way to filter the homepage to a certain year and, optionally, month, day, and time. A "filter" icon should be displayed above the list of posts on the homepage. When clicked, it should open a popover component that shows a date picker.
+### Timeline navigation
 
-When a date filter is specified, it should be passed as a param to the homepage. The param format should resemble the post date format. For example:
-  * `?date_filter=2021-07-26T08-34`: Show the post from July 26, 2021 at 08:34
-  * `?date_filter=2021-07-26`: Show all posts from July 26, 2021
-  * `?date_filter=2021-07`: Show all posts from July 2021
-  * `?date_filter=2021`: Show all posts from 2021
+The blog spans well over a decade and will hold hundreds of posts. Navigating that archive is the job of a single, always-present **timeline** — a horizontal "time map" along the foot of the page, or a vertical rail on the long edge of taller, narrower screens. It replaces the old filter-icon-and-date-picker popover entirely.
 
-If there are no posts for the specified date filter, show a nice message.
+The guiding idea: **the timeline is a map, not an index.** Its job is orientation and _browsing_ — getting you to roughly the right neighborhood in time and showing the shape of the archive — not pinpoint lookup. That distinction is what lets it scale to fifteen years without becoming unusable: it never tries to be pixel-precise about a single day. (We deliberately did _not_ make the timeline itself scroll or zoom; a map you have to scroll is no longer a map.)
+
+What it does:
+
+* **Shows where you are.** A marker tracks your position in the feed as you scroll, always answering "_when_ am I?". Because the timeline now carries this, the per-post date no longer needs to be a loud banner — it can recede to a quiet caption (the direction already noted for the post layout).
+* **Shows the shape of the archive.** A density read-out makes busy stretches — a summer, a holiday — visibly denser than quiet ones, so the archive has texture you can aim at.
+* **Lets you jump.** Click or drag to a point in time and the feed moves to the nearest post there.
+* **Stays out of the photos' way.** It floats _over_ the photography as a quiet translucent surface rather than occupying a reserved strip, and it can be **minimized** to a small read-out showing just the current date — important on phones, where the photos should own the screen. It stays visible by default, because hiding it by default would hurt discoverability.
+
+Because _browsing_ and _pinpoint lookup_ are genuinely different needs, the small amount of precise navigation the date picker used to offer is folded **into** the timeline rather than living in a separate control: the timeline is fully **keyboard-operable** (step by month, jump by year, commit to navigate). That also makes it reachable for keyboard and screen-reader users, which a drag-only timeline would not be — and accessibility is a must, not a nicety. If exact date entry is ever warranted, it belongs inside the timeline, not as a separate popover.
+
+When a chosen point in time has no posts, say so gently rather than showing an empty feed.
+
+> The timeline's _position_ should be reflected in the page's URL, so a moment in the archive can be linked and shared. How that URL is shaped is settled together with per-post permalinks (see _Export, Print & Photo Books_ and the longevity goal), not here — the timeline only needs to read and write it.
 
 ---
 
