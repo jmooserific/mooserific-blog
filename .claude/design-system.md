@@ -27,12 +27,12 @@ The accent is a warm **umber**, defined as custom theme tokens in `globals.css` 
 | Card surface       | `#ffffff` | `bg-white`            | Flat — **no shadow** on cards            |
 | Primary text       | `#111827` | `text-gray-900`       |                                          |
 | Secondary text     | `#6b7280` | `text-gray-500`       | Body muted, _not_ author/meta            |
-| Accent             | `#845A2C` | `text-accent`         | Author/meta, month label, footer, chrome |
+| Accent             | `#845A2C` | `text-accent`         | Author/meta, card footer date, chrome    |
 | Accent (hover)     | `#6d4a24` | `text-accent-hover`   | Primary-button hover                     |
-| Accent (muted)     | `#A87941` | `text-accent-muted`   | Year text in the date overlay            |
+| Accent (muted)     | `#A87941` | `text-accent-muted`   | Timeline month labels                    |
 | Caption link       | `#2563eb` | blue-600              | Inline Markdown links inside captions    |
 
-**Contrast:** Umber on white is 6.0:1 (WCAG AA at any size). The muted brown used for the year is 3.8:1 — it passes AA Large only, which is acceptable because the year is always contextually paired with the month and ghost numeral, never standalone. Do **not** darken the year to "fix" contrast; the pairing is intentional.
+**Contrast:** Umber on white is 6.0:1 (WCAG AA at any size). The muted brown is 3.8:1 — it passes AA Large only, so it's reserved for the timeline's month labels, where the text is large/short and contextually anchored to the track. Do **not** use it for body-size standalone meta.
 
 ### Why umber?
 
@@ -42,17 +42,14 @@ The moose watercolor used as the site's mascot is a warm brown palette. Umber fo
 
 ## Typography
 
-- **Body / everything:** `Inter`, loaded with weights **300, 400, 500, 700, 900**. The weight range is load-bearing — the date treatment leans on the contrast between 300, 700, and 900.
+- **Body / everything:** `Inter`, loaded with weights **300, 400, 500, 700, 900**.
 - **Site title:** `Sacramento` (script) for a personal, handwritten touch.
 - No other font dependencies.
 
 | Use                  | Font / weight     | Size  | Other                          |
 |----------------------|-------------------|-------|--------------------------------|
-| Body / caption       | Inter 400         | base  | `prose prose-base`             |
-| Author ("by …")      | Inter 400         | 13px  | `text-accent`                  |
-| Date month label     | Inter 700         | 14px  | uppercase, `0.08em` tracking   |
-| Date year            | Inter 300         | 13px  | `text-accent-muted`            |
-| Ghost day numeral    | Inter 900         | 220px | see Date treatment             |
+| Caption              | Inter 400         | 14px  | `prose prose-sm max-w-none`    |
+| Card footer meta     | Inter 400         | 13px  | `text-accent`; date + author   |
 
 ---
 
@@ -66,117 +63,54 @@ The moose watercolor used as the site's mascot is a warm brown palette. Umber fo
 | Gallery image   | **12px** (`rounded-xl`)                          |
 | Footer          | `text-center text-sm text-accent py-6`           |
 
-The 20px card radius gives clean clipping edges for the ghost numeral; the 12px image radius echoes the card's interior language.
+The 20px card radius and the 12px image radius echo each other — the interior gallery language nested inside the card.
 
 ---
 
-## Date treatment
+## Post card layout
 
-### Ghost numeral backdrop
+The card is **photo-first**: the photo grid leads, the caption (when present) sits beneath it as a quiet description, and a single footer row carries the date, author, and controls. The **Timeline navigation** surface carries the live "when am I" wayfinding, so the card keeps its date small and out of the way — one line of footer meta, not a composed treatment above the photos. A caption-less post opens directly on its first image.
 
-Each post card features an oversized day numeral rendered at 220px in Inter Black (900), positioned to bleed off the **top and right edges** of the card, clipped by the card's `overflow: hidden` and `border-radius`. The clipping makes the numeral feel like it extends beyond the card.
-
-The month name and year sit superimposed in the top-right corner, right-aligned, on top of the ghost numeral. The extreme weight contrast — month (Bold), year (Light), ghost numeral (Black) — creates hierarchy through a single typeface.
+### Structure
 
 ```text
 ┌──────────────────────────────────────────────┐
-│                                    APRIL     │ ← Inter 700, 14px, Umber
-│                                    2026      │ ← Inter 300, 13px, muted brown
-│                                        ┌─────┤
-│                                        │  5  │ ← Inter 900, 220px, ~4% opacity
-│                                        │     │    clipped by card top + right edges
-│                                        └─────┤
-│                                              │
-│ Post body text...                            │
-│ by vemoose                                   │ ← Inter 400, 13px, Umber
-│                                              │
 │ ┌────────────────┬──────────┐                │
-│ │   photo        │  photo   │                │
+│ │   photo        │  photo   │                │ ← gallery leads the card
 │ └────────────────┴──────────┘                │
+│                                              │
+│ Caption text (optional — sits below photos)  │ ← prose prose-sm, 14px
+│                                              │
+│ May 14, 2026 · by vemoose        ✎  🗑  ↗   │ ← footer: meta left, chrome right
 └──────────────────────────────────────────────┘
 ```
 
-### HTML structure
-
-The ghost numeral must be a **direct child of the post card**, not nested inside a date-hero div, so it positions relative to the card's edges for proper clipping:
-
 ```html
-<article class="post-card">
-  <div class="date-giant">5</div>           <!-- direct child of card -->
-  <div class="post-date-hero">              <!-- spacer, ~140px height -->
-    <div class="date-overlay">              <!-- absolute, top-right -->
-      <div class="month">April</div>
-      <div class="year">2026</div>
+<article class="post-card">          <!-- rounded-[20px], overflow-hidden, p-4 -->
+  <div class="gallery">…photos / videos…</div>
+  <div class="prose">…caption…</div>  <!-- below media; rendered only when non-empty -->
+  <footer>                            <!-- flex items-center justify-between -->
+    <p class="meta">                  <!-- Inter 400, 13px, text-accent -->
+      <time datetime="…">May 14, 2026</time> · by <strong>vemoose</strong>
+    </p>
+    <div class="controls">            <!-- ghost icon buttons, gap-1 -->
+      <button>✎ edit</button>         <!-- admin only -->
+      <button>🗑 delete</button>      <!-- admin only, reserved red, confirm-gated -->
+      <a>↗ permalink</a>              <!-- everyone -->
     </div>
-  </div>
-  <div class="post-body-area">
-    <p class="caption">...</p>
-    <p class="author">by <strong>vemoose</strong></p>
-  </div>
-  <div class="photo-grid">...</div>
+  </footer>
 </article>
 ```
 
-### CSS
+### Caption
 
-```css
-.post-card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 20px;
-}
+Captions render the post's Markdown through `prose prose-sm` (`@tailwindcss/typography`, 14px) — bigger than the footer meta, smaller than 16px body. `max-w-none` removes the plugin's default `65ch` measure so the caption fills the card width instead of wrapping early. The plugin owns caption typography; the only divergence from its defaults is the **blue caption link** (`#2563eb`), set via `--tw-prose-links` in [`globals.css`](../src/globals.css) (the plugin already underlines links).
 
-.date-giant {
-  font-family: inherit;                   /* Inter, from body */
-  font-weight: 900;                       /* Inter Black */
-  font-size: 220px;
-  line-height: 0.78;
-  letter-spacing: -0.05em;
-  color: rgba(0, 0, 0, 0.04);            /* ~4% black in light mode */
-  position: absolute;
-  right: -12px;
-  top: -48px;
-  user-select: none;
-  pointer-events: none;
-  z-index: 1;
-}
+### Footer meta & controls
 
-.post-date-hero {
-  position: relative;
-  height: 140px;
-}
-
-.date-overlay {
-  position: absolute;
-  right: 28px;
-  top: 28px;
-  text-align: right;
-  z-index: 2;
-}
-
-.date-overlay .month {
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #845A2C;                         /* Umber */
-}
-
-.date-overlay .year {
-  font-weight: 300;
-  font-size: 13px;
-  color: #A87941;                         /* muted brown */
-  margin-top: 3px;
-}
-```
-
-### Responsive
-
-On viewports narrower than ~520px: the ghost numeral scales to 150px and repositions (`right: -8px; top: -32px`); the date hero height reduces to 100px; the date overlay moves to `right: 16px; top: 16px`.
-
-### Visual variation
-
-Single-digit days (1–9) and double-digit days (10–31) create naturally different compositions — a "5" leaves open air on the left while a "31" fills the corner more aggressively. This is a feature: it gives each card a unique visual fingerprint.
+- **Date.** Full date, UTC-formatted (`May 14, 2026`) inside a `<time dateTime>`, Inter 400 / 13px / `text-accent`. UTC keeps SSR and client render identical and matches the slug's UTC basis.
+- **Author.** `by <strong>name</strong>`, same size and color, separated from the date by a ` · ` middot (`aria-hidden`). Either field may be absent; the separator renders only when both date and author are present.
+- **Controls** sit at the footer's right as ghost icon buttons (`p-2`, `rounded-[10px]`, `text-accent`, `hover:bg-accent/6`, focus ring) — the same chrome language as everywhere else. Admins see **edit** (`PencilSquareIcon`) and **delete** (`TrashIcon`, `text-red-700/80` — the reserved destructive red, gated behind a `confirm()`); everyone sees the **permalink share** (`ShareIcon`). See **Permalinks → Share affordance** below.
 
 ---
 
@@ -300,7 +234,7 @@ Lives in the **Advanced** `<details>` of the create/edit form, below the date co
 
 ### Share affordance
 
-Each `PostCard` footer carries a single ghost **share** icon (`ShareIcon`, heroicons 24/outline) linking to `/p/<slug>` — same ghost treatment as other chrome (transparent, `text-accent`, `hover:bg-accent/6`, focus ring). It's the discoverable way to grab a post's stable link.
+The `PostCard` footer carries a ghost **share** icon (`ShareIcon`, heroicons 24/outline) linking to `/p/<slug>` — same ghost treatment as the other footer chrome (transparent, `text-accent`, `hover:bg-accent/6`, focus ring). Visible to everyone (admins also get edit/delete to its left), it's the discoverable way to grab a post's stable link. See **Post card layout → Footer meta & controls**.
 
 ---
 
@@ -312,6 +246,5 @@ Dark mode isn't implemented yet (it's a future item in `design.md`). When it lan
 |----------------------------------|---------------------------|
 | Umber `#845A2C`                  | `#C09F6B`                 |
 | Muted brown `#A87941`            | `#E0CDAA`                 |
-| Ghost numeral `rgba(0,0,0,0.04)` | `rgba(255,255,255,0.035)` |
 
 Ghost-button and primary-button foregrounds follow the Umber → `#C09F6B` shift.
