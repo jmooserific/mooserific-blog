@@ -7,17 +7,18 @@ A running list of places where the **current design** and the **stated intent** 
 
 Intent, in one line: _a calm, photo-first digital family album, optimized for photo viewing and longevity._ Each item below is scored against that.
 
-Work through them in roughly this order — the first three are structural; the last two are smaller.
+Work through them in roughly this order — the first three are structural; the last two are smaller. **Items 1 and 3 shipped (2026-06)** (photo-first card and permalinks). **Item 2 remains open** — the gallery still sits in the `max-w-4xl` reading column in uniform rows. The next live items are **#2 (break the reading column)** then **#4 (affordance signal)**.
 
 ---
 
-## 1. The post card leads with metadata, not photos
+## 1. The post card leads with metadata, not photos ✅ Resolved (2026-06)
 
-- [ ] **Tension.** Card reading order is date hero (~140px) → caption → author → *then* the photo grid ([`design-system.md`](./design-system.md) HTML structure). On a blog where "most posts need nothing but photos," the photos arrive third. A caption-less post opens on a big number and "by …" before any image.
+- [x] **Tension.** Card reading order is date hero (~140px) → caption → author → *then* the photo grid ([`design-system.md`](./design-system.md) HTML structure). On a blog where "most posts need nothing but photos," the photos arrive third. A caption-less post opens on a big number and "by …" before any image.
 - **Why it matters.** Intent is photo-*first*; a digital album shows the picture, with the date as a quiet caption — not a 140px overture you scroll past on every post.
 - **Not the problem.** The ghost numeral itself — at ~4% opacity it's loud in size but quiet in value, a fair reading of "understated chrome." The cost is **space and sequence**, not ink.
 - **Direction to explore.** Let photos lead; overlay the date on/beside the first image instead of in a dedicated band above it. Keep the distinctive numeral treatment, drop the curtain-raiser.
 - **Direction chosen (2026-05).** The timeline work commits to this: photos lead with full-bleed heroes and the date becomes a quiet divider rather than a banner, while the new timeline carries the live "when am I" wayfinding. Lands in the **photo-first feed** workstream — see [`design.md`](./design.md) *Timeline navigation* and the prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html).
+- **Resolved (2026-06).** With the timeline shipped to carry "when am I" wayfinding, the post card drops the date-hero band and ghost numeral entirely: the caption (when present) and photo grid now lead, and the date shrinks to a single quiet footer line beside the author and the edit/share controls. A caption-less post opens directly on its first image. See [`design-system.md`](./design-system.md) *Post card layout*. (Tile scale and the reading-column width are still uniform — that's item 2.)
 
 ## 2. The book-reading column constrains the photography
 
@@ -27,12 +28,13 @@ Work through them in roughly this order — the first three are structural; the 
 - **Direction to explore.** Let the gallery break the text column (wider than `max-w-4xl`), and/or vary tile scale — an occasional full-bleed or hero image so not every photo is the same size.
 - **Direction chosen (2026-05).** The same prototype commits to this: the gallery breaks the reading column with full-bleed heroes and varied tile scale. Part of the **photo-first feed** workstream (see item 1).
 
-## 3. No permalinks vs. "longevity / archive"
+## 3. No permalinks vs. "longevity / archive" ✅ Resolved (2026-06)
 
-- [ ] **Tension.** Pagination + date filter replaces per-post permalinks ([`design.md`](./design.md) Pagination). You can't durably bookmark, link, or share a single post — only navigate to a date. The minute-precision `date_filter` is a de-facto permalink but fragile (leans on timestamp uniqueness) and undiscoverable (no UI hands you a stable link).
+- [x] **Tension.** Pagination + date filter replaces per-post permalinks ([`design.md`](./design.md) Pagination). You can't durably bookmark, link, or share a single post — only navigate to a date. The minute-precision `date_filter` is a de-facto permalink but fragile (leans on timestamp uniqueness) and undiscoverable (no UI hands you a stable link).
 - **Why it matters.** This is the item most at odds with the stated goal. For a decade-long archive "meant to outlast the website itself," stable addressable URLs are the single most important durability feature. Browsing (discovery) and permalinks (permanence) solve different problems.
 - **Direction to explore.** Give each post a stable canonical URL alongside the paginated home; keep pagination for browsing.
 - **Priority raised (2026-05).** The timeline makes a scrubbable *position* in the archive a first-class thing, which makes addressable URLs **more** important, not less. The timeline is being built to read and write a canonical URL once one exists — so this is now the gating dependency for sharing a moment in time, and the natural seam where permalinks plug in.
+- **Resolved (2026-06).** Each post now has a stable canonical URL at `/p/[slug]` ([`../src/app/p/[slug]/page.tsx`](../src/app/p/[slug]/page.tsx)) alongside the paginated/timeline home, so individual moments are durably bookmarkable and shareable. Browsing and permanence are now separate, complementary affordances.
 
 ## 4. Umber signals both static text and interactive chrome
 

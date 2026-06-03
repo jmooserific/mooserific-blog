@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Markdown from 'react-markdown';
 import { RenderImageContext, RenderImageProps } from "react-photo-album";
 import "react-photo-album/styles.css";
@@ -62,30 +62,22 @@ const MONTH_NAMES = [
 const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold = false, onDeleted }) => {
    const router = useRouter();
    const [index, setIndex] = useState(-1);
-   const [menuOpen, setMenuOpen] = useState(false);
    const [deleting, setDeleting] = useState(false);
-   const menuContainerRef = useRef<HTMLDivElement | null>(null);
 
-   // Close menu on outside click or Escape
-   useEffect(() => {
-     if (!menuOpen) return;
-     const onDocClick = (e: MouseEvent) => {
-       const el = menuContainerRef.current;
-       if (!el) return;
-       if (e.target instanceof Node && !el.contains(e.target)) {
-         setMenuOpen(false);
-       }
-     };
-     const onKey = (e: KeyboardEvent) => {
-       if (e.key === 'Escape') setMenuOpen(false);
-     };
-     document.addEventListener('click', onDocClick);
-     document.addEventListener('keydown', onKey);
-     return () => {
-       document.removeEventListener('click', onDocClick);
-       document.removeEventListener('keydown', onKey);
-     };
-   }, [menuOpen]);
+   const handleDelete = async () => {
+     if (!confirm('Delete this post? This cannot be undone.')) return;
+     try {
+       setDeleting(true);
+       const res = await fetch(`/api/posts/${encodeURIComponent(post.id)}`, { method: 'DELETE', cache: 'no-store' });
+       if (!res.ok) throw new Error(await res.text());
+       onDeleted?.();
+     } catch (e) {
+       const message = e instanceof Error ? e.message : 'Unknown error';
+       alert(`Failed to delete: ${message}`);
+     } finally {
+       setDeleting(false);
+     }
+   };
 
    const photos = post.photos.map((photo) => ({
      src: resolveMediaSrc(photo.filename),
@@ -133,92 +125,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
 
    return (
      <article className="relative overflow-hidden bg-white rounded-[20px] mb-8">
-       {isValidDate && (
-         <div
-           aria-hidden="true"
-           className="pointer-events-none select-none absolute font-black z-1 leading-[0.78] tracking-[-0.05em] -top-8 -right-2 text-[150px] sm:-top-12 sm:-right-3 sm:text-[220px]"
-           style={{ color: 'rgba(0, 0, 0, 0.04)' }}
-         >
-           {dayNumeral}
-         </div>
-       )}
-       <div className="relative h-25 sm:h-35 z-2">
-         {isValidDate && (
-           <time
-             dateTime={post.date}
-             className="absolute right-4 top-4 text-right sm:right-7 sm:top-7"
-           >
-             <span className="sr-only">{fullDate}</span>
-             <span aria-hidden="true" className="block uppercase font-bold text-[14px] tracking-[0.08em] text-accent">
-               {monthName}
-             </span>
-             <span aria-hidden="true" className="block font-light text-[13px] text-accent mt-0.75">
-               {yearText}
-             </span>
-           </time>
-         )}
-         {isAdmin && (
-           <div ref={menuContainerRef} className="absolute left-4 top-4">
-             <button
-               type="button"
-               onClick={() => setMenuOpen((v) => !v)}
-               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-               aria-haspopup="menu"
-               aria-expanded={menuOpen}
-               aria-label="Post actions"
-             >
-               <span className="text-lg leading-none">⋯</span>
-             </button>
-             {menuOpen && (
-               <div className="absolute left-0 mt-1 z-10 bg-white border border-accent/15 rounded-[10px] shadow-md text-sm p-1">
-                 <button
-                   type="button"
-                   className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-accent transition-colors hover:bg-accent/6"
-                   onClick={() => {
-                     setMenuOpen(false);
-                     router.push(`/admin?edit=${encodeURIComponent(post.id)}`);
-                   }}
-                 >
-                   <PencilSquareIcon className="h-4 w-4" />
-                   <span>Edit</span>
-                 </button>
-                 <button
-                   type="button"
-                   className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-red-700/80 transition-colors hover:bg-red-900/6 disabled:opacity-50"
-                   disabled={deleting}
-                   onClick={async () => {
-                     setMenuOpen(false);
-                     if (!confirm('Delete this post? This cannot be undone.')) return;
-                     try {
-                       setDeleting(true);
-                       const res = await fetch(`/api/posts/${encodeURIComponent(post.id)}`, { method: 'DELETE', cache: 'no-store' });
-                       if (!res.ok) throw new Error(await res.text());
-                       onDeleted?.();
-                     } catch (e: any) {
-                       alert(`Failed to delete: ${e?.message || 'Unknown error'}`);
-                     } finally {
-                       setDeleting(false);
-                     }
-                   }}
-                 >
-                   <TrashIcon className="h-4 w-4" />
-                   <span>Delete</span>
-                 </button>
-               </div>
-             )}
-           </div>
-         )}
-       </div>
-       <div className="relative z-2 px-4 pb-4">
-         <div className="prose prose-base mb-2">
-           <Markdown>{post.caption}</Markdown>
-         </div>
-         {post.author && (
-           <p className="text-[13px] text-accent mb-4">
-             by <strong>{post.author}</strong>
-           </p>
-         )}
-         <div className="pt-2">
+       <div className="p-4">
+         <div>
            <RowsPhotoAlbum
              rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
              photos={photos}
@@ -248,16 +156,55 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              </div>
            )}
          </div>
-         <div className="mt-4 flex justify-end">
-           <Link
-             href={`/p/${post.slug}`}
-             aria-label="Permalink to this post"
-             title="Permalink to this post"
-             className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-           >
-             <ShareIcon className="h-4 w-4" aria-hidden="true" />
-           </Link>
-         </div>
+         {post.caption && (
+           <div className="prose prose-sm max-w-none mt-4">
+             <Markdown>{post.caption}</Markdown>
+           </div>
+         )}
+         <footer className="mt-4 flex items-center justify-between gap-3">
+           <p className="text-[13px] text-accent">
+             {isValidDate && <time dateTime={post.date}>{fullDate}</time>}
+             {post.author && (
+               <>
+                 {isValidDate && <span aria-hidden="true"> · </span>}
+                 by <strong>{post.author}</strong>
+               </>
+             )}
+           </p>
+           <div className="flex items-center gap-1">
+             {isAdmin && (
+               <>
+                 <button
+                   type="button"
+                   onClick={() => router.push(`/admin?edit=${encodeURIComponent(post.id)}`)}
+                   aria-label="Edit this post"
+                   title="Edit this post"
+                   className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                 >
+                   <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+                 </button>
+                 <button
+                   type="button"
+                   onClick={handleDelete}
+                   disabled={deleting}
+                   aria-label="Delete this post"
+                   title="Delete this post"
+                   className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2 disabled:opacity-50"
+                 >
+                   <TrashIcon className="h-4 w-4" aria-hidden="true" />
+                 </button>
+               </>
+             )}
+             <Link
+               href={`/p/${post.slug}`}
+               aria-label="Permalink to this post"
+               title="Permalink to this post"
+               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+             >
+               <ShareIcon className="h-4 w-4" aria-hidden="true" />
+             </Link>
+           </div>
+         </footer>
        </div>
      </article>
    );
