@@ -27,8 +27,9 @@ A running list of future improvements and nice-to-haves. This is developer-facin
 - ~~Admin: show upload progress, thumbnails, and per-file status.~~ Done — per-file progress and previews in admin UI.
 
 ## DX & Quality
-- Tests: unit tests for `lib/db.ts` (mock Cloudflare client) and `lib/r2.ts` (key generation URL logic).
-- Integration tests: create → list → fetch → update → delete.
+- Consider adding Playwright for a thin E2E layer over flows that only break in a real browser: the upload → optimize → R2 → D1 → render pipeline, the virtualized timeline feed, and the auth/session round-trip. Keep it narrow (a handful of smoke tests) on top of the existing Vitest base; needs a throwaway D1/R2 test environment and a separate `test:e2e` script (kept out of the default `vitest run`).
+- ~~Tests: unit tests for `lib/db.ts` (mock Cloudflare client) and `lib/r2.ts` (key generation URL logic).~~ Done — logic lives in `lib/core/db-core.ts` and `lib/core/r2-core.ts`, both unit-tested.
+- ~~Integration tests: create → list → fetch → update → delete.~~ Done — covered across route-handler tests (`posts/route.test.ts`, `posts/[id]/route.test.ts`, batch route).
 - ~~ESLint/Rules: enforce server-only imports for `lib/db.ts` and `lib/r2.ts`.~~ Already in place.
 - ~~Centralize env var validation and helpful error messages on boot.~~ Done.
 - ~~Code style: convert default exports to named exports in component files (`PostCard`, `PostListClient`, `FilterButton`, `DateTimePopover`, `ActiveFilterBadge`, `DateFilterPopover`).~~ Done.
