@@ -7,7 +7,7 @@ A running list of places where the **current design** and the **stated intent** 
 
 Intent, in one line: _a calm, photo-first digital family album, optimized for photo viewing and longevity._ Each item below is scored against that.
 
-Work through them in roughly this order — the first three are structural; the last two are smaller. **Items 1 and 3 shipped (2026-06)** (photo-first card and permalinks). **Item 2 remains open** — the gallery still sits in the `max-w-4xl` reading column in uniform rows. The next live items are **#2 (break the reading column)** then **#4 (affordance signal)**.
+Work through them in roughly this order — the first three are structural; the last two are smaller. **Items 1, 2, and 3 shipped (2026-06)** (photo-first card, hero breakout, permalinks). The next live item is **#4 (affordance signal)**.
 
 ---
 
@@ -20,13 +20,14 @@ Work through them in roughly this order — the first three are structural; the 
 - **Direction chosen (2026-05).** The timeline work commits to this: photos lead with full-bleed heroes and the date becomes a quiet divider rather than a banner, while the new timeline carries the live "when am I" wayfinding. Lands in the **photo-first feed** workstream — see [`design.md`](./design.md) *Timeline navigation* and the prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html).
 - **Resolved (2026-06).** With the timeline shipped to carry "when am I" wayfinding, the post card drops the date-hero band and ghost numeral entirely: the caption (when present) and photo grid now lead, and the date shrinks to a single quiet footer line beside the author and the edit/share controls. A caption-less post opens directly on its first image. See [`design-system.md`](./design-system.md) *Post card layout*. (Tile scale and the reading-column width are still uniform — that's item 2.)
 
-## 2. The book-reading column constrains the photography
+## 2. The book-reading column constrains the photography ✅ Resolved (2026-06)
 
-- [ ] **Tension.** `max-w-4xl` (~896px) single column, 3-up rows → each photo ~280px (postcard size). That width is tuned for reading a text column; the dominant content is photographs, often text-free.
+- [x] **Tension.** `max-w-4xl` (~896px) single column, 3-up rows → each photo ~280px (postcard size). That width is tuned for reading a text column; the dominant content is photographs, often text-free.
 - **Why it matters.** Intent says "photo viewing" and "let the photos carry the color," but the layout caps every photo at reading-column scale in uniform rows. Calm — but photography doesn't "breathe."
 - **Self-referential irony.** [`design.md`](./design.md) (Photo Books) says a good book is *not* uniform reflowed rows — yet the web gallery *is* uniform rows, making the web the less photo-expressive of the two surfaces.
 - **Direction to explore.** Let the gallery break the text column (wider than `max-w-4xl`), and/or vary tile scale — an occasional full-bleed or hero image so not every photo is the same size.
 - **Direction chosen (2026-05).** The same prototype commits to this: the gallery breaks the reading column with full-bleed heroes and varied tile scale. Part of the **photo-first feed** workstream (see item 1).
+- **Resolved (2026-06).** A post led by a landscape/square first photo now renders that photo as a wide **hero** that breaks the reading column — the card widens from `max-w-4xl` to `max-w-6xl` (~1152px) and the photo runs at its natural aspect ratio (height-capped, no destructive crop), with the remaining photos in rows beneath. Eligibility (landscape-only, 1 or 3+ photos, never video-led) lives in [`heroLayout.ts`](../src/utils/heroLayout.ts); see [`design-system.md`](./design-system.md) *Post card layout → Hero*. We chose a **contained** widening over true full-bleed to keep the rounded-card model, and tile-scale variety is carried by the hero/rows split rather than per-tile scaling. Remaining follow-up: video poster images, which would let a video lead a post (TODO in [`PostCard.tsx`](../src/components/PostCard.tsx)).
 
 ## 3. No permalinks vs. "longevity / archive" ✅ Resolved (2026-06)
 

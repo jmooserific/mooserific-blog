@@ -21,6 +21,7 @@ const Lightbox = dynamic(() => import("yet-another-react-lightbox"), { ssr: fals
 import "yet-another-react-lightbox/styles.css";
 import Link from "next/link";
 import { PencilSquareIcon, TrashIcon, ShareIcon } from "@heroicons/react/24/outline";
+import { shouldLeadWithHero } from "@/utils/heroLayout";
 
  export type PhotoMeta = {
    filename: string; // Can be full URL from R2
@@ -53,6 +54,7 @@ import { PencilSquareIcon, TrashIcon, ShareIcon } from "@heroicons/react/24/outl
  };
 
 const DEFAULT_CONTAINER_WIDTH = 864; // matches max-w-4xl wrapper minus card padding
+const HERO_CONTAINER_WIDTH = 1120; // matches the wider max-w-6xl hero card minus card padding
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -86,8 +88,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
      alt: post.caption || 'Photo',
    }));
 
-   // Lightbox slides use the 2048w variant for sharp display on retina screens
+   // Lightbox slides use the 2048w variant for sharp display on retina screens.
+   // Built from every photo in order, so the hero stays at index 0.
    const lightboxSlides = photos.map((p) => ({ ...p, src: `${p.src}-2048w.webp` }));
+
+   // When the first photo leads as a wide hero it renders on its own; the rest
+   // (if any) fall back to the justified rows. The lightbox indices are offset
+   // so a click on a row photo still opens the right slide.
+   const useHero = shouldLeadWithHero(post.photos);
+   const heroPhoto = useHero ? photos[0] : null;
+   const albumPhotos = useHero ? photos.slice(1) : photos;
+   const albumOffset = useHero ? 1 : 0;
+   const containerWidth = useHero ? HERO_CONTAINER_WIDTH : DEFAULT_CONTAINER_WIDTH;
+   // The hero is the LCP image on hero posts, so the rows beneath it never get
+   // eager/priority loading even above the fold.
+   const albumPriority = isAboveFold && !useHero;
 
    // Custom renderPhoto for Next.js Image so SSR markup matches hydration.
   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
@@ -108,8 +123,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
          alt={alt}
          title={title}
          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        priority={isAboveFold}
-        loading={isAboveFold ? "eager" : "lazy"}
+        priority={albumPriority}
+        loading={albumPriority ? "eager" : "lazy"}
        />
      </div>
   );
@@ -124,22 +139,49 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
    const fullDate = isValidDate ? `${monthName} ${dayNumeral}, ${yearText}` : post.date;
 
    return (
-     <article className="relative overflow-hidden bg-white rounded-[20px] mb-8">
+     <article className={`relative mx-auto w-full overflow-hidden bg-white rounded-[20px] mb-8 ${useHero ? 'max-w-6xl' : 'max-w-4xl'}`}>
        <div className="p-4">
          <div>
-           <RowsPhotoAlbum
-             rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
-             photos={photos}
-             defaultContainerWidth={DEFAULT_CONTAINER_WIDTH}
-             onClick={({ index }) => setIndex(index)}
-             render={{ image: renderPhoto }}
-           />
+           {heroPhoto && (
+             <button
+               type="button"
+               onClick={() => setIndex(0)}
+               aria-label="Open photo"
+               className="relative block w-full cursor-pointer overflow-hidden rounded-xl p-0"
+               style={{ aspectRatio: `${heroPhoto.width} / ${heroPhoto.height}`, maxHeight: "85vh" }}
+             >
+               <Image
+                 loader={r2ImageLoader}
+                 fill
+                 src={heroPhoto.src}
+                 alt={heroPhoto.alt}
+                 sizes="(max-width: 1152px) 100vw, 1120px"
+                 priority={isAboveFold}
+                 loading={isAboveFold ? "eager" : "lazy"}
+                 className="object-cover"
+               />
+             </button>
+           )}
+           {albumPhotos.length > 0 && (
+             <div className={heroPhoto ? "mt-3" : undefined}>
+               <RowsPhotoAlbum
+                 rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
+                 photos={albumPhotos}
+                 defaultContainerWidth={containerWidth}
+                 onClick={({ index }) => setIndex(index + albumOffset)}
+                 render={{ image: renderPhoto }}
+               />
+             </div>
+           )}
            <Lightbox
              slides={lightboxSlides}
              open={index >= 0}
              index={index}
              close={() => setIndex(-1)}
            />
+           {/* TODO: generate poster/preview images for videos so a video-led
+               post can lead with a hero (and so videos don't render posterless).
+               Until then, posts with no photos never get the hero treatment. */}
            {Array.isArray(post.videos) && post.videos.length > 0 && (
              <div className="mt-4 flex flex-col gap-4">
                {post.videos.map((video: string) => (

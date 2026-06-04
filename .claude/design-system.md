@@ -102,6 +102,15 @@ The card is **photo-first**: the photo grid leads, the caption (when present) si
 </article>
 ```
 
+### Hero (first photo breaks the reading column)
+
+When a post is led by a landscape (or square) first photo, that photo renders as a wide **hero** instead of joining the justified rows — letting the photography breathe past the reading column. The card itself widens from `max-w-4xl` to `max-w-6xl` (~1152px) for hero posts; normal posts stay in the reading column, so the feed track is sized for the widest card and each card centers at its own width.
+
+- **When a hero applies.** First photo is landscape/square (`width >= height`) **and** the post has 1 or 3+ photos. A 2-photo post stays a balanced pair; a portrait-led or video-only post keeps the rows. See [`heroLayout.ts`](../src/utils/heroLayout.ts).
+- **Sizing.** The hero respects the photo's real aspect ratio (no destructive crop — faces matter) with a `max-h-[85vh]` safety cap; `object-cover` only engages on the rare clamp. It's the LCP image on above-fold posts (`priority`/`eager`), so the rows beneath it never get eager loading.
+- **Remaining photos.** Photos after the first render in the usual rows beneath the hero, at the wider container width. The hero stays index 0 in the lightbox.
+- **Videos.** No poster images exist yet, so a video-led post never heroes — tracked as a TODO in [`PostCard.tsx`](../src/components/PostCard.tsx).
+
 ### Caption
 
 Captions render the post's Markdown through `prose prose-sm` (`@tailwindcss/typography`, 14px) — bigger than the footer meta, smaller than 16px body. `max-w-none` removes the plugin's default `65ch` measure so the caption fills the card width instead of wrapping early. The plugin owns caption typography; the only divergence from its defaults is the **blue caption link** (`#2563eb`), set via `--tw-prose-links` in [`globals.css`](../src/globals.css) (the plugin already underlines links).

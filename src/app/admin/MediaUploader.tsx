@@ -74,6 +74,9 @@ export function MediaUploader({ items, uploadProgress, isSubmitting, loadingExis
               />
             ))}
           </ul>
+          <p className="text-xs text-accent/70">
+            Tip: lead with a landscape photo to feature it as a large hero image. Drag to reorder.
+          </p>
         </div>
       )}
     </>
