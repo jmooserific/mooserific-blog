@@ -61,6 +61,19 @@ describe('withRetry', () => {
     expect(sleep).not.toHaveBeenCalled();
   });
 
+  it('uses a real timer-backed delay when no sleep is injected', async () => {
+    let calls = 0;
+    const fn = vi.fn(async () => {
+      calls += 1;
+      if (calls < 2) throw new RetryableError('blip');
+      return 'ok';
+    });
+    // No `sleep` override: exercises the default setTimeout-backed delay. baseDelayMs 1
+    // keeps the actual wait to a couple of milliseconds.
+    await expect(withRetry(fn, { retries: 1, baseDelayMs: 1 })).resolves.toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
   it('gives up after exhausting retries and rethrows the last error', async () => {
     const sleep = vi.fn(noSleep);
     const fn = vi.fn(async () => { throw new RetryableError('still down'); });

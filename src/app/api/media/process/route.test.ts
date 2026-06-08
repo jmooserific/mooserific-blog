@@ -44,6 +44,17 @@ describe('POST /api/media/process', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400s when the body is not valid JSON', async () => {
+    const bad = new NextRequest('http://localhost/api/media/process', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{ not json',
+    });
+    const res = await POST(bad);
+    expect(res.status).toBe(400);
+    expect(vi.mocked(processImageFromR2)).not.toHaveBeenCalled();
+  });
+
   it('400s when the content type is not an image', async () => {
     const res = await POST(req({ key: VALID_KEY, contentType: 'video/mp4' }));
     expect(res.status).toBe(400);
