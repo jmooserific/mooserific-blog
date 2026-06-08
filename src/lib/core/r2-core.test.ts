@@ -14,6 +14,9 @@ vi.mock('@aws-sdk/client-s3', () => ({
   PutObjectCommand: class {
     constructor(public input: Record<string, unknown>) {}
   },
+  GetObjectCommand: class {
+    constructor(public input: Record<string, unknown>) {}
+  },
 }));
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
@@ -21,7 +24,7 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
 }));
 
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getR2Client, buildObjectKey, getPublicUrl, putObject, getPresignedPutUrl } from './r2-core';
+import { getR2Client, buildObjectKey, buildPhotoKeys, baseKeyFromOriginalKey, sanitizeKeySegment, ObjectTooLargeError, getPublicUrl, putObject, getObject, getPresignedPutUrl } from './r2-core';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -43,6 +46,82 @@ describe('buildObjectKey', () => {
 
   it('builds a video key', () => {
     expect(buildObjectKey('clip.mp4', 'post1', 'video')).toBe('videos/post1/clip.mp4');
+  });
+});
+
+describe('sanitizeKeySegment', () => {
+  it('strips directory parts and keeps a clean basename', () => {
+    expect(sanitizeKeySegment('a/b/pic.jpg')).toBe('pic.jpg');
+    expect(sanitizeKeySegment('..\\..\\evil.jpg')).toBe('evil.jpg');
+  });
+
+  it('neutralizes traversal and unsafe characters', () => {
+    expect(sanitizeKeySegment('../../../etc/passwd')).toBe('passwd');
+    expect(sanitizeKeySegment('my photo (1).jpg')).toBe('my_photo__1_.jpg');
+    expect(sanitizeKeySegment('...')).toBe('file');
+    expect(sanitizeKeySegment('')).toBe('file');
+  });
+});
+
+describe('buildObjectKey', () => {
+  it('sanitizes a filename that tries to inject extra path segments', () => {
+    expect(buildObjectKey('a/b.mp4', 'post1', 'video')).toBe('videos/post1/b.mp4');
+  });
+});
+
+describe('buildPhotoKeys', () => {
+  it('sanitizes the filename so it cannot escape the uuid segment', () => {
+    const { originalKey } = buildPhotoKeys('post1', '../../evil.jpg');
+    expect(originalKey).toMatch(/^photos\/post1\/[0-9a-f-]{36}\/evil\.jpg$/i);
+  });
+
+  it('namespaces the original under a uuid and shares that base for variants', () => {
+    const { baseKey, originalKey } = buildPhotoKeys('post1', 'pic.jpg');
+    expect(originalKey).toMatch(/^photos\/post1\/[0-9a-f-]{36}\/pic\.jpg$/i);
+    expect(originalKey).toBe(`${baseKey}/pic.jpg`);
+    expect(baseKey).toMatch(/^photos\/post1\/[0-9a-f-]{36}$/i);
+  });
+
+  it('produces a distinct uuid per call', () => {
+    expect(buildPhotoKeys('post1', 'pic.jpg').baseKey).not.toBe(buildPhotoKeys('post1', 'pic.jpg').baseKey);
+  });
+});
+
+describe('baseKeyFromOriginalKey', () => {
+  it('recovers the variant base key from an original key (inverse of buildPhotoKeys)', () => {
+    const { baseKey, originalKey } = buildPhotoKeys('post1', 'pic.jpg');
+    expect(baseKeyFromOriginalKey(originalKey)).toBe(baseKey);
+  });
+});
+
+describe('getObject', () => {
+  it('fetches the key and returns the body as a Buffer', async () => {
+    send.mockResolvedValueOnce({ Body: { transformToByteArray: async () => new Uint8Array([1, 2, 3]) } });
+    const buf = await getObject('photos/post1/uuid/pic.jpg');
+    expect(send).toHaveBeenCalledTimes(1);
+    const command = send.mock.calls[0][0] as { input: { Key: string } };
+    expect(command.input.Key).toBe('photos/post1/uuid/pic.jpg');
+    expect(Buffer.isBuffer(buf)).toBe(true);
+    expect([...buf]).toEqual([1, 2, 3]);
+  });
+
+  it('throws when the object has no body', async () => {
+    send.mockResolvedValueOnce({});
+    await expect(getObject('missing/key')).rejects.toThrow(/not found/);
+  });
+
+  it('rejects an object whose ContentLength exceeds maxBytes before buffering it', async () => {
+    const transformToByteArray = vi.fn();
+    send.mockResolvedValueOnce({ ContentLength: 100, Body: { transformToByteArray } });
+    await expect(getObject('photos/big.jpg', { maxBytes: 50 })).rejects.toBeInstanceOf(ObjectTooLargeError);
+    // The body is never read into memory once the limit is exceeded.
+    expect(transformToByteArray).not.toHaveBeenCalled();
+  });
+
+  it('allows an object within maxBytes', async () => {
+    send.mockResolvedValueOnce({ ContentLength: 10, Body: { transformToByteArray: async () => new Uint8Array([9]) } });
+    const buf = await getObject('photos/ok.jpg', { maxBytes: 50 });
+    expect([...buf]).toEqual([9]);
   });
 });
 
