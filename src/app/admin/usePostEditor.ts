@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import type { UploadItem } from "./types";
 import { slugFromDate } from "@/utils/slug";
-import { withRetry, RetryableError, NonRetryableError, isRetryableStatus } from "@/lib/retry";
+import { withRetry } from "@/lib/retry";
+import { fetchJson, uploadPendingItems } from "@/lib/media-upload";
 
 // --- Pure utilities ---
 
@@ -69,108 +70,6 @@ function animateReorder(
       }
     });
   });
-}
-
-// --- XHR upload helpers ---
-
-function putWithProgress(
-  url: string,
-  file: File,
-  headers: Record<string, string>,
-  onProgress: (pct: number) => void
-): Promise<Response> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', url, true);
-    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
-    xhr.upload.onprogress = (evt) => {
-      if (evt.lengthComputable) {
-        onProgress(Math.min(100, Math.round((evt.loaded / evt.total) * 100)));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(new Response(null, { status: xhr.status }));
-      } else if (isRetryableStatus(xhr.status)) {
-        reject(new RetryableError(`Upload failed (${xhr.status})`));
-      } else {
-        reject(new NonRetryableError(`Upload failed (${xhr.status})`));
-      }
-    };
-    // A network drop mid-transfer is transient — let withRetry start a fresh PUT.
-    xhr.onerror = () => reject(new RetryableError('Network error during upload'));
-    xhr.send(file);
-  });
-}
-
-/** POST/GET JSON to one of our API routes, classifying failures for {@link withRetry}. */
-async function fetchJson<T>(url: string, init: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    const message = text || `Request failed (${res.status})`;
-    throw isRetryableStatus(res.status) ? new RetryableError(message) : new NonRetryableError(message);
-  }
-  return res.json() as Promise<T>;
-}
-
-interface PresignResult {
-  uploadUrl: string;
-  headers: Record<string, string>;
-  publicUrl: string;
-  key: string;
-}
-
-interface ProcessResult {
-  baseUrl: string;
-  width: number;
-  height: number;
-  originalUrl: string;
-  originalContentType: string;
-}
-
-/**
- * Upload a photo reliably: presign → direct PUT of the original to R2 → ask the server
- * to generate variants. Each step is retried independently with backoff, so a single
- * blip on a slow connection doesn't lose the whole image. The slow ~20 MB transfer goes
- * straight to R2 and never counts against a serverless function timeout.
- */
-async function uploadPhoto(
-  file: File,
-  folderId: string,
-  onProgress: (pct: number) => void,
-): Promise<ProcessResult> {
-  const presign = await withRetry(() => fetchJson<PresignResult>('/api/media/presign', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, folderId, kind: 'photo' }),
-  }));
-  // Direct R2 PUT is ~85% of the work; the remaining 15% is server-side processing.
-  await withRetry(() => putWithProgress(presign.uploadUrl, file, presign.headers, (pct) => onProgress(Math.round(pct * 0.85))));
-  const processed = await withRetry(() => fetchJson<ProcessResult>('/api/media/process', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: presign.key, contentType: file.type }),
-  }));
-  onProgress(100);
-  return processed;
-}
-
-/** Upload a video reliably: presign → direct PUT to R2, each step retried. */
-async function uploadVideo(
-  file: File,
-  filename: string,
-  folderId: string,
-  onProgress: (pct: number) => void,
-): Promise<{ publicUrl: string }> {
-  const presign = await withRetry(() => fetchJson<PresignResult>('/api/media/presign', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename, contentType: file.type, size: file.size, folderId, kind: 'video' }),
-  }));
-  await withRetry(() => putWithProgress(presign.uploadUrl, file, presign.headers, onProgress));
-  onProgress(100);
-  return { publicUrl: presign.publicUrl };
 }
 
 // --- Types ---
@@ -449,28 +348,15 @@ export function usePostEditor(): PostEditorState {
     const effectiveId = editingId ?? folderId;
     let workingItems = items.slice();
 
-    // Phase 1: upload media. Each item's steps are retried with backoff, and every
-    // completed upload is persisted back into state immediately — so if a later item
-    // fails on a flaky connection, the work already done isn't lost and re-submitting
-    // only re-uploads what's left (completed items are now `source: 'existing'`).
+    // Phase 1: upload media. uploadPendingItems retries each step with backoff and reports
+    // every completed upload via onItemComplete — we persist those to state immediately, so
+    // if a later item fails on a flaky connection the work already done isn't lost and
+    // re-submitting only re-uploads what's left (completed items are now `source: 'existing'`).
     try {
-      for (const it of workingItems.filter((i) => i.source === 'new' && i.file)) {
-        const file = it.file!;
-        const onProgress = (pct: number) => setUploadProgress((prev) => ({ ...prev, [it.id]: pct }));
-        const patch: Partial<UploadItem> = it.kind === 'photo'
-          ? await (async () => {
-              const r = await uploadPhoto(file, effectiveId, onProgress);
-              return { url: r.baseUrl, width: r.width, height: r.height, originalUrl: r.originalUrl, originalContentType: r.originalContentType };
-            })()
-          : await (async () => {
-              const r = await uploadVideo(file, it.filename, effectiveId, onProgress);
-              return { url: r.publicUrl };
-            })();
-        const apply = (entry: UploadItem): UploadItem =>
-          entry.id === it.id ? { ...entry, ...patch, source: 'existing' as const, file: undefined } : entry;
-        workingItems = workingItems.map(apply);
-        setItems((prev) => prev.map(apply));
-      }
+      workingItems = await uploadPendingItems(workingItems, effectiveId, {
+        onProgress: (id, pct) => setUploadProgress((prev) => ({ ...prev, [id]: pct })),
+        onItemComplete: (id, patch) => setItems((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e))),
+      });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       toast.error('Failed to upload media', { description: message });
