@@ -4,6 +4,8 @@ export {
   buildObjectKey,
   buildPhotoKeys,
   baseKeyFromOriginalKey,
+  sanitizeKeySegment,
+  ObjectTooLargeError,
   putObject,
   getObject,
   getPublicUrl,

@@ -40,6 +40,17 @@ describe('POST /api/media/presign', () => {
     expect(res.status).toBe(413);
   });
 
+  it('413s a photo over the tighter image cap (smaller than the overall file cap)', async () => {
+    // 100 MB: under the 500 MB file cap, but over the 50 MB image cap.
+    const res = await POST(req({ filename: 'a.jpg', contentType: 'image/jpeg', size: 100 * 1024 * 1024 }));
+    expect(res.status).toBe(413);
+  });
+
+  it('allows a video of the same size, which only faces the overall file cap', async () => {
+    const res = await POST(req({ filename: 'clip.mp4', contentType: 'video/mp4', size: 100 * 1024 * 1024 }));
+    expect(res.status).toBe(200);
+  });
+
   it('returns a presigned URL for a valid image upload', async () => {
     const res = await POST(req({ filename: 'a.jpg', contentType: 'image/jpeg', size: 1000, folderId: 'grp1' }));
     expect(res.status).toBe(200);

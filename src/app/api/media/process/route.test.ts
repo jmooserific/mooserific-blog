@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const { ObjectTooLargeError } = vi.hoisted(() => ({ ObjectTooLargeError: class extends Error {} }));
+
 vi.mock('@/lib/image-processing', () => ({
   processImageFromR2: vi.fn(async () => ({
     baseUrl: 'https://cdn.example.test/photos/post1/uuid',
@@ -10,6 +12,7 @@ vi.mock('@/lib/image-processing', () => ({
     originalContentType: 'image/jpeg',
   })),
 }));
+vi.mock('@/lib/r2', () => ({ ObjectTooLargeError }));
 
 import { processImageFromR2 } from '@/lib/image-processing';
 import { POST } from './route';
@@ -41,9 +44,10 @@ describe('POST /api/media/process', () => {
     expect(res.status).toBe(400);
   });
 
-  it('415s when the content type is not an image', async () => {
+  it('400s when the content type is not an image', async () => {
     const res = await POST(req({ key: VALID_KEY, contentType: 'video/mp4' }));
-    expect(res.status).toBe(415);
+    expect(res.status).toBe(400);
+    expect(vi.mocked(processImageFromR2)).not.toHaveBeenCalled();
   });
 
   it('processes a valid key and returns the asset', async () => {
@@ -58,6 +62,12 @@ describe('POST /api/media/process', () => {
   it('accepts the dev/ prefix', async () => {
     const res = await POST(req({ key: `dev/${VALID_KEY}`, contentType: 'image/png' }));
     expect(res.status).toBe(200);
+  });
+
+  it('413s when the original exceeds the image size cap', async () => {
+    vi.mocked(processImageFromR2).mockRejectedValueOnce(new ObjectTooLargeError('too big'));
+    const res = await POST(req({ key: VALID_KEY, contentType: 'image/jpeg' }));
+    expect(res.status).toBe(413);
   });
 
   it('500s when processing throws', async () => {

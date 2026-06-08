@@ -25,6 +25,8 @@ interface OptionalEnv {
   R2_PUBLIC_BASE_URL: string | undefined;
   /** Max upload size in bytes. Defaults to 500 MB. */
   MAX_FILE_BYTES: number;
+  /** Max image size in bytes — enforced on the original we buffer into memory for Sharp. Defaults to 50 MB. */
+  MAX_IMAGE_BYTES: number;
 }
 
 type Env = Record<RequiredVar, string> & OptionalEnv;
@@ -54,6 +56,7 @@ function loadEnv(): Env {
     ENVIRONMENT: process.env.ENVIRONMENT ?? '',
     R2_PUBLIC_BASE_URL: process.env.R2_PUBLIC_BASE_URL,
     MAX_FILE_BYTES: Number(process.env.MAX_FILE_BYTES || 500 * 1024 * 1024),
+    MAX_IMAGE_BYTES: Number(process.env.MAX_IMAGE_BYTES || 50 * 1024 * 1024),
   };
 }
 

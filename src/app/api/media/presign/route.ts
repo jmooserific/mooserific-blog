@@ -6,6 +6,7 @@ import { env } from '@/lib/env';
 export const runtime = 'nodejs';
 
 const MAX_FILE_BYTES = env().MAX_FILE_BYTES;
+const MAX_IMAGE_BYTES = env().MAX_IMAGE_BYTES;
 
 function isAllowedType(t: string) {
   return t.startsWith('image/') || t === 'video/mp4' || t === 'video/quicktime' || t === 'video/webm';
@@ -26,12 +27,16 @@ export async function POST(req: NextRequest) {
     if (!isAllowedType(contentType)) {
       return NextResponse.json({ error: 'Unsupported content type' }, { status: 415 });
     }
-    if (size > MAX_FILE_BYTES) {
-      return NextResponse.json({ error: 'File too large' }, { status: 413 });
-    }
 
   const groupId = folderId || randomUUID();
   const kind: 'photo' | 'video' = requestedKind === 'video' || (contentType?.startsWith('video/') ?? false) ? 'video' : 'photo';
+  // Photos are buffered into memory for Sharp, so they get the tighter image cap; videos
+  // stream straight to R2 and only need the overall file ceiling. This is an early reject
+  // on the *declared* size — the authoritative check is on the actual object in /process.
+  const maxBytes = kind === 'photo' ? MAX_IMAGE_BYTES : MAX_FILE_BYTES;
+  if (size > maxBytes) {
+    return NextResponse.json({ error: 'File too large' }, { status: 413 });
+  }
   // Photos use the uuid-namespaced original key so the process route can derive the
   // variant base key. Videos keep the flat key (no server-side processing).
   const key = kind === 'photo' ? buildPhotoKeys(groupId, filename).originalKey : buildObjectKey(filename, groupId, kind);
@@ -48,7 +53,7 @@ export async function POST(req: NextRequest) {
   folderId: groupId,
   kind,
       expiresIn: EXPIRES_IN,
-      maxBytes: MAX_FILE_BYTES,
+      maxBytes,
     });
   } catch (err: unknown) {
     console.error('presign error', err);

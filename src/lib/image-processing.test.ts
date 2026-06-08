@@ -18,6 +18,7 @@ vi.mock('./r2', () => ({
   getObject: vi.fn(async () => Buffer.from('original')),
   getPublicUrl: vi.fn((key: string) => `https://cdn.example.test/${key}`),
   baseKeyFromOriginalKey: vi.fn((key: string) => key.slice(0, key.lastIndexOf('/'))),
+  ObjectTooLargeError: class extends Error {},
 }));
 
 import { putObject, getObject } from './r2';
@@ -80,7 +81,7 @@ describe('processImageFromR2', () => {
     const originalKey = 'photos/post1/abc-uuid/pic.jpg';
     const result = await processImageFromR2(originalKey, 'image/jpeg');
 
-    expect(vi.mocked(getObject)).toHaveBeenCalledWith(originalKey);
+    expect(vi.mocked(getObject)).toHaveBeenCalledWith(originalKey, expect.objectContaining({ maxBytes: expect.any(Number) }));
     expect(vi.mocked(putObject)).toHaveBeenCalledTimes(VARIANT_WIDTHS.length);
     expect(result.width).toBe(100);
     expect(result.height).toBe(200);

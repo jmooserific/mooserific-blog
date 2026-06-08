@@ -1,6 +1,7 @@
 import 'server-only';
 import sharp from 'sharp';
 import { putObject, getObject, getPublicUrl, baseKeyFromOriginalKey } from './r2';
+import { env } from './env';
 
 export const VARIANT_WIDTHS = [320, 480, 768, 1024, 2048] as const;
 export type VariantWidth = (typeof VARIANT_WIDTHS)[number];
@@ -63,7 +64,9 @@ export async function processImageFromR2(
   contentType: string,
 ): Promise<ProcessImageResult> {
   const baseKey = baseKeyFromOriginalKey(originalKey);
-  const buffer = await getObject(originalKey);
+  // Cap the in-memory read: the presigned PUT can't bound upload size, so reject an
+  // oversized original here (throws ObjectTooLargeError) rather than buffering it.
+  const buffer = await getObject(originalKey, { maxBytes: env().MAX_IMAGE_BYTES });
   const { width, height } = await generateAndUploadVariants(buffer, baseKey);
 
   return {
