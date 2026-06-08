@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 
 vi.mock('@/lib/r2', () => ({
   buildObjectKey: vi.fn((name: string, id: string, kind: string) => `${kind}s/${id}/${name}`),
+  buildPhotoKeys: vi.fn((id: string, name: string) => ({ baseKey: `photos/${id}/uuid`, originalKey: `photos/${id}/uuid/${name}` })),
   getPresignedPutUrl: vi.fn(async () => 'https://signed.example.test/put'),
   getPublicUrl: vi.fn((key: string) => `https://cdn.example.test/${key}`),
 }));

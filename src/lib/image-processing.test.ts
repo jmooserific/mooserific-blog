@@ -15,11 +15,19 @@ const h = vi.hoisted(() => {
 vi.mock('sharp', () => ({ default: h.sharp }));
 vi.mock('./r2', () => ({
   putObject: vi.fn(async () => 'ok'),
+  getObject: vi.fn(async () => Buffer.from('original')),
   getPublicUrl: vi.fn((key: string) => `https://cdn.example.test/${key}`),
+  baseKeyFromOriginalKey: vi.fn((key: string) => key.slice(0, key.lastIndexOf('/'))),
 }));
 
-import { putObject, getPublicUrl } from './r2';
-import { processAndUploadImage, variantUrl, VARIANT_WIDTHS, LIGHTBOX_WIDTH } from './image-processing';
+import { putObject, getObject } from './r2';
+import {
+  processImageFromR2,
+  generateAndUploadVariants,
+  variantUrl,
+  VARIANT_WIDTHS,
+  LIGHTBOX_WIDTH,
+} from './image-processing';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -38,38 +46,46 @@ describe('constants', () => {
   });
 });
 
-describe('processAndUploadImage', () => {
-  it('uploads the original plus one webp per variant width and returns dimensions', async () => {
-    const result = await processAndUploadImage(Buffer.from('img'), 'post1', 'pic.jpg', 'image/jpeg');
+describe('generateAndUploadVariants', () => {
+  it('uploads one webp per variant width and does NOT re-upload the original', async () => {
+    const { width, height } = await generateAndUploadVariants(Buffer.from('img'), 'photos/post1/uuid');
 
-    // 1 original + one per variant width
-    expect(vi.mocked(putObject)).toHaveBeenCalledTimes(1 + VARIANT_WIDTHS.length);
-    expect(result.width).toBe(100);
-    expect(result.height).toBe(200);
-    expect(result.originalContentType).toBe('image/jpeg');
-    expect(getPublicUrl).toHaveBeenCalled();
-    expect(result.baseUrl).toContain('photos/post1/');
+    expect(vi.mocked(putObject)).toHaveBeenCalledTimes(VARIANT_WIDTHS.length);
+    // Every upload is a webp variant — the original is uploaded directly to R2 by the client.
+    for (const call of vi.mocked(putObject).mock.calls) {
+      expect(call[0].contentType).toBe('image/webp');
+      expect(call[0].key).toMatch(/^photos\/post1\/uuid-\d+w\.webp$/);
+    }
+    expect(width).toBe(100);
+    expect(height).toBe(200);
   });
 
   it('swaps width/height for EXIF orientations that rotate 90/270 degrees', async () => {
     h.metadata.mockResolvedValue({ width: 100, height: 200, orientation: 6 });
-    const result = await processAndUploadImage(Buffer.from('img'), 'post1', 'pic.jpg', 'image/jpeg');
-    expect(result.width).toBe(200);
-    expect(result.height).toBe(100);
+    const { width, height } = await generateAndUploadVariants(Buffer.from('img'), 'photos/post1/uuid');
+    expect(width).toBe(200);
+    expect(height).toBe(100);
   });
 
   it('falls back to zero dimensions when sharp reports no metadata', async () => {
     h.metadata.mockResolvedValue({} as { width: number; height: number; orientation: number });
-    const result = await processAndUploadImage(Buffer.from('img'), 'post1', 'pic.jpg', 'image/jpeg');
-    expect(result.width).toBe(0);
-    expect(result.height).toBe(0);
+    const { width, height } = await generateAndUploadVariants(Buffer.from('img'), 'photos/post1/uuid');
+    expect(width).toBe(0);
+    expect(height).toBe(0);
   });
+});
 
-  it('uploads the original with its real content type', async () => {
-    await processAndUploadImage(Buffer.from('img'), 'post1', 'pic.jpg', 'image/png');
-    const originalCall = vi
-      .mocked(putObject)
-      .mock.calls.find((c) => c[0].contentType === 'image/png');
-    expect(originalCall).toBeTruthy();
+describe('processImageFromR2', () => {
+  it('reads the original from R2, derives the base key, and returns URLs + dimensions', async () => {
+    const originalKey = 'photos/post1/abc-uuid/pic.jpg';
+    const result = await processImageFromR2(originalKey, 'image/jpeg');
+
+    expect(vi.mocked(getObject)).toHaveBeenCalledWith(originalKey);
+    expect(vi.mocked(putObject)).toHaveBeenCalledTimes(VARIANT_WIDTHS.length);
+    expect(result.width).toBe(100);
+    expect(result.height).toBe(200);
+    expect(result.originalContentType).toBe('image/jpeg');
+    expect(result.baseUrl).toContain('photos/post1/abc-uuid');
+    expect(result.originalUrl).toContain(originalKey);
   });
 });

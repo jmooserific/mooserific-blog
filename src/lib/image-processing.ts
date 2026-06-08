@@ -1,8 +1,6 @@
 import 'server-only';
 import sharp from 'sharp';
-import { randomUUID } from 'crypto';
-import { putObject, getPublicUrl } from './r2';
-import { env } from './env';
+import { putObject, getObject, getPublicUrl, baseKeyFromOriginalKey } from './r2';
 
 export const VARIANT_WIDTHS = [320, 480, 768, 1024, 2048] as const;
 export type VariantWidth = (typeof VARIANT_WIDTHS)[number];
@@ -24,46 +22,54 @@ interface ProcessImageResult {
 }
 
 /**
- * Process an image buffer with Sharp, upload 5 WebP variants to R2,
- * store the original file alongside them, and return URLs plus dimensions.
+ * Generate the 5 WebP variants from an image buffer and upload them under `baseKey`.
+ * Returns the correctly-oriented original dimensions. Does NOT upload the original —
+ * the client uploads that directly to R2 via a presigned PUT.
  */
-export async function processAndUploadImage(
+export async function generateAndUploadVariants(
   buffer: Buffer,
-  postId: string,
-  originalFilename: string,
-  contentType: string,
-): Promise<ProcessImageResult> {
-  const uuid = randomUUID();
-  const prefix = env().ENVIRONMENT === 'development' ? 'dev/' : '';
-  const baseKey = `${prefix}photos/${postId}/${uuid}`;
-  const originalKey = `${prefix}photos/${postId}/${uuid}/${originalFilename}`;
-
+  baseKey: string,
+): Promise<{ width: number; height: number }> {
   // .metadata() returns the raw pre-rotation pixel dimensions. For images that need
   // a 90°/270° rotation (EXIF orientations 5–8), we swap width and height so the
   // stored dimensions match the correctly-oriented display size.
   const metadata = await sharp(buffer).metadata();
   const transposed = (metadata.orientation ?? 1) >= 5;
-  const originalWidth = (transposed ? metadata.height : metadata.width) ?? 0;
-  const originalHeight = (transposed ? metadata.width : metadata.height) ?? 0;
+  const width = (transposed ? metadata.height : metadata.width) ?? 0;
+  const height = (transposed ? metadata.width : metadata.height) ?? 0;
 
-  await Promise.all([
-    // Upload the original file
-    putObject({ key: originalKey, contentType, body: buffer }),
-    // Upload WebP variants
-    ...VARIANT_WIDTHS.map(async (width) => {
+  await Promise.all(
+    VARIANT_WIDTHS.map(async (w) => {
       const resized = await sharp(buffer)
         .rotate()                               // apply EXIF orientation before resizing
-        .resize({ width, withoutEnlargement: true })
+        .resize({ width: w, withoutEnlargement: true })
         .webp({ quality: 82 })
         .toBuffer();
-      await putObject({ key: `${baseKey}-${width}w.webp`, contentType: 'image/webp', body: resized });
+      await putObject({ key: `${baseKey}-${w}w.webp`, contentType: 'image/webp', body: resized });
     }),
-  ]);
+  );
+
+  return { width, height };
+}
+
+/**
+ * Read an already-uploaded original from R2, generate + upload its WebP variants, and
+ * return the URLs plus dimensions. Triggered by a small JSON request after the client
+ * has streamed the original straight to R2 — so the slow upload never runs through (or
+ * counts against) this function's execution time.
+ */
+export async function processImageFromR2(
+  originalKey: string,
+  contentType: string,
+): Promise<ProcessImageResult> {
+  const baseKey = baseKeyFromOriginalKey(originalKey);
+  const buffer = await getObject(originalKey);
+  const { width, height } = await generateAndUploadVariants(buffer, baseKey);
 
   return {
     baseUrl: getPublicUrl(baseKey),
-    width: originalWidth,
-    height: originalHeight,
+    width,
+    height,
     originalUrl: getPublicUrl(originalKey),
     originalContentType: contentType,
   };

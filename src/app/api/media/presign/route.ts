@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { buildObjectKey, getPresignedPutUrl, getPublicUrl } from '@/lib/r2';
+import { buildObjectKey, buildPhotoKeys, getPresignedPutUrl, getPublicUrl } from '@/lib/r2';
 import { env } from '@/lib/env';
 
 export const runtime = 'nodejs';
@@ -32,8 +32,12 @@ export async function POST(req: NextRequest) {
 
   const groupId = folderId || randomUUID();
   const kind: 'photo' | 'video' = requestedKind === 'video' || (contentType?.startsWith('video/') ?? false) ? 'video' : 'photo';
-  const key = buildObjectKey(filename, groupId, kind);
-    const uploadUrl = await getPresignedPutUrl({ key, contentType, expiresIn: 900 });
+  // Photos use the uuid-namespaced original key so the process route can derive the
+  // variant base key. Videos keep the flat key (no server-side processing).
+  const key = kind === 'photo' ? buildPhotoKeys(groupId, filename).originalKey : buildObjectKey(filename, groupId, kind);
+  // 1 hour: long enough for a large file on a slow mobile link to finish a direct PUT.
+  const EXPIRES_IN = 3600;
+    const uploadUrl = await getPresignedPutUrl({ key, contentType, expiresIn: EXPIRES_IN });
     const publicUrl = getPublicUrl(key);
 
     return NextResponse.json({
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest) {
       publicUrl,
   folderId: groupId,
   kind,
-      expiresIn: 900,
+      expiresIn: EXPIRES_IN,
       maxBytes: MAX_FILE_BYTES,
     });
   } catch (err: unknown) {
