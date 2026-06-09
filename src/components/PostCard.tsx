@@ -141,6 +141,25 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
    return (
      <article className={`relative mx-auto w-full overflow-hidden bg-white rounded-[20px] mb-8 ${useHero ? 'max-w-6xl' : 'max-w-4xl'}`}>
        <div className="p-4">
+         {/* Quiet byline + caption lead-in above the photos. Kept compact so the
+             gallery stays the dominant mass (photos-forward); the Timeline still
+             carries the live "when am I" wayfinding. */}
+         <header className="mb-4 flex flex-col gap-2">
+           <p className="text-[13px] text-accent">
+             {isValidDate && <time dateTime={post.date}>{fullDate}</time>}
+             {post.author && (
+               <>
+                 {isValidDate && <span aria-hidden="true"> · </span>}
+                 by <strong>{post.author}</strong>
+               </>
+             )}
+           </p>
+           {post.caption && (
+             <div className="prose prose-sm max-w-none">
+               <Markdown>{post.caption}</Markdown>
+             </div>
+           )}
+         </header>
          <div>
            {heroPhoto && (
              <button
@@ -198,54 +217,40 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              </div>
            )}
          </div>
-         {post.caption && (
-           <div className="prose prose-sm max-w-none mt-4">
-             <Markdown>{post.caption}</Markdown>
-           </div>
-         )}
-         <footer className="mt-4 flex items-center justify-between gap-3">
-           <p className="text-[13px] text-accent">
-             {isValidDate && <time dateTime={post.date}>{fullDate}</time>}
-             {post.author && (
-               <>
-                 {isValidDate && <span aria-hidden="true"> · </span>}
-                 by <strong>{post.author}</strong>
-               </>
-             )}
-           </p>
-           <div className="flex items-center gap-1">
-             {isAdmin && (
-               <>
-                 <button
-                   type="button"
-                   onClick={() => router.push(`/admin?edit=${encodeURIComponent(post.id)}`)}
-                   aria-label="Edit this post"
-                   title="Edit this post"
-                   className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                 >
-                   <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
-                 </button>
-                 <button
-                   type="button"
-                   onClick={handleDelete}
-                   disabled={deleting}
-                   aria-label="Delete this post"
-                   title="Delete this post"
-                   className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2 disabled:opacity-50"
-                 >
-                   <TrashIcon className="h-4 w-4" aria-hidden="true" />
-                 </button>
-               </>
-             )}
-             <Link
-               href={`/p/${post.slug}`}
-               aria-label="Permalink to this post"
-               title="Permalink to this post"
-               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-             >
-               <ShareIcon className="h-4 w-4" aria-hidden="true" />
-             </Link>
-           </div>
+         {/* Actions sit at the footer's left, clear of the right-edge vertical
+             timeline rail on narrow screens. */}
+         <footer className="mt-4 flex items-center gap-1">
+           {isAdmin && (
+             <>
+               <button
+                 type="button"
+                 onClick={() => router.push(`/admin?edit=${encodeURIComponent(post.id)}`)}
+                 aria-label="Edit this post"
+                 title="Edit this post"
+                 className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+               >
+                 <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+               </button>
+               <button
+                 type="button"
+                 onClick={handleDelete}
+                 disabled={deleting}
+                 aria-label="Delete this post"
+                 title="Delete this post"
+                 className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2 disabled:opacity-50"
+               >
+                 <TrashIcon className="h-4 w-4" aria-hidden="true" />
+               </button>
+             </>
+           )}
+           <Link
+             href={`/p/${post.slug}`}
+             aria-label="Permalink to this post"
+             title="Permalink to this post"
+             className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+           >
+             <ShareIcon className="h-4 w-4" aria-hidden="true" />
+           </Link>
          </footer>
        </div>
      </article>

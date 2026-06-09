@@ -17,10 +17,10 @@ We want something that feels calm, personal, and clutter-free — like a digital
 * **Each post**:
 
   * Flat, shadow-free card-style container with generously rounded corners
-  * Top-right: Month + year, small and uppercase, in the warm accent color
-  * A large, very faint day-of-month numeral as a background watermark behind the header
-  * Middle: Text (caption/description), followed by the author line (`by **Name**`) in the accent color
-  * Bottom: Tiled/mosaic photo gallery, then any videos
+  * A quiet byline above the photos: the date and the author (`by **Name**`) on one small line in the warm accent color — a lead-in, not a banner (the timeline carries the loud "when am I" wayfinding)
+  * The caption/description follows as an optional lead-in beneath the byline
+  * The photo gallery carries the visual weight, then any videos — the card stays photos-forward
+  * Post controls (edit/delete/permalink) sit at the foot, left-aligned so the vertical timeline rail never covers them on narrow screens
   * Newer/Older navigation at the foot of the list (see _Pagination_ below)
 
 ---

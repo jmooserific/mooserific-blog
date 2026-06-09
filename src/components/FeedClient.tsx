@@ -147,16 +147,14 @@ const FeedList = ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) 
 FeedList.displayName = 'FeedList';
 
 // Height-reserving placeholder so uncached rows don't shift layout as batches
-// arrive. Mirrors the card's shape: date-hero spacer + a photo-area block.
+// arrive. Mirrors the card's shape: byline + caption lead-in, then a photo block.
 function PostSkeleton() {
   return (
-    <div className="relative mx-auto w-full max-w-4xl overflow-hidden bg-white rounded-[20px] mb-8" aria-hidden="true">
-      <div className="h-25 sm:h-35" />
-      <div className="px-4 pb-4">
-        <div className="h-4 w-3/4 rounded bg-gray-100 mb-2" />
-        <div className="h-4 w-1/2 rounded bg-gray-100 mb-4" />
-        <div className="h-56 w-full rounded-xl bg-gray-100" />
-      </div>
+    <div className="relative mx-auto w-full max-w-4xl overflow-hidden bg-white rounded-[20px] mb-8 p-4" aria-hidden="true">
+      <div className="h-3.5 w-40 rounded bg-gray-100 mb-3" />
+      <div className="h-4 w-3/4 rounded bg-gray-100 mb-2" />
+      <div className="h-4 w-1/2 rounded bg-gray-100 mb-4" />
+      <div className="h-56 w-full rounded-xl bg-gray-100" />
     </div>
   );
 }
