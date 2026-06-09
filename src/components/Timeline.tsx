@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
+  CalendarDaysIcon,
+} from '@heroicons/react/24/outline';
 import {
   type TimelineModel,
   monthToFrac,
@@ -68,8 +72,19 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
   const axisPos = useCallback((f: number) => (portrait ? (1 - f) * 100 : f * 100), [portrait]);
 
   // ── Measure viewport (drives orientation + panel/mini geometry) ──────────
+  // On the first measurement, default to collapsed in portrait so the vertical
+  // rail doesn't cover the photos on initial load. After that the user owns the
+  // expand/collapse state — a later resize never re-collapses it.
+  const didInitCollapse = useRef(false);
   useEffect(() => {
-    const measure = () => setViewportW(window.innerWidth);
+    const measure = () => {
+      const w = window.innerWidth;
+      setViewportW(w);
+      if (!didInitCollapse.current) {
+        didInitCollapse.current = true;
+        if (w < PORTRAIT_BELOW_PX) setCollapsed(true);
+      }
+    };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
@@ -221,13 +236,16 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
     return (
       <button
         type="button"
-        aria-label="Expand timeline"
+        aria-label="Open timeline to jump through time"
+        title="Jump through time"
         onClick={() => setCollapsed(false)}
         style={{ right: miniRight }}
-        className="fixed bottom-3.5 z-50 flex items-center gap-2 rounded-[14px] border border-white/55 bg-white/65 px-2.5 py-1.75 pl-3.5 text-accent shadow-[0_8px_30px_-6px_rgba(0,0,0,0.18)] backdrop-blur-lg backdrop-saturate-150 transition-colors hover:bg-white/80"
+        className="fixed bottom-3.5 z-50 flex items-center gap-2 rounded-[14px] border border-white/55 bg-white/65 px-2.5 py-1.75 pl-3 text-accent shadow-[0_8px_30px_-6px_rgba(0,0,0,0.18)] backdrop-blur-lg backdrop-saturate-150 transition-colors hover:bg-white/80"
       >
+        {/* Calendar hint: signals the pill is a time-jump control, not just a label */}
+        <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
         <span className="text-[12px] font-bold uppercase tracking-wider">{playhead.label}</span>
-        <ChevronUpIcon className="h-3.75 w-3.75" aria-hidden="true" />
+        <ArrowsPointingOutIcon className="h-3.75 w-3.75 opacity-70" aria-hidden="true" />
       </button>
     );
   }
@@ -252,9 +270,9 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
           setCollapsed(true);
           trackRef.current?.blur();
         }}
-        className="absolute bottom-1 right-1 z-7 flex items-center justify-center rounded-lg border border-transparent p-1.25 text-accent transition-colors hover:bg-accent/6"
+        className="absolute bottom-1 right-1 z-7 flex items-center justify-center rounded-lg border border-transparent p-1.5 text-accent transition-colors hover:bg-accent/6"
       >
-        <ChevronDownIcon className="h-4 w-4" aria-hidden="true" />
+        <ArrowsPointingInIcon className="h-4.5 w-4.5" aria-hidden="true" />
       </button>
 
       <div
