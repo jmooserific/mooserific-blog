@@ -187,13 +187,13 @@ Destructive items (Delete, etc.) are the single allowed accent departure: muted 
 
 ---
 
-## Timeline navigation (target — pre-implementation)
+## Timeline navigation (as-built)
 
-> This section is the **build brief** for the timeline described in [`design.md`](./design.md). The _behavior_ below is settled; the exact numbers (radii, blur, tints, breakpoints, durations) are **provisional** and live in the working prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html). Treat that prototype as the reference implementation, and finalize the values here as "as-built" once the component ships in React.
+> This section describes the shipped timeline (`src/components/Timeline.tsx`), driven by the feed in `src/components/FeedClient.tsx`. It grew out of the prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html); where the two diverge, the React component is authoritative. The _behavior_ below is settled; exact numbers (radii, blur, tints, durations) live in the component.
 
 ### Surfaces & states
 
-- **Two layouts, chosen by viewport aspect:** a horizontal bar on the bottom edge when the viewport is wider than tall, a vertical rail on the right edge when taller than wide. Newest sits at the **right** (horizontal) / **top** (vertical) — consistent under a clockwise quarter-turn, so the playhead tracks scroll the same way in both.
+- **Two layouts, chosen by viewport width:** a horizontal bar on the bottom edge at the `sm` breakpoint and up (≥ 640px, `PORTRAIT_BELOW_PX`), a vertical rail on the right edge only below it. The threshold is a width, not an aspect ratio: above `sm` the header's sign-in / create-post button is right-aligned (`sm:justify-end`), and a right-edge rail would cover it; below `sm` the button re-centers, freeing the right edge. Newest sits at the **right** (horizontal) / **top** (vertical) — consistent under a clockwise quarter-turn, so the playhead tracks scroll the same way in both.
 - **Floating "liquid glass" panel:** translucent, blurred, rounded on all four corners, with a soft drop shadow. (Floating surfaces get a shadow; cards do not — consistent with the menu/popover rule above.) Radius sits between the image (12px) and card (20px) so it reads as its own floating control. It floats _over_ the photos and reserves no column; the horizontal bar reserves a little foot-room only so the last post clears it.
 - **Width (horizontal):** centered and capped so it is always narrower than the photo column at every responsive width — never edge-aligned with the photos.
 - **Expanded ↔ collapsed:** a ghost toggle minimizes the timeline to a small **read-only** pill showing just the current date (still live as you scroll). The toggle lives at the bottom-right of the timeline in both orientations, and the collapsed pill sits bottom-right with its expand control landing where the toggle was — so the control does not slip out from under the cursor when toggled. Default is **expanded** (collapsing-by-default would hurt discoverability).

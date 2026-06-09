@@ -20,6 +20,12 @@ interface TimelineProps {
 
 type Orientation = 'portrait' | 'landscape';
 
+// Stay horizontal until the viewport drops below Tailwind's `sm` breakpoint.
+// Above it the header's sign-in / create-post button is right-aligned
+// (`sm:justify-end`); a vertical rail on the right edge would cover it. Below it
+// the button re-centers, so the rail is clear to take the right edge.
+const PORTRAIT_BELOW_PX = 640;
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const labelFromMonthIndex = (mi: number, startYear: number) =>
   `${MONTHS[mi % 12]} ${startYear + Math.floor(mi / 12)}`;
@@ -33,7 +39,7 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
 
   // Null until mounted, so server + first client render agree (avoids hydration
   // mismatch). Everything geometric derives from this one measurement.
-  const [viewport, setViewport] = useState<{ w: number; h: number } | null>(null);
+  const [viewportW, setViewportW] = useState<number | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
   // The playhead position is owned by the feed (via activeDate); we just map it
@@ -53,7 +59,8 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
 
   const trackRef = useRef<HTMLDivElement>(null);
 
-  const orientation: Orientation | null = viewport ? (viewport.h > viewport.w ? 'portrait' : 'landscape') : null;
+  const orientation: Orientation | null =
+    viewportW === null ? null : viewportW < PORTRAIT_BELOW_PX ? 'portrait' : 'landscape';
   const portrait = orientation === 'portrait';
 
   // Newest at right (landscape) / top (portrait): consistent under a clockwise
@@ -62,7 +69,7 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
 
   // ── Measure viewport (drives orientation + panel/mini geometry) ──────────
   useEffect(() => {
-    const measure = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    const measure = () => setViewportW(window.innerWidth);
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
@@ -206,8 +213,8 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
   const cursorFrac = monthToFrac(cursorMonth, totalMonths);
   const cursorLabel = labelFromMonthIndex(cursorMonth, startYear);
 
-  const panelWidth = Math.min(viewport!.w - 96, 1080);
-  const miniRight = portrait ? 14 : (viewport!.w - panelWidth) / 2;
+  const panelWidth = Math.min(viewportW! - 96, 1080);
+  const miniRight = portrait ? 14 : (viewportW! - panelWidth) / 2;
 
   // ── Collapsed read-only pill ───────────────────────────────────────────
   if (collapsed) {
