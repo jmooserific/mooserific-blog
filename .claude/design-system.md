@@ -49,7 +49,7 @@ The moose watercolor used as the site's mascot is a warm brown palette. Umber fo
 | Use                  | Font / weight     | Size  | Other                          |
 |----------------------|-------------------|-------|--------------------------------|
 | Caption              | Inter 400         | 14px  | `prose prose-sm max-w-none`    |
-| Card footer meta     | Inter 400         | 13px  | `text-accent`; date + author   |
+| Card byline meta     | Inter 400         | 13px  | `text-accent`; date + author   |
 
 ---
 
@@ -69,35 +69,36 @@ The 20px card radius and the 12px image radius echo each other — the interior 
 
 ## Post card layout
 
-The card is **photo-first**: the photo grid leads, the caption (when present) sits beneath it as a quiet description, and a single footer row carries the date, author, and controls. The **Timeline navigation** surface carries the live "when am I" wayfinding, so the card keeps its date small and out of the way — one line of footer meta, not a composed treatment above the photos. A caption-less post opens directly on its first image.
+The card is **photos-forward**: a quiet byline and the caption lead in as a compact header, then the photo grid carries the visual weight as the dominant mass, and a footer row of left-aligned controls closes the card. The header is kept small (one 13px meta line + prose caption) so it reads as a lead-in, not a banner — the **Timeline navigation** surface still carries the live "when am I" wayfinding, so the per-post date stays understated. A caption-less post shows just the byline above its first image.
 
 ### Structure
 
 ```text
 ┌──────────────────────────────────────────────┐
+│ May 14, 2026 · by vemoose                    │ ← byline: Inter 400, 13px, text-accent
+│ Caption text (optional — lead-in)            │ ← prose prose-sm, 14px
+│                                              │
 │ ┌────────────────┬──────────┐                │
-│ │   photo        │  photo   │                │ ← gallery leads the card
+│ │   photo        │  photo   │                │ ← gallery carries the visual weight
 │ └────────────────┴──────────┘                │
 │                                              │
-│ Caption text (optional — sits below photos)  │ ← prose prose-sm, 14px
-│                                              │
-│ May 14, 2026 · by vemoose        ✎  🗑  ↗   │ ← footer: meta left, chrome right
+│ ✎  🗑  ↗                                     │ ← footer: controls left-aligned
 └──────────────────────────────────────────────┘
 ```
 
 ```html
 <article class="post-card">          <!-- rounded-[20px], overflow-hidden, p-4 -->
-  <div class="gallery">…photos / videos…</div>
-  <div class="prose">…caption…</div>  <!-- below media; rendered only when non-empty -->
-  <footer>                            <!-- flex items-center justify-between -->
+  <header>                            <!-- mb-4, flex flex-col gap-2 -->
     <p class="meta">                  <!-- Inter 400, 13px, text-accent -->
       <time datetime="…">May 14, 2026</time> · by <strong>vemoose</strong>
     </p>
-    <div class="controls">            <!-- ghost icon buttons, gap-1 -->
-      <button>✎ edit</button>         <!-- admin only -->
-      <button>🗑 delete</button>      <!-- admin only, reserved red, confirm-gated -->
-      <a>↗ permalink</a>              <!-- everyone -->
-    </div>
+    <div class="prose">…caption…</div> <!-- rendered only when non-empty -->
+  </header>
+  <div class="gallery">…photos / videos…</div>
+  <footer>                            <!-- flex items-center gap-1; left-aligned -->
+    <button>✎ edit</button>           <!-- admin only -->
+    <button>🗑 delete</button>        <!-- admin only, reserved red, confirm-gated -->
+    <a>↗ permalink</a>                <!-- everyone -->
   </footer>
 </article>
 ```
@@ -113,13 +114,13 @@ When a post is led by a landscape (or square) first photo, that photo renders as
 
 ### Caption
 
-Captions render the post's Markdown through `prose prose-sm` (`@tailwindcss/typography`, 14px) — bigger than the footer meta, smaller than 16px body. `max-w-none` removes the plugin's default `65ch` measure so the caption fills the card width instead of wrapping early. The plugin owns caption typography; the only divergence from its defaults is the **blue caption link** (`#2563eb`), set via `--tw-prose-links` in [`globals.css`](../src/globals.css) (the plugin already underlines links).
+Captions render the post's Markdown through `prose prose-sm` (`@tailwindcss/typography`, 14px) — bigger than the byline meta, smaller than 16px body. `max-w-none` removes the plugin's default `65ch` measure so the caption fills the card width instead of wrapping early. The caption sits in the header as the lead-in beneath the byline (`flex flex-col gap-2` handles the byline↔caption spacing; the plugin zeroes the prose first-child top margin). The plugin owns caption typography; the only divergence from its defaults is the **blue caption link** (`#2563eb`), set via `--tw-prose-links` in [`globals.css`](../src/globals.css) (the plugin already underlines links).
 
-### Footer meta & controls
+### Byline meta & controls
 
-- **Date.** Full date, UTC-formatted (`May 14, 2026`) inside a `<time dateTime>`, Inter 400 / 13px / `text-accent`. UTC keeps SSR and client render identical and matches the slug's UTC basis.
+- **Date.** Full date, UTC-formatted (`May 14, 2026`) inside a `<time dateTime>`, Inter 400 / 13px / `text-accent`, leading the header byline. UTC keeps SSR and client render identical and matches the slug's UTC basis.
 - **Author.** `by <strong>name</strong>`, same size and color, separated from the date by a ` · ` middot (`aria-hidden`). Either field may be absent; the separator renders only when both date and author are present.
-- **Controls** sit at the footer's right as ghost icon buttons (`p-2`, `rounded-[10px]`, `text-accent`, `hover:bg-accent/6`, focus ring) — the same chrome language as everywhere else. Admins see **edit** (`PencilSquareIcon`) and **delete** (`TrashIcon`, `text-red-700/80` — the reserved destructive red, gated behind a `confirm()`); everyone sees the **permalink share** (`ShareIcon`). See **Permalinks → Share affordance** below.
+- **Controls** sit at the footer's **left** as ghost icon buttons (`p-2`, `rounded-[10px]`, `text-accent`, `hover:bg-accent/6`, focus ring) — the same chrome language as everywhere else. Left-aligned so the right-edge vertical timeline rail (narrow screens) never covers them. Admins see **edit** (`PencilSquareIcon`) and **delete** (`TrashIcon`, `text-red-700/80` — the reserved destructive red, gated behind a `confirm()`); everyone sees the **permalink share** (`ShareIcon`). See **Permalinks → Share affordance** below.
 
 ---
 
@@ -187,16 +188,17 @@ Destructive items (Delete, etc.) are the single allowed accent departure: muted 
 
 ---
 
-## Timeline navigation (target — pre-implementation)
+## Timeline navigation (as-built)
 
-> This section is the **build brief** for the timeline described in [`design.md`](./design.md). The _behavior_ below is settled; the exact numbers (radii, blur, tints, breakpoints, durations) are **provisional** and live in the working prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html). Treat that prototype as the reference implementation, and finalize the values here as "as-built" once the component ships in React.
+> This section describes the shipped timeline (`src/components/Timeline.tsx`), driven by the feed in `src/components/FeedClient.tsx`. It grew out of the prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html); where the two diverge, the React component is authoritative. The _behavior_ below is settled; exact numbers (radii, blur, tints, durations) live in the component.
 
 ### Surfaces & states
 
-- **Two layouts, chosen by viewport aspect:** a horizontal bar on the bottom edge when the viewport is wider than tall, a vertical rail on the right edge when taller than wide. Newest sits at the **right** (horizontal) / **top** (vertical) — consistent under a clockwise quarter-turn, so the playhead tracks scroll the same way in both.
+- **Two layouts, chosen by viewport width:** a horizontal bar on the bottom edge at the `sm` breakpoint and up (≥ 640px, `PORTRAIT_BELOW_PX`), a vertical rail on the right edge only below it. The threshold is a width, not an aspect ratio: above `sm` the header's sign-in / create-post button is right-aligned (`sm:justify-end`), and a right-edge rail would cover it; below `sm` the button re-centers, freeing the right edge. Newest sits at the **right** (horizontal) / **top** (vertical) — consistent under a clockwise quarter-turn, so the playhead tracks scroll the same way in both.
 - **Floating "liquid glass" panel:** translucent, blurred, rounded on all four corners, with a soft drop shadow. (Floating surfaces get a shadow; cards do not — consistent with the menu/popover rule above.) Radius sits between the image (12px) and card (20px) so it reads as its own floating control. It floats _over_ the photos and reserves no column; the horizontal bar reserves a little foot-room only so the last post clears it.
 - **Width (horizontal):** centered and capped so it is always narrower than the photo column at every responsive width — never edge-aligned with the photos.
-- **Expanded ↔ collapsed:** a ghost toggle minimizes the timeline to a small **read-only** pill showing just the current date (still live as you scroll). The toggle lives at the bottom-right of the timeline in both orientations, and the collapsed pill sits bottom-right with its expand control landing where the toggle was — so the control does not slip out from under the cursor when toggled. Default is **expanded** (collapsing-by-default would hurt discoverability).
+- **Expanded ↔ collapsed:** a ghost toggle (the **minimize** glyph, `ArrowsPointingInIcon`) shrinks the timeline to a small **read-only** pill that still tracks the current date as you scroll. The toggle lives at the bottom-right of the timeline in both orientations, and the collapsed pill sits bottom-right with its expand control landing where the toggle was — so the control does not slip out from under the cursor when toggled. The pill leads with a **calendar icon** (`CalendarDaysIcon`) and a "Jump through time" tooltip so it reads as a time-jump control, not just a date label, and closes with the **maximize** glyph (`ArrowsPointingOutIcon`). The minimize/maximize pair replaces the older up/down chevrons — a clearer, more discoverable signal, which matters because the timeline now starts collapsed on narrow screens (see below).
+- **Default state by layout:** **expanded** in the horizontal (landscape) layout; **collapsed** on first load in the vertical (portrait) layout, so the right-edge rail doesn't cover the photos when a phone visitor opens the page. This is applied once, on the first viewport measurement — after that the visitor owns the state and a resize never re-collapses it. The discoverability cost of starting collapsed is paid back by the calendar-iconed pill and the explicit minimize/maximize glyphs above.
 
 ### Markers (reusing the button language)
 
@@ -243,7 +245,7 @@ Lives in the **Advanced** `<details>` of the create/edit form, below the date co
 
 ### Share affordance
 
-The `PostCard` footer carries a ghost **share** icon (`ShareIcon`, heroicons 24/outline) linking to `/p/<slug>` — same ghost treatment as the other footer chrome (transparent, `text-accent`, `hover:bg-accent/6`, focus ring). Visible to everyone (admins also get edit/delete to its left), it's the discoverable way to grab a post's stable link. See **Post card layout → Footer meta & controls**.
+The `PostCard` footer carries a ghost **share** icon (`ShareIcon`, heroicons 24/outline) linking to `/p/<slug>` — same ghost treatment as the other footer chrome (transparent, `text-accent`, `hover:bg-accent/6`, focus ring). Visible to everyone (admins also get edit/delete to its left), it's the discoverable way to grab a post's stable link. See **Post card layout → Byline meta & controls**.
 
 ---
 
