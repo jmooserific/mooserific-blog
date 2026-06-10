@@ -57,13 +57,18 @@ The moose watercolor used as the site's mascot is a warm brown palette. Umber fo
 
 | Element         | Value                                            |
 |-----------------|--------------------------------------------------|
-| Container width | `max-w-4xl` (~900px), `mx-auto px-4 sm:px-6`     |
+| Container width | `max-w-6xl` (~1152px), `mx-auto px-4 sm:px-6`    |
 | Card wrapper    | `bg-white rounded-[20px] mb-8` — flat, no shadow |
 | Card radius     | **20px** (`rounded-[20px]`)                      |
 | Gallery image   | **12px** (`rounded-xl`)                          |
 | Footer          | `text-center text-sm text-accent py-6`           |
 
-The 20px card radius and the 12px image radius echo each other — the interior gallery language nested inside the card.
+The 20px card radius and the 12px image radius echo each other — the interior gallery language nested inside the card. The one exception is the full-bleed **hero** image, which carries no radius of its own: it runs to the card edges and lets the card's clipped corners do the rounding (see _Hero_ below).
+
+Two structural notes on the card wrapper:
+
+- Padding lives on the card's _sections_ (`px-4` on the header, the rows wrapper, and the footer), not on the wrapper itself — that's what lets the hero bleed edge-to-edge between the padded bands.
+- The wrapper clips with `overflow-clip`, **not** `overflow-hidden`: hidden would make the card a scroll container, which would hijack the hero reveal's `view()` timeline (see _Hero_ below).
 
 ---
 
@@ -87,15 +92,16 @@ The card is **photos-forward**: a quiet byline and the caption lead in as a comp
 ```
 
 ```html
-<article class="post-card">          <!-- rounded-[20px], overflow-hidden, p-4 -->
-  <header>                            <!-- mb-4, flex flex-col gap-2 -->
+<article class="post-card">          <!-- rounded-[20px], overflow-clip; no padding of its own -->
+  <header>                            <!-- px-4 pt-4 pb-4, flex flex-col gap-2 -->
     <p class="meta">                  <!-- Inter 400, 13px, text-accent -->
       <time datetime="…">May 14, 2026</time> · by <strong>vemoose</strong>
     </p>
     <div class="prose">…caption…</div> <!-- rendered only when non-empty -->
   </header>
-  <div class="gallery">…photos / videos…</div>
-  <footer>                            <!-- flex items-center gap-1; left-aligned -->
+  <button class="hero">…hero photo…</button> <!-- hero posts only: full-bleed, no inset/radius -->
+  <div class="gallery">…photos / videos…</div> <!-- px-4 inset rows -->
+  <footer>                            <!-- px-4 pt-4 pb-4, flex items-center gap-1; left-aligned -->
     <button>✎ edit</button>           <!-- admin only -->
     <button>🗑 delete</button>        <!-- admin only, reserved red, confirm-gated -->
     <a>↗ permalink</a>                <!-- everyone -->
@@ -103,13 +109,15 @@ The card is **photos-forward**: a quiet byline and the caption lead in as a comp
 </article>
 ```
 
-### Hero (first photo breaks the reading column)
+### Hero (first photo bleeds edge-to-edge)
 
-When a post is led by a landscape (or square) first photo, that photo renders as a wide **hero** instead of joining the justified rows — letting the photography breathe past the reading column. The card itself widens from `max-w-4xl` to `max-w-6xl` (~1152px) for hero posts; normal posts stay in the reading column, so the feed track is sized for the widest card and each card centers at its own width.
+When a post is led by a landscape (or square) first photo, that photo renders as a full-bleed **hero**: it spans the card edge-to-edge with no inset and no radius of its own — the padded byline header above and footer below keep it off the rounded card corners, and the card's `overflow-clip` guards the rest. Every post card shares the same `max-w-6xl` (~1152px) width — a width split between hero and normal posts read as a bug, not emphasis — so the hero's emphasis comes entirely from the bleed: inset 12px-radius tiles for rows, edge-to-edge for the hero. The site header tracks the same width so the title aligns with the card edges.
 
 - **When a hero applies.** First photo is landscape/square (`width >= height`) **and** the post has 1 or 3+ photos. A 2-photo post stays a balanced pair; a portrait-led or video-only post keeps the rows. See [`heroLayout.ts`](../src/utils/heroLayout.ts).
-- **Sizing.** The hero respects the photo's real aspect ratio (no destructive crop — faces matter) with a `max-h-[85vh]` safety cap; `object-cover` only engages on the rare clamp. It's the LCP image on above-fold posts (`priority`/`eager`), so the rows beneath it never get eager loading.
-- **Remaining photos.** Photos after the first render in the usual rows beneath the hero, at the wider container width. The hero stays index 0 in the lightbox.
+- **Sizing.** The hero respects the photo's real aspect ratio (no destructive crop — faces matter) with a `max-h-[85vh]` safety cap; `object-cover` only engages on the rare clamp, where it now crops symmetrically _at_ the card edges. `sizes` is `(max-width: 1152px) 100vw, 1152px` (full card width). It's the LCP image on above-fold posts (`priority`/`eager`), so the rows beneath it never get eager loading.
+- **Mobile viewport bleed.** Below `sm`, a hero card escapes the feed's `px-4` gutter to the full viewport width (`max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none` — negative margins rather than `100vw`, so the scrollbar gutter can never cause horizontal overflow). The card's padded sections widen to `px-8` below `sm` so its text stays on the same 32px-from-edge rhythm as in-gutter cards.
+- **Scroll reveal.** The hero wrapper carries `.hero-reveal` ([`globals.css`](../src/globals.css)): a CSS scroll-driven animation (`animation-timeline: view()`, range `entry 0%` → `entry 60%`) that settles the photo from 96.5% scale / 0.92 opacity to full as it enters the viewport, `transform-origin` bottom-center. Pure progressive enhancement — gated behind `@supports` and `prefers-reduced-motion: no-preference`; Safari and reduced-motion users get the final state. Transform/opacity only, so zero CLS. It animates the hero, not the card, so the byline never wobbles.
+- **Remaining photos.** Photos after the first render in the usual inset rows beneath the hero. The hero stays index 0 in the lightbox.
 - **Videos.** No poster images exist yet, so a video-led post never heroes — tracked as a TODO in [`PostCard.tsx`](../src/components/PostCard.tsx).
 
 ### Caption
@@ -218,7 +226,7 @@ Destructive items (Delete, etc.) are the single allowed accent departure: muted 
 
 ### Seams (not the timeline's own job)
 
-- **Photo-first feed** (full-bleed heroes, date-as-divider): a separate workstream — the timeline drops onto the current feed and does not require it.
+- **Photo-first feed** (full-bleed heroes, date-as-divider): a separate workstream — the timeline drops onto the current feed and does not require it. Full-bleed card heroes have since landed (see _Post card layout → Hero_); date-as-divider remains open.
 - **URL / permalinks:** build so the playhead can read and write a canonical URL; ship on scroll-position first, wire URL sync when permalinks land. Per-post permalinks have landed (see _Permalinks_ below); the timeline's _position_ URL is a separate concern from a post's canonical address.
 
 ---

@@ -13,3 +13,37 @@
 .prose {
   --tw-prose-links: #2563eb; /* blue-600 */
 }
+
+/* Hero photo scroll reveal — progressive enhancement only. Browsers without
+   scroll-driven animations (Safari) and reduced-motion users get the final
+   state. Transform/opacity only: no layout, no CLS. The entry range means an
+   element mounted already in view resolves to progress 100% — no flash from
+   above-the-fold heroes or Virtuoso remounts. NOTE: requires no
+   overflow-hidden ancestors (they'd become the view() scrollport) — the post
+   card uses overflow-clip for this reason. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    /* Longhands only — Lightning CSS folds `animation-timeline` into an
+       `animation` shorthand, which is invalid (the shorthand can't set it)
+       and makes browsers drop the whole declaration. */
+    .hero-reveal {
+      animation-name: hero-reveal;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+      transform-origin: 50% 100%;
+    }
+  }
+}
+
+@keyframes hero-reveal {
+  from {
+    transform: scale(0.965);
+    opacity: 0.92;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

@@ -136,9 +136,8 @@ export function FeedClient({ index, firstBatch, isAdmin, timelineModel }: FeedCl
   );
 }
 
-// The track is sized for the widest card (hero posts at max-w-6xl). Each card
-// then picks its own width: normal posts stay in the max-w-4xl reading column,
-// hero posts break out to the full track width.
+// The track matches the cards: every post renders at max-w-6xl (hero posts
+// additionally bleed to the viewport edge below `sm`).
 const FeedList = ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...props} className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-28">
     {children}
@@ -150,7 +149,7 @@ FeedList.displayName = 'FeedList';
 // arrive. Mirrors the card's shape: byline + caption lead-in, then a photo block.
 function PostSkeleton() {
   return (
-    <div className="relative mx-auto w-full max-w-4xl overflow-hidden bg-white rounded-[20px] mb-8 p-4" aria-hidden="true">
+    <div className="relative mx-auto w-full max-w-6xl overflow-hidden bg-white rounded-[20px] mb-8 p-4" aria-hidden="true">
       <div className="h-3.5 w-40 rounded bg-gray-100 mb-3" />
       <div className="h-4 w-3/4 rounded bg-gray-100 mb-2" />
       <div className="h-4 w-1/2 rounded bg-gray-100 mb-4" />
