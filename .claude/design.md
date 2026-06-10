@@ -13,7 +13,7 @@ We want something that feels calm, personal, and clutter-free — like a digital
 
 ### 🏠 Homepage (`/`)
 
-* **Centered, single-column reading layout** at a comfortable, book-like width
+* **Centered, single-column layout** wide enough for the photography to breathe — the photos, not a book-like text measure, set the column width (the caption and byline simply share it)
 * **Each post**:
 
   * Flat, shadow-free card-style container with generously rounded corners

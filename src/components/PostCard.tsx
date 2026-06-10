@@ -53,8 +53,7 @@ import { shouldLeadWithHero } from "@/utils/heroLayout";
   return `/${value.replace(/^\/+/, '')}`;
  };
 
-const DEFAULT_CONTAINER_WIDTH = 864; // matches max-w-4xl wrapper minus card padding
-const HERO_CONTAINER_WIDTH = 1120; // matches the wider max-w-6xl hero card minus card padding
+const CONTAINER_WIDTH = 1120; // max-w-6xl card minus the px-4 inset on the gallery rows
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -99,10 +98,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
    const heroPhoto = useHero ? photos[0] : null;
    const albumPhotos = useHero ? photos.slice(1) : photos;
    const albumOffset = useHero ? 1 : 0;
-   const containerWidth = useHero ? HERO_CONTAINER_WIDTH : DEFAULT_CONTAINER_WIDTH;
    // The hero is the LCP image on hero posts, so the rows beneath it never get
    // eager/priority loading even above the fold.
    const albumPriority = isAboveFold && !useHero;
+   // Hero cards bleed to the viewport edge below `sm`, so their padded sections
+   // widen to px-8 to keep text aligned with the in-gutter cards (16px gutter +
+   // 16px padding = 32px from the viewport edge either way).
+   const insetPad = useHero ? "px-4 max-sm:px-8" : "px-4";
 
    // Custom renderPhoto for Next.js Image so SSR markup matches hydration.
   const renderPhoto = ({ alt = "", title, sizes }: RenderImageProps,
@@ -138,121 +140,125 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
    const yearText = isValidDate ? parsedDate.getUTCFullYear() : null;
    const fullDate = isValidDate ? `${monthName} ${dayNumeral}, ${yearText}` : post.date;
 
+   // overflow-clip (not -hidden): hidden would make the card a scroll container
+   // and hijack the hero-reveal view() timeline. Below `sm` a hero card escapes
+   // the feed's px-4 gutter to the viewport edge — w-[calc(100%+2rem)] pairs
+   // with -mx-4, and no stock utility expresses that gutter escape.
    return (
-     <article className={`relative mx-auto w-full overflow-hidden bg-white rounded-[20px] mb-8 ${useHero ? 'max-w-6xl' : 'max-w-4xl'}`}>
-       <div className="p-4">
-         {/* Quiet byline + caption lead-in above the photos. Kept compact so the
-             gallery stays the dominant mass (photos-forward); the Timeline still
-             carries the live "when am I" wayfinding. */}
-         <header className="mb-4 flex flex-col gap-2">
-           <p className="text-[13px] text-accent">
-             {isValidDate && <time dateTime={post.date}>{fullDate}</time>}
-             {post.author && (
-               <>
-                 {isValidDate && <span aria-hidden="true"> · </span>}
-                 by <strong>{post.author}</strong>
-               </>
-             )}
-           </p>
-           {post.caption && (
-             <div className="prose prose-sm max-w-none">
-               <Markdown>{post.caption}</Markdown>
-             </div>
-           )}
-         </header>
-         <div>
-           {heroPhoto && (
-             <button
-               type="button"
-               onClick={() => setIndex(0)}
-               aria-label="Open photo"
-               className="relative block w-full cursor-pointer overflow-hidden rounded-xl p-0"
-               style={{ aspectRatio: `${heroPhoto.width} / ${heroPhoto.height}`, maxHeight: "85vh" }}
-             >
-               <Image
-                 loader={r2ImageLoader}
-                 fill
-                 src={heroPhoto.src}
-                 alt={heroPhoto.alt}
-                 sizes="(max-width: 1152px) 100vw, 1120px"
-                 priority={isAboveFold}
-                 loading={isAboveFold ? "eager" : "lazy"}
-                 className="object-cover"
-               />
-             </button>
-           )}
-           {albumPhotos.length > 0 && (
-             <div className={heroPhoto ? "mt-3" : undefined}>
-               <RowsPhotoAlbum
-                 rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
-                 photos={albumPhotos}
-                 defaultContainerWidth={containerWidth}
-                 onClick={({ index }) => setIndex(index + albumOffset)}
-                 render={{ image: renderPhoto }}
-               />
-             </div>
-           )}
-           <Lightbox
-             slides={lightboxSlides}
-             open={index >= 0}
-             index={index}
-             close={() => setIndex(-1)}
-           />
-           {/* TODO: generate poster/preview images for videos so a video-led
-               post can lead with a hero (and so videos don't render posterless).
-               Until then, posts with no photos never get the hero treatment. */}
-           {Array.isArray(post.videos) && post.videos.length > 0 && (
-             <div className="mt-4 flex flex-col gap-4">
-               {post.videos.map((video: string) => (
-                 <video
-                   key={video}
-                   controls
-                   className="w-full rounded-xl bg-black"
-                   style={{ maxHeight: 400 }}
-                 >
-                   <source src={resolveMediaSrc(video)} />
-                   Your browser does not support the video tag.
-                 </video>
-               ))}
-             </div>
-           )}
-         </div>
-         {/* Actions sit at the footer's left, clear of the right-edge vertical
-             timeline rail on narrow screens. */}
-         <footer className="mt-4 flex items-center gap-1">
-           {isAdmin && (
+     <article className={`relative mx-auto w-full max-w-6xl overflow-clip bg-white rounded-[20px] mb-8 ${useHero ? 'max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none' : ''}`}>
+       {/* Quiet byline + caption lead-in above the photos. Kept compact so the
+           gallery stays the dominant mass (photos-forward); the Timeline still
+           carries the live "when am I" wayfinding. */}
+       <header className={`flex flex-col gap-2 pt-4 pb-4 ${insetPad}`}>
+         <p className="text-[13px] text-accent">
+           {isValidDate && <time dateTime={post.date}>{fullDate}</time>}
+           {post.author && (
              <>
-               <button
-                 type="button"
-                 onClick={() => router.push(`/admin?edit=${encodeURIComponent(post.id)}`)}
-                 aria-label="Edit this post"
-                 title="Edit this post"
-                 className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-               >
-                 <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
-               </button>
-               <button
-                 type="button"
-                 onClick={handleDelete}
-                 disabled={deleting}
-                 aria-label="Delete this post"
-                 title="Delete this post"
-                 className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2 disabled:opacity-50"
-               >
-                 <TrashIcon className="h-4 w-4" aria-hidden="true" />
-               </button>
+               {isValidDate && <span aria-hidden="true"> · </span>}
+               by <strong>{post.author}</strong>
              </>
            )}
-           <Link
-             href={`/p/${post.slug}`}
-             aria-label="Permalink to this post"
-             title="Permalink to this post"
-             className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-           >
-             <ShareIcon className="h-4 w-4" aria-hidden="true" />
-           </Link>
-         </footer>
+         </p>
+         {post.caption && (
+           <div className="prose prose-sm max-w-none">
+             <Markdown>{post.caption}</Markdown>
+           </div>
+         )}
+       </header>
+       {/* The hero bleeds to the card edges: no inset, no radius of its own —
+           the padded header/footer keep it off the rounded card corners. */}
+       {heroPhoto && (
+         <button
+           type="button"
+           onClick={() => setIndex(0)}
+           aria-label="Open photo"
+           className="hero-reveal relative block w-full cursor-pointer overflow-hidden p-0"
+           style={{ aspectRatio: `${heroPhoto.width} / ${heroPhoto.height}`, maxHeight: "85vh" }}
+         >
+           <Image
+             loader={r2ImageLoader}
+             fill
+             src={heroPhoto.src}
+             alt={heroPhoto.alt}
+             sizes="(max-width: 1152px) 100vw, 1152px"
+             priority={isAboveFold}
+             loading={isAboveFold ? "eager" : "lazy"}
+             className="object-cover"
+           />
+         </button>
+       )}
+       <div className={insetPad}>
+         {albumPhotos.length > 0 && (
+           <div className={heroPhoto ? "pt-3" : undefined}>
+             <RowsPhotoAlbum
+               rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
+               photos={albumPhotos}
+               defaultContainerWidth={CONTAINER_WIDTH}
+               onClick={({ index }) => setIndex(index + albumOffset)}
+               render={{ image: renderPhoto }}
+             />
+           </div>
+         )}
+         <Lightbox
+           slides={lightboxSlides}
+           open={index >= 0}
+           index={index}
+           close={() => setIndex(-1)}
+         />
+         {/* TODO: generate poster/preview images for videos so a video-led
+             post can lead with a hero (and so videos don't render posterless).
+             Until then, posts with no photos never get the hero treatment. */}
+         {Array.isArray(post.videos) && post.videos.length > 0 && (
+           <div className="mt-4 flex flex-col gap-4">
+             {post.videos.map((video: string) => (
+               <video
+                 key={video}
+                 controls
+                 className="w-full rounded-xl bg-black"
+                 style={{ maxHeight: 400 }}
+               >
+                 <source src={resolveMediaSrc(video)} />
+                 Your browser does not support the video tag.
+               </video>
+             ))}
+           </div>
+         )}
        </div>
+       {/* Actions sit at the footer's left, clear of the right-edge vertical
+           timeline rail on narrow screens. */}
+       <footer className={`flex items-center gap-1 pt-4 pb-4 ${insetPad}`}>
+         {isAdmin && (
+           <>
+             <button
+               type="button"
+               onClick={() => router.push(`/admin?edit=${encodeURIComponent(post.id)}`)}
+               aria-label="Edit this post"
+               title="Edit this post"
+               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+             >
+               <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+             </button>
+             <button
+               type="button"
+               onClick={handleDelete}
+               disabled={deleting}
+               aria-label="Delete this post"
+               title="Delete this post"
+               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2 disabled:opacity-50"
+             >
+               <TrashIcon className="h-4 w-4" aria-hidden="true" />
+             </button>
+           </>
+         )}
+         <Link
+           href={`/p/${post.slug}`}
+           aria-label="Permalink to this post"
+           title="Permalink to this post"
+           className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+         >
+           <ShareIcon className="h-4 w-4" aria-hidden="true" />
+         </Link>
+       </footer>
      </article>
    );
  };
