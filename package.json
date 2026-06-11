@@ -27,7 +27,7 @@
     "react-photo-album": "^3.1.0",
     "react-virtuoso": "^4.18.7",
     "server-only": "^0.0.1",
-    "sharp": "^0.35.0",
+    "sharp": "^0.35.1",
     "sonner": "^2.0.7",
     "tailwindcss": "latest",
     "yet-another-react-lightbox": "^3.32.0",
