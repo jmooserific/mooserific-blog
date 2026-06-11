@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // sharp's libvips shared library (@img/sharp-libvips-*) is loaded by the OS dynamic
+  // linker, not require(), so file tracing misses it and the deployed function fails
+  // with ERR_DLOPEN_FAILED. Force-include it for the route that uses sharp.
+  outputFileTracingIncludes: {
+    '/api/media/process': ['./node_modules/@img/sharp-libvips-*/**/*'],
+  },
   images: {
     loader: 'custom',
     loaderFile: './src/lib/image-loader.ts',
