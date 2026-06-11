@@ -9,10 +9,11 @@ A private, family-friendly blog for sharing photos and videos. Upload memories, 
 ## What it does
 
 - **Photo & video posts** — drop in up to 20 photos or videos per post, with an optional description
-- **Beautiful photo grids** — responsive layouts with a full-screen lightbox for browsing
+- **Photos-forward feed** — each post leads with its photos: the first can run full-width as a hero, the rest flow into tidy rows, and the date and author stay quiet overhead so the photography carries the page
+- **Full-screen lightbox** — click any photo to open a slideshow of that post's images in high resolution
 - **Video playback** — MP4s play right in the feed
 - **Fast image loading** — photos are automatically optimized on upload for quick loading on any device
-- **Date filtering** — browse by month or jump to a specific date
+- **Timeline navigation** — an always-present time map along the edge of the page shows where you are as you scroll, reveals the busy and quiet stretches of the archive, and lets you click, drag, or use the keyboard to jump to any point in time — minimizing out of the way on phones
 - **Admin UI** — drag-and-drop post creation, only accessible to you
 
 ## Getting started
