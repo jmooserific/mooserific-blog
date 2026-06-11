@@ -3,9 +3,10 @@ name: security-reviewer
 description: >-
   Project-tuned security reviewer for mooserific-blog. Use proactively after
   changes to auth/session code, R2 upload/presign routes, D1 queries, API route
-  handlers, or anything handling external input. Audits against this codebase's
-  specific surfaces (HMAC sessions, presigned R2 keys, parameterized D1, Zod
-  boundaries) and reports findings — it does not edit code.
+  handlers, dependency changes (package.json / package-lock.json), or anything
+  handling external input. Audits against this codebase's specific surfaces
+  (HMAC sessions, presigned R2 keys, parameterized D1, Zod boundaries) and
+  reports findings — it does not edit code.
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
@@ -79,6 +80,18 @@ cookie. When auth code changes, verify:
 - User-generated content (post `description`, rendered via `react-markdown`) must
   not reach `dangerouslySetInnerHTML` unsanitized. Verify markdown rendering
   disables raw HTML or sanitizes it.
+
+### 6. Dependency changes — `package.json` / `package-lock.json`
+Check `git diff --merge-base main --name-only` for these files (the default
+diff command above excludes them). When either changed:
+- Run `npm audit --audit-level=high` and report anything it finds.
+- For each **newly added** dependency: check the name character-by-character
+  against the well-known package it resembles (typosquatting), read its
+  `package.json` in `node_modules` for `preinstall`/`postinstall`/`install`
+  scripts, and question whether it's needed at all — this project prefers
+  native `fetch` and few dependencies.
+- Flag version specs loosened to `latest`, `*`, or a git/tarball URL, and any
+  removal of an entry from `overrides`.
 
 ## Cross-cutting checks
 - Secrets only from `env()`; never hardcoded, logged, or sent to the client.
