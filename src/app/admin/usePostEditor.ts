@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { UploadItem } from "./types";
 import { slugFromDate } from "@/utils/slug";
 import { withRetry } from "@/lib/retry";
-import { fetchJson, uploadPendingItems } from "@/lib/media-upload";
+import { errorMessageFromResponse, fetchJson, uploadPendingItems } from "@/lib/media-upload";
 
 // --- Pure utilities ---
 
@@ -190,8 +190,7 @@ export function usePostEditor(): PostEditorState {
         return;
       }
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Failed to load post");
+        throw new Error(await errorMessageFromResponse(res));
       }
       const post = await res.json() as PostApiResponse;
       const fetched: UploadItem[] = [];

@@ -53,12 +53,26 @@ export function putWithProgress(
   });
 }
 
+/**
+ * Derive a human-readable message from a failed API response. Our routes return
+ * `{ error: string }` JSON; anything else (e.g. the HTML error page Next serves when
+ * the server crashes before the handler runs) is summarized by status code rather
+ * than dumped raw into the UI.
+ */
+export async function errorMessageFromResponse(res: Response): Promise<string> {
+  const contentType = res.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    const body = (await res.json().catch(() => undefined)) as { error?: unknown } | undefined;
+    if (body && typeof body.error === 'string' && body.error) return body.error;
+  }
+  return `Request failed (${res.status})`;
+}
+
 /** POST/GET JSON to one of our API routes, classifying failures for {@link withRetry}. */
 export async function fetchJson<T>(url: string, init: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    const message = text || `Request failed (${res.status})`;
+    const message = await errorMessageFromResponse(res);
     throw isRetryableStatus(res.status) ? new RetryableError(message) : new NonRetryableError(message);
   }
   return res.json() as Promise<T>;

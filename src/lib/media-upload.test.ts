@@ -36,7 +36,24 @@ function fakeFile(name: string, type: string): File {
 
 function jsonResponse(data: unknown, init: { ok?: boolean; status?: number } = {}) {
   const { ok = true, status = 200 } = init;
-  return { ok, status, json: async () => data, text: async () => JSON.stringify(data) } as Response;
+  return {
+    ok,
+    status,
+    headers: new Headers({ 'content-type': 'application/json' }),
+    json: async () => data,
+    text: async () => JSON.stringify(data),
+  } as Response;
+}
+
+function htmlResponse(html: string, init: { status?: number } = {}) {
+  const { status = 500 } = init;
+  return {
+    ok: false,
+    status,
+    headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
+    json: async () => { throw new SyntaxError('not JSON'); },
+    text: async () => html,
+  } as unknown as Response;
 }
 
 const PRESIGN = '/api/media/presign';
@@ -117,6 +134,21 @@ describe('fetchJson', () => {
   it('throws a NonRetryableError on a 4xx', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({}, { ok: false, status: 400 }));
     await expect(fetchJson('/x', { method: 'GET' })).rejects.toBeInstanceOf(NonRetryableError);
+  });
+
+  it('uses the error field from a JSON error body as the message', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'Image too large' }, { ok: false, status: 413 }));
+    await expect(fetchJson('/x', { method: 'POST' })).rejects.toThrow('Image too large');
+  });
+
+  it('summarizes a non-JSON error body by status instead of surfacing it raw', async () => {
+    fetchMock.mockResolvedValueOnce(htmlResponse('<!DOCTYPE html><html><title>500</title></html>'));
+    await expect(fetchJson('/x', { method: 'POST' })).rejects.toThrow('Request failed (500)');
+  });
+
+  it('falls back to the status summary when a JSON error body has no error field', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: 'nope' }, { ok: false, status: 502 }));
+    await expect(fetchJson('/x', { method: 'GET' })).rejects.toThrow('Request failed (502)');
   });
 });
 
