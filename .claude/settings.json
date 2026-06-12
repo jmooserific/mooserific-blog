@@ -41,6 +41,12 @@
             "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.ts|*.tsx) out=$(cd \"${CLAUDE_PROJECT_DIR:-.}\" && npx tsc --noEmit 2>&1); if [ $? -ne 0 ]; then jq -n --arg r \"$out\" '{decision:\"block\",reason:(\"tsc --noEmit reported type errors after the edit:\\n\"+$r)}'; fi;; esac",
             "statusMessage": "Type-checking (tsc --noEmit)",
             "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.ts|*.tsx) out=$(cd \"${CLAUDE_PROJECT_DIR:-.}\" && npx vitest related --run --passWithNoTests \"$f\" 2>&1); if [ $? -ne 0 ]; then jq -n --arg r \"$out\" '{decision:\"block\",reason:(\"Vitest tests related to this file failed after the edit:\\n\"+$r)}'; fi;; esac",
+            "statusMessage": "Running related Vitest tests",
+            "timeout": 120
           }
         ]
       }
