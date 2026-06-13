@@ -138,21 +138,39 @@ Two treatments: a default **ghost** treatment that covers all chrome, and a sing
 
 ### Ghost (default)
 
-No fill, no visible border, Umber foreground, Umber-wash hover. Include a transparent 1px border so the hover wash doesn't shift surrounding layout.
+No fill, Umber foreground, Umber-wash hover. The resting state carries a **non-color affordance signal** so a ghost control reads as interactive without leaning on hover or cursor — neither of which exists on touch (see _Affordance contract_ below):
 
-Applies to: Create Post, Sign In (header icon), filter icon, pagination, Back to site, Sign out — and any future button that isn't a form submit.
+- **Icon controls** carry a faint resting hairline (`border-accent/15` — the same Umber/15 used on menu panels and the slug field). It defines the tap target and reads as "control," not "decoration"; the hover wash still lifts it. Destructive icon buttons use a matching red hairline (`border-red-700/20`).
+- **Text controls** (the "Back to …" links, Sign out) carry an **underline** at rest (1px, `decoration-accent/15`, `underline-offset: 3px`, darkening to full Umber on hover) — reusing the blue caption-link vocabulary readers already know: underlined = goes somewhere. Destructive text uses a red underline (`decoration-red-700/20`).
+
+Applies to: Create Post, Sign In (header icon), the post-card footer controls (edit / delete / share), Back to posts/site, Sign out — and any future button that isn't a form submit.
 
 ```css
 background: transparent;
-border: 1px solid transparent;
+border: 1px solid rgba(132, 90, 44, 0.15);  /* Umber/15 — icon controls; red-700/20 for destructive */
 color: #845A2C;                  /* Umber */
 border-radius: 10px;
 padding: 8px (icon) or 8px 20px (text);
 font-size: 14px;
 font-weight: 500;
+/* text controls additionally: */
+text-decoration: underline;
+text-decoration-thickness: 1px;
+text-underline-offset: 3px;
+text-decoration-color: rgba(132, 90, 44, 0.15);  /* → full Umber on hover */
 ```
 
-Hover adds a `rgba(132, 90, 44, 0.06)` wash. Focus ring uses Umber at 2px with a 2px offset. Square icon variants (Create Post, Sign In, filter trigger) keep the same styling with `padding: 8px` and a 20px icon — no explicit width/height.
+Hover adds a `rgba(132, 90, 44, 0.06)` wash (and darkens a text control's underline to full Umber). Focus ring uses Umber at 2px with a 2px offset. Square icon variants (Create Post, Sign In) keep the same styling with `padding: 8px` and a 20px icon — no explicit width/height.
+
+#### Affordance contract
+
+Umber does double duty — it's the color of both static meta you _read_ (date, author, footer) and chrome you _click_. To keep the two legible apart **without a second hue** (the photos carry the color; the hue budget is already spent on blue links and reserved red), interactivity is signalled by **shape, not color**:
+
+> **Static umber = bare text. Interactive umber = a chip (icon controls) or an underline (text controls).**
+
+The byline date and author stay flush text with no padding box; a share/edit control sits in a hairlined chip on the same line. The distinction survives touch, where hover and cursor don't.
+
+**Scope.** The resting hairline/underline is for ghost controls that sit _among static content_ on reading and navigation surfaces. Controls inside an already-interactive floating surface keep a transparent resting border, because the surface itself signals "you can act here": **menu/popover items** (the panel's Umber/15 border does the work — see _Menus & popovers_) and the **floating timeline controls** (the liquid-glass panel; see _Timeline navigation_).
 
 ### Primary
 

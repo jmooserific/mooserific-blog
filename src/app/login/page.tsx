@@ -88,7 +88,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="mt-6 text-center">
           <Link
             href="/"
-            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-accent underline underline-offset-[3px] decoration-1 decoration-accent/15 transition-colors hover:bg-accent/6 hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
           >
             ← Back to site
           </Link>

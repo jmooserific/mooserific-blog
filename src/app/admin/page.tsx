@@ -26,7 +26,7 @@ function AdminPageInner() {
       <nav className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 self-start rounded-[10px] border border-transparent bg-transparent px-2 py-1.5 text-sm text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+          className="inline-flex items-center gap-1 self-start rounded-[10px] border border-transparent bg-transparent px-2 py-1.5 text-sm text-accent underline underline-offset-[3px] decoration-1 decoration-accent/15 transition-colors hover:bg-accent/6 hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
         >
           <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
           <span>Back to posts</span>
@@ -34,7 +34,7 @@ function AdminPageInner() {
         <form action="/api/auth/logout?redirect=/" method="post" className="self-start sm:self-auto">
           <button
             type="submit"
-            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-red-700/80 underline underline-offset-[3px] decoration-1 decoration-red-700/20 transition-colors hover:bg-red-900/6 hover:decoration-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
           >
             Sign out
           </button>

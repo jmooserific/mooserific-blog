@@ -7,7 +7,7 @@ A running list of places where the **current design** and the **stated intent** 
 
 Intent, in one line: _a calm, photo-first digital family album, optimized for photo viewing and longevity._ Each item below is scored against that.
 
-Work through them in roughly this order — the first three are structural; the last two are smaller. **Items 1, 2, and 3 shipped (2026-06)** (photo-first card, hero breakout, permalinks). The next live item is **#4 (affordance signal)**.
+Work through them in roughly this order — the first three are structural; the last two are smaller. **Items 1, 2, 3, and 4 shipped (2026-06)** (photo-first card, hero breakout, permalinks, affordance signal). The next live item is **#5 (Sacramento longevity)** — low urgency, revisit only on an identity refresh.
 
 ---
 
@@ -38,11 +38,13 @@ Work through them in roughly this order — the first three are structural; the 
 - **Priority raised (2026-05).** The timeline makes a scrubbable *position* in the archive a first-class thing, which makes addressable URLs **more** important, not less. The timeline is being built to read and write a canonical URL once one exists — so this is now the gating dependency for sharing a moment in time, and the natural seam where permalinks plug in.
 - **Resolved (2026-06).** Each post now has a stable canonical URL at `/p/[slug]` ([`../src/app/p/[slug]/page.tsx`](../src/app/p/[slug]/page.tsx)) alongside the paginated/timeline home, so individual moments are durably bookmarkable and shareable. Browsing and permanence are now separate, complementary affordances.
 
-## 4. Umber signals both static text and interactive chrome
+## 4. Umber signals both static text and interactive chrome ✅ Resolved (2026-06)
 
-- [ ] **Tension.** Umber is used for static meta (date, author, footer) *and* all interactive ghost chrome (buttons, filter, pagination). No color cue distinguishes "umber text you read" from "umber control you click." Caption links sidestep this by staying blue; the chrome doesn't.
+- [x] **Tension.** Umber is used for static meta (date, author, footer) *and* all interactive ghost chrome (buttons, filter, pagination). No color cue distinguishes "umber text you read" from "umber control you click." Caption links sidestep this by staying blue; the chrome doesn't.
 - **Why it matters.** Affordance rests entirely on hover wash + cursor, which don't exist on touch.
 - **Direction to explore.** Document/strengthen a non-color interactivity signal (icon shape, consistent control padding, underline-on-interactive), or reserve a state for "this is clickable."
+- **Considered & rejected: a second color.** Recoloring interactive umber would fight the core intent ("let the photos carry the color"), spend a hue budget already taken by blue links + reserved red, and wouldn't even disambiguate a control sitting one line below same-colored meta. The system's own Timeline ruling already settled this: never a new colored hue. So the fix is a **non-color** signal.
+- **Resolved (2026-06).** Affordance now rests on **shape, not color**, under one contract: _static umber = bare text; interactive umber = a chip (icon controls) or an underline (text controls)._ Icon ghost buttons (post-card edit/delete/share, header Sign in / Create post) gained a faint resting hairline (`border-accent/15`, red-700/20 for destructive); text controls ("Back to posts/site", "Sign out") gained an underline (`decoration-accent/15`, → full Umber on hover, echoing the blue caption links). The signal survives touch, where hover/cursor don't. Menu/popover items and the floating timeline controls are deliberately excluded — their surrounding surface already signals interactivity. Prototype at [`../prototypes/affordance.html`](../prototypes/affordance.html) (toggle "touch mode" to see the resting state); contract documented in [`design-system.md`](./design-system.md) *Buttons → Ghost → Affordance contract*.
 
 ## 5. Sacramento is the one element likely to date
 

@@ -246,7 +246,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                onClick={() => router.push(`/admin?edit=${encodeURIComponent(post.id)}`)}
                aria-label="Edit this post"
                title="Edit this post"
-               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+               className="inline-flex items-center justify-center rounded-[10px] border border-accent/15 bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
              >
                <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
              </button>
@@ -256,7 +256,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                disabled={deleting}
                aria-label="Delete this post"
                title="Delete this post"
-               className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2 disabled:opacity-50"
+               className="inline-flex items-center justify-center rounded-[10px] border border-red-700/20 bg-transparent p-2 text-red-700/80 transition-colors hover:bg-red-900/6 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2 disabled:opacity-50"
              >
                <TrashIcon className="h-4 w-4" aria-hidden="true" />
              </button>
@@ -266,7 +266,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
            href={`/p/${post.slug}`}
            aria-label="Permalink to this post"
            title="Permalink to this post"
-           className="inline-flex items-center justify-center rounded-[10px] border border-transparent bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+           className="inline-flex items-center justify-center rounded-[10px] border border-accent/15 bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
          >
            <ShareIcon className="h-4 w-4" aria-hidden="true" />
          </Link>
