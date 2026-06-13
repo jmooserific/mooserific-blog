@@ -290,7 +290,10 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
         onMouseLeave={() => setHover(null)}
         onClick={onClick}
         className={`absolute cursor-pointer outline-none ${
-          portrait ? 'inset-x-0 top-7 bottom-7' : 'inset-y-0 left-7 right-7'
+          // Extra inset on the button's side (bottom in portrait, right in
+          // landscape) so the track end + parked playhead clear the corner
+          // minimize button instead of crowding it.
+          portrait ? 'inset-x-0 top-7 bottom-11' : 'inset-y-0 left-7 right-11'
         }`}
       >
         {bars}
