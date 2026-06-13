@@ -7,6 +7,7 @@ import { PostCard, type Post } from './PostCard';
 import { Timeline } from './Timeline';
 import type { TimelineModel } from '@/utils/timeline';
 import { fracToDateISO, nearestIndexByDate } from '@/utils/timeline';
+import { estimateSkeletonMediaBox } from '@/utils/skeletonMediaBox';
 import type { PostIndexEntry } from '@/lib/db';
 
 interface FeedClientProps {
@@ -125,7 +126,7 @@ export function FeedClient({ index, firstBatch, isAdmin, timelineModel }: FeedCl
         }}
         itemContent={(i) => {
           const post = cache.get(i);
-          if (!post) return <PostSkeleton />;
+          if (!post) return <PostSkeleton entry={index[i]} />;
           return (
             <PostCard post={post} isAdmin={isAdmin} isAboveFold={i < 2} onDeleted={() => router.refresh()} />
           );
@@ -147,13 +148,25 @@ FeedList.displayName = 'FeedList';
 
 // Height-reserving placeholder so uncached rows don't shift layout as batches
 // arrive. Mirrors the card's shape: byline + caption lead-in, then a photo block.
-function PostSkeleton() {
+// When the index carries the lead photo's dimensions, the photo block reserves
+// the card's real aspect-ratio box (single-photo posts); otherwise it falls back
+// to a fixed height (multi-photo rows / dimensionless rows).
+function PostSkeleton({ entry }: { entry: PostIndexEntry }) {
+  const box = estimateSkeletonMediaBox(
+    entry.leadWidth != null && entry.leadHeight != null
+      ? { width: entry.leadWidth, height: entry.leadHeight }
+      : null,
+    entry.photoCount,
+  );
   return (
     <div className="relative mx-auto w-full max-w-6xl overflow-hidden bg-white rounded-[20px] mb-8 p-4" aria-hidden="true">
       <div className="h-3.5 w-40 rounded bg-gray-100 mb-3" />
       <div className="h-4 w-3/4 rounded bg-gray-100 mb-2" />
       <div className="h-4 w-1/2 rounded bg-gray-100 mb-4" />
-      <div className="h-56 w-full rounded-xl bg-gray-100" />
+      <div
+        className="w-full rounded-xl bg-gray-100"
+        style={box ? { aspectRatio: box.aspectRatio, maxHeight: box.maxHeight } : { height: '14rem' }}
+      />
     </div>
   );
 }

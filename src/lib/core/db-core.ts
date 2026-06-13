@@ -109,18 +109,43 @@ export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
 export interface PostIndexEntry {
   id: string;
   date: string;
+  /** Lead photo dimensions + count, so the feed skeleton can reserve a matching
+   *  box. Null dims for legacy rows without sizes and for video-only posts. */
+  leadWidth: number | null;
+  leadHeight: number | null;
+  photoCount: number;
+}
+
+interface PostIndexRow {
+  id: string;
+  date: string;
+  leadWidth: number | null;
+  leadHeight: number | null;
+  photoCount: number | null;
 }
 
 /**
  * Lightweight index of every post (newest first) for the continuous feed: it
  * drives both the timeline and the virtual list without loading photo bodies.
  * One small row each, so the whole archive is cheap to ship to the client.
+ * Pulls just the lead photo's dimensions (not the whole photos blob) via JSON
+ * functions so the virtual list can reserve per-row height without a body fetch.
  */
 export async function listPostIndex(): Promise<PostIndexEntry[]> {
-  const { results } = await d1Query<PostIndexEntry>(
-    `SELECT id, date FROM posts ORDER BY date DESC`
+  const { results } = await d1Query<PostIndexRow>(
+    `SELECT id, date,
+            json_extract(photos, '$[0].width') AS leadWidth,
+            json_extract(photos, '$[0].height') AS leadHeight,
+            json_array_length(photos) AS photoCount
+     FROM posts ORDER BY date DESC`
   );
-  return results;
+  return results.map((row) => ({
+    id: row.id,
+    date: row.date,
+    leadWidth: typeof row.leadWidth === 'number' ? row.leadWidth : null,
+    leadHeight: typeof row.leadHeight === 'number' ? row.leadHeight : null,
+    photoCount: row.photoCount ?? 0,
+  }));
 }
 
 /**
