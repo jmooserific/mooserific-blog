@@ -124,7 +124,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
          src={photo}
          alt={alt}
          title={title}
-         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+         sizes={sizes}
         priority={albumPriority}
         loading={albumPriority ? "eager" : "lazy"}
        />
@@ -194,6 +194,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
                rowConstraints={{ minPhotos: 1, maxPhotos: 3, singleRowMaxHeight: 535 }}
                photos={albumPhotos}
                defaultContainerWidth={CONTAINER_WIDTH}
+               // Describe the album's rendered width so react-photo-album emits an
+               // accurate per-photo `sizes`: a lone photo filling a justified row
+               // then requests a large variant instead of the old static 33vw.
+               // Widths track the nested padding — feed gutter + card inset:
+               // <640px px-4+px-4 (or hero px-8) = 64px; sm+ px-6+px-4 = 80px.
+               sizes={{
+                 size: `${CONTAINER_WIDTH}px`,
+                 sizes: [
+                   { viewport: "(max-width: 640px)", size: "calc(100vw - 64px)" },
+                   { viewport: "(max-width: 1200px)", size: "calc(100vw - 80px)" },
+                 ],
+               }}
                onClick={({ index }) => setIndex(index + albumOffset)}
                render={{ image: renderPhoto }}
              />

@@ -141,17 +141,30 @@ describe('getPost', () => {
 });
 
 describe('listPostIndex', () => {
-  it('selects only id+date, newest first', async () => {
+  it('pulls id+date plus lead photo dims, newest first', async () => {
     const { calls } = installDb(() => [
-      { id: 'a', date: '2026-05-01T00:00:00.000Z' },
-      { id: 'b', date: '2026-04-01T00:00:00.000Z' },
+      { id: 'a', date: '2026-05-01T00:00:00.000Z', leadWidth: 1600, leadHeight: 900, photoCount: 3 },
+      { id: 'b', date: '2026-04-01T00:00:00.000Z', leadWidth: 800, leadHeight: 1200, photoCount: 1 },
     ]);
     const index = await listPostIndex();
-    expect(calls[0].sql).toContain('SELECT id, date FROM posts');
+    expect(calls[0].sql).toContain('json_extract(photos, \'$[0].width\')');
+    expect(calls[0].sql).toContain('json_array_length(photos)');
     expect(calls[0].sql).toContain('ORDER BY date DESC');
     expect(index).toEqual([
-      { id: 'a', date: '2026-05-01T00:00:00.000Z' },
-      { id: 'b', date: '2026-04-01T00:00:00.000Z' },
+      { id: 'a', date: '2026-05-01T00:00:00.000Z', leadWidth: 1600, leadHeight: 900, photoCount: 3 },
+      { id: 'b', date: '2026-04-01T00:00:00.000Z', leadWidth: 800, leadHeight: 1200, photoCount: 1 },
+    ]);
+  });
+
+  it('normalizes missing dims/count to nulls and zero (legacy & video-only rows)', async () => {
+    installDb(() => [
+      { id: 'legacy', date: '2026-03-01T00:00:00.000Z', leadWidth: null, leadHeight: null, photoCount: 2 },
+      { id: 'video', date: '2026-02-01T00:00:00.000Z', leadWidth: null, leadHeight: null, photoCount: null },
+    ]);
+    const index = await listPostIndex();
+    expect(index).toEqual([
+      { id: 'legacy', date: '2026-03-01T00:00:00.000Z', leadWidth: null, leadHeight: null, photoCount: 2 },
+      { id: 'video', date: '2026-02-01T00:00:00.000Z', leadWidth: null, leadHeight: null, photoCount: 0 },
     ]);
   });
 });
