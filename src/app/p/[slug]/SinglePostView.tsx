@@ -21,7 +21,7 @@ const SinglePostView: React.FC<SinglePostViewProps> = ({ post, isAdmin }) => {
       <nav className="mb-4">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 self-start rounded-[10px] border border-transparent bg-transparent px-2 py-1.5 text-sm text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+          className="inline-flex items-center gap-1 self-start rounded-[10px] border border-transparent bg-transparent px-2 py-1.5 text-sm text-accent underline underline-offset-[3px] decoration-1 decoration-accent/15 transition-colors hover:bg-accent/6 hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
         >
           <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
           <span>Back to posts</span>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mooserific — Affordance signal prototype (backlog #4)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=Sacramento&display=swap" rel="stylesheet" />
+<style>
+  /* ── Design tokens (design-system.md) ────────────────────────────── */
+  :root {
+    --bg: #f9fafb;
+    --surface: #ffffff;
+    --text: #111827;
+    --text-muted: #6b7280;     /* gray-500 */
+    --accent: #845A2C;         /* umber */
+    --accent-hover: #6d4a24;
+    --link: #2563eb;           /* caption-link blue */
+    --accent-wash: rgba(132, 90, 44, 0.06);
+    --accent-hairline: rgba(132, 90, 44, 0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    padding: 40px 16px 80px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-family: 'Sacramento', cursive; font-size: 40px; font-weight: 400; color: var(--accent); margin-bottom: 4px; }
+  .sub { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; max-width: 640px; }
+  .sub code { background: #fff; border: 1px solid var(--accent-hairline); border-radius: 6px; padding: 1px 5px; font-size: 12px; }
+
+  /* Touch-mode toggle: when body.touch is set, all :hover rules are suppressed
+     so the chrome is judged purely on its resting (no-pointer) appearance. */
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; padding: 12px 16px; background: #fff; border: 1px solid var(--accent-hairline); border-radius: 12px; }
+  .toolbar label { font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; user-select: none; }
+  .toolbar .hint { font-size: 13px; color: var(--text-muted); }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+  .col h2 { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 12px; }
+  .col.after h2 { color: var(--accent); }
+
+  .card { background: var(--surface); border-radius: 20px; overflow: clip; margin-bottom: 24px; }
+  .card header { padding: 16px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .meta { font-size: 13px; color: var(--accent); }
+  .meta strong { font-weight: 700; }
+  .caption { font-size: 14px; color: var(--text); }
+  .caption a { color: var(--link); text-decoration: underline; }
+  .photo { aspect-ratio: 3 / 2; background: linear-gradient(135deg,#d9c3a6,#b98a52 60%,#7c5a32); }
+  .card footer { padding: 16px; display: flex; align-items: center; gap: 4px; }
+
+  /* ── Ghost icon button: CURRENT (transparent resting border) ──────── */
+  .ghost-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 10px; border: 1px solid transparent; background: transparent;
+    color: var(--accent); padding: 8px; cursor: pointer;
+    transition: background-color .15s, border-color .15s;
+  }
+  body:not(.touch) .ghost-icon:hover { background: var(--accent-wash); }
+  .ghost-icon.danger { color: rgba(185,28,28,0.8); }
+  body:not(.touch) .ghost-icon.danger:hover { background: rgba(127,29,29,0.06); }
+  .ghost-icon svg { width: 18px; height: 18px; }
+
+  /* ── Ghost icon button: PROPOSED (resting accent hairline) ────────── */
+  .ghost-icon.hairline { border-color: var(--accent-hairline); }
+  .ghost-icon.hairline.danger { border-color: rgba(185,28,28,0.22); }
+
+  /* ── Text controls: CURRENT (bare umber text, looks like meta) ────── */
+  .ghost-text {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 10px; border: 1px solid transparent; background: transparent;
+    color: var(--accent); padding: 8px 16px; font-size: 14px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    transition: background-color .15s;
+  }
+  body:not(.touch) .ghost-text:hover { background: var(--accent-wash); }
+
+  /* ── Text controls: PROPOSED (underline-on-interactive) ───────────── */
+  .ghost-text.underlined { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; text-decoration-color: var(--accent-hairline); }
+  body:not(.touch) .ghost-text.underlined:hover { text-decoration-color: var(--accent); background: var(--accent-wash); }
+
+  .pager { display: flex; justify-content: space-between; padding: 8px 0 24px; }
+
+  .note { font-size: 13px; color: var(--text-muted); margin-top: 8px; padding-left: 2px; }
+  .note b { color: var(--text); font-weight: 600; }
+
+  /* A row that mixes static meta + a control, to show the chip-vs-text contract */
+  .mixed { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background:#fff; border-radius: 12px; }
+  .section-label { grid-column: 1 / -1; font-size: 15px; font-weight: 700; color: var(--text); margin: 16px 0 4px; border-top: 1px solid var(--accent-hairline); padding-top: 24px; }
+  .section-label:first-of-type { border-top: 0; padding-top: 0; }
+  .chev { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Affordance signal</h1>
+  <p class="sub">
+    Backlog #4 — umber marks both <b>static meta you read</b> and <b>chrome you click</b>, with no cue
+    between them on touch. This prototype keeps the single-umber system and adds <b>non-color</b> signals:
+    a resting <code>accent/15</code> hairline on icon controls, and underline-on-interactive for text controls.
+    Toggle <b>touch mode</b> to judge the resting state with hover removed.
+  </p>
+
+  <div class="toolbar">
+    <input type="checkbox" id="touch" onchange="document.body.classList.toggle('touch', this.checked)" />
+    <label for="touch">Touch mode (no hover)</label>
+    <span class="hint">← the case the current design has no answer for</span>
+  </div>
+
+  <div class="cols">
+
+    <div class="section-label">Post card footer chrome</div>
+
+    <!-- CURRENT -->
+    <div class="col before">
+      <h2>Current</h2>
+      <article class="card">
+        <header>
+          <p class="meta"><time>May 14, 2026</time> · by <strong>vemoose</strong></p>
+          <p class="caption">Afternoon at the lake — see the <a href="#">full set</a>.</p>
+        </header>
+        <div class="photo"></div>
+        <footer>
+          <button class="ghost-icon" title="Edit"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg></button>
+          <button class="ghost-icon danger" title="Delete"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg></button>
+          <button class="ghost-icon" title="Permalink"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg></button>
+        </footer>
+      </article>
+      <p class="note">Icons are invisible-bordered. In touch mode they read as decorations, not controls.</p>
+    </div>
+
+    <!-- PROPOSED -->
+    <div class="col after">
+      <h2>Proposed</h2>
+      <article class="card">
+        <header>
+          <p class="meta"><time>May 14, 2026</time> · by <strong>vemoose</strong></p>
+          <p class="caption">Afternoon at the lake — see the <a href="#">full set</a>.</p>
+        </header>
+        <div class="photo"></div>
+        <footer>
+          <button class="ghost-icon hairline" title="Edit"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg></button>
+          <button class="ghost-icon hairline danger" title="Delete"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg></button>
+          <button class="ghost-icon hairline" title="Permalink"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg></button>
+        </footer>
+      </article>
+      <p class="note"><b>Hairline at rest</b> = "this is a control," even on touch. Hover wash still lifts it.</p>
+    </div>
+
+    <div class="section-label">Header action (sign in / create post)</div>
+
+    <div class="col before">
+      <h2>Current</h2>
+      <div class="mixed" style="justify-content:flex-end;">
+        <button class="ghost-icon" title="Create a post"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg></button>
+      </div>
+    </div>
+    <div class="col after">
+      <h2>Proposed</h2>
+      <div class="mixed" style="justify-content:flex-end;">
+        <button class="ghost-icon hairline" title="Create a post"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg></button>
+      </div>
+    </div>
+
+    <div class="section-label">Text controls — pagination &amp; "Back to site" / "Sign out"</div>
+
+    <div class="col before">
+      <h2>Current</h2>
+      <div class="pager">
+        <button class="ghost-text"><svg class="chev" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg> Newer</button>
+        <button class="ghost-text">Older <svg class="chev" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg></button>
+      </div>
+      <p class="note">Umber text with no underline reads exactly like the umber byline above — affordance only on hover.</p>
+    </div>
+    <div class="col after">
+      <h2>Proposed</h2>
+      <div class="pager">
+        <button class="ghost-text underlined"><svg class="chev" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg> Newer</button>
+        <button class="ghost-text underlined">Older <svg class="chev" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg></button>
+      </div>
+      <p class="note"><b>Underline</b> reuses the caption-link vocabulary readers already know: underlined = go somewhere.</p>
+    </div>
+
+    <div class="section-label">The contract, in one line: static umber = bare text · interactive umber = chip / underline</div>
+    <div class="col before">
+      <h2>Current — ambiguous</h2>
+      <div class="mixed">
+        <span class="meta">May 14, 2026 · by <strong>vemoose</strong></span>
+        <button class="ghost-icon" title="Permalink"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg></button>
+      </div>
+      <p class="note">Date and the share control are the same umber, same line — only the cursor distinguishes them.</p>
+    </div>
+    <div class="col after">
+      <h2>Proposed — legible</h2>
+      <div class="mixed">
+        <span class="meta">May 14, 2026 · by <strong>vemoose</strong></span>
+        <button class="ghost-icon hairline" title="Permalink"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg></button>
+      </div>
+      <p class="note">The chip footprint carries the affordance; the meta stays flush text. No new hue.</p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
