@@ -5,7 +5,7 @@ Let’s design a clean, modern, and family-friendly blog layout that focuses on 
 
 We want something that feels calm, personal, and clutter-free — like a digital family album.
 
-> This document captures **design intent** — the what and the why. The concrete implementation — exact colors, sizes, radii, fonts, and component CSS — lives in [`design-system.md`](./design-system.md). When the two could drift, intent wins here and values win there. Known places where the current design pulls against this intent are tracked in [`design-backlog.md`](./design-backlog.md).
+> This document captures **design intent** — the what and the why. The concrete implementation — exact colors, sizes, radii, fonts, and component CSS — lives in [`design-system.md`](./design-system.md). When the two could drift, intent wins here and values win there.
 
 ---
 
@@ -94,11 +94,11 @@ Chrome is deliberately understated. Buttons and menu items share a single quiet 
 
 ## ✏️ Font Pairing
 
-Use a humanist, friendly typeface:
+Use a warm, humanist pairing — friendly but built to last, since longevity is an explicit goal:
 
-* Base: `Inter` for all body text, captions, dates, and authors
-* The site title uses a casual script face (`Sacramento`) for a personal, handwritten touch
-* A print-style serif for date/author remains a possible future flourish, but isn't used today
+* Base: a humanist sans with **rounded terminals** for all body text, captions, dates, and authors — the soft letterforms echo the rounded-corner card language.
+* The site title carries a touch of character through a **friendly slab serif** — distinctive and personal without the of-an-era feel of a script face.
+* The pairing trades momentary charm for something that should still read well in ten years.
 
 ---
 
@@ -177,3 +177,13 @@ This is deliberately _not_ the web layout reflowed onto paper. A good photo book
 This is a key reason we **always keep the full-resolution originals** in storage (see _Media Storage_ in `CLAUDE.md`): a great print — or a re-crop for a different frame — needs the source file, not a web-optimized variant.
 
 How those layout and cropping decisions actually get made — fixed templates, heuristic rules, an AI-assisted layout pass, or some blend — is still an open question. The point here is to capture the _goal_ and the _hard parts_, not to commit to an approach yet.
+
+---
+
+## ✅ What already works (don't regress)
+
+A short list of the choices that most faithfully serve the intent above. These are settled; future changes should protect them, not trade them away.
+
+* **Calm, clutter-free canvas** — flat shadowless cards, generous radius, a single warm accent, and ghost chrome throughout. The most successful axis, and the easiest to erode by adding "just one" filled button or shadow.
+* **Low-friction publishing** — batch drag-drop, live upload progress, advanced options collapsed by default, date defaulting to "now," and the editor clearing after a post. Adding a batch should feel as casual as sending a text.
+* **A real point of view** — the identity is distinctive without being trendy-loud: the warm umber tie to the moose mascot, the friendly slab-serif title, the timeline wayfinding, and full-bleed photo heroes. Keep the character; resist the pull toward generic.
