@@ -9,6 +9,7 @@
     "migrate:images": "tsx scripts/migrate-images.ts",
     "backfill:slugs": "tsx scripts/backfill-slugs.ts",
     "backfill:cache-control": "tsx scripts/backfill-cache-control.ts",
+    "admin": "tsx scripts/manage-admins.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage"
