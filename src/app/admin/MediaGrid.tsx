@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { PhotoIcon, PlusIcon } from "@heroicons/react/24/outline";
-import { shouldLeadWithHero } from "@/utils/heroLayout";
 import type { UploadItem } from "./types";
+import { planMediaLayout } from "./planMediaLayout";
 import { MediaTile } from "./MediaTile";
 import { usePointerReorder } from "./usePointerReorder";
 
@@ -14,19 +14,6 @@ interface MediaGridProps {
   onFiles: (files: File[]) => void;
   onRemove: (id: string) => void;
   onMove: (fromId: string, toId: string) => void;
-}
-
-const MAX_PER_ROW = 3;
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) rows.push(arr.slice(i, i + size));
-  return rows;
-}
-
-/** Dims with a stable landscape fallback so layout doesn't jump before async dims load. */
-function dimsOf(item: UploadItem): { width: number; height: number } {
-  return { width: item.width ?? 1200, height: item.height ?? 900 };
 }
 
 /**
@@ -88,11 +75,7 @@ export function MediaGrid({ items, uploadProgress, disabled, onFiles, onRemove, 
     );
   }
 
-  const photos = items.filter((i) => i.kind === "photo");
-  const videos = items.filter((i) => i.kind === "video");
-  const useHero = shouldLeadWithHero(photos.map(dimsOf));
-  const heroPhoto = useHero ? photos[0] : null;
-  const rowPhotos = useHero ? photos.slice(1) : photos;
+  const { hero, rows, videos } = planMediaLayout(items);
 
   const tileProps = (item: UploadItem) => ({
     item,
@@ -112,8 +95,8 @@ export function MediaGrid({ items, uploadProgress, disabled, onFiles, onRemove, 
         onDrop={(e) => { e.preventDefault(); if (!disabled) onFiles(Array.from(e.dataTransfer.files)); }}
         className="flex flex-col gap-2"
       >
-        {heroPhoto && <MediaTile {...tileProps(heroPhoto)} isHero showHeroBadge />}
-        {chunk(rowPhotos, MAX_PER_ROW).map((row) => (
+        {hero && <MediaTile {...tileProps(hero)} isHero showHeroBadge />}
+        {rows.map((row) => (
           <div key={row[0].id} className="flex gap-2">
             {row.map((p) => (
               <MediaTile key={p.id} {...tileProps(p)} isHero={false} showHeroBadge={false} />
