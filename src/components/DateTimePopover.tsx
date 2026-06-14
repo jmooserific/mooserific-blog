@@ -66,7 +66,7 @@ export function DateTimePopover({ initialDate, onApply, onClose }: DateTimePopov
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-accent/10">
-        <div className="text-lg font-semibold text-accent select-none">Post Date/Time</div>
+        <div className="text-lg font-bold text-accent select-none">Post Date/Time</div>
       </div>
 
       {/* Body */}

@@ -308,7 +308,7 @@ export function Timeline({ model, activeDate, onJump }: TimelineProps) {
                 ? { top: `${axisPos(hover.frac)}%`, right: 'calc(100% + 12px)', transform: 'translateY(-50%)' }
                 : { left: `${axisPos(hover.frac)}%`, bottom: 'calc(100% + 12px)', transform: 'translateX(-50%)' }
             }
-            className="pointer-events-none absolute z-3 whitespace-nowrap rounded-lg border border-accent/30 bg-white px-2.5 py-1 text-[11px] font-semibold text-accent shadow-[0_6px_16px_-3px_rgba(0,0,0,0.22)]"
+            className="pointer-events-none absolute z-3 whitespace-nowrap rounded-lg border border-accent/30 bg-white px-2.5 py-1 text-[11px] font-bold text-accent shadow-[0_6px_16px_-3px_rgba(0,0,0,0.22)]"
           >
             {hover.label}
           </div>

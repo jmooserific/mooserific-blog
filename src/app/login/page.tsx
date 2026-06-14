@@ -41,8 +41,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-[20px] bg-white p-6 sm:p-8">
-        <h1 className="text-2xl font-semibold text-gray-900 text-center">Mooserific Admin</h1>
-        <p className="mt-2 text-sm text-accent text-center">
+        <h1 className="text-2xl font-bold text-gray-900 text-center">Mooserific Admin</h1>
+        <p className="mt-2 text-sm text-gray-500 text-center">
           Sign in with your administrator credentials.
         </p>
         {errorMessage ? (
