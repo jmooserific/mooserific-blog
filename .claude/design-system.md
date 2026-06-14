@@ -129,7 +129,7 @@ Captions render the post's Markdown through `prose prose-sm` (`@tailwindcss/typo
 
 - **Date.** Full date, UTC-formatted (`May 14, 2026`) inside a `<time dateTime>`, Inter 400 / 13px / `text-accent`, leading the header byline. UTC keeps SSR and client render identical and matches the slug's UTC basis.
 - **Author.** `by <strong>name</strong>`, same size and color, separated from the date by a ` · ` middot (`aria-hidden`). Either field may be absent; the separator renders only when both date and author are present.
-- **Controls** sit at the footer's **left** as ghost icon buttons (`p-2`, `rounded-[10px]`, `text-accent`, `hover:bg-accent/6`, focus ring) — the same chrome language as everywhere else. Left-aligned so the right-edge vertical timeline rail (narrow screens) never covers them. Admins see **edit** (`PencilSquareIcon`) and **delete** (`TrashIcon`, `text-red-700/80` — the reserved destructive red, gated behind a `confirm()`); everyone sees the **permalink share** (`ShareIcon`). See **Permalinks → Share affordance** below.
+- **Controls** sit at the footer's **left** as ghost icon buttons (`p-2`, `rounded-[10px]`, `text-accent`, `hover:bg-accent/6`, focus ring) — the same chrome language as everywhere else. Left-aligned so the right-edge vertical timeline rail (narrow screens) never covers them. Order, left to right: the **permalink share** (`ShareIcon`, shown to everyone) leads, then — for admins only — **edit** (`PencilSquareIcon`) and **delete** (`TrashIcon`, `text-red-700/80` — the reserved destructive red, gated behind a `confirm()`). Permalink leads because it's the one control everyone sees; the destructive delete sits last, furthest from the default tap. See **Permalinks → Share affordance** below.
 
 ---
 

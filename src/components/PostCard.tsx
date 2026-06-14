@@ -239,6 +239,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
        {/* Actions sit at the footer's left, clear of the right-edge vertical
            timeline rail on narrow screens. */}
        <footer className={`flex items-center gap-1 pt-4 pb-4 ${insetPad}`}>
+         <Link
+           href={`/p/${post.slug}`}
+           aria-label="Permalink to this post"
+           title="Permalink to this post"
+           className="inline-flex items-center justify-center rounded-[10px] border border-accent/15 bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+         >
+           <ShareIcon className="h-4 w-4" aria-hidden="true" />
+         </Link>
          {isAdmin && (
            <>
              <button
@@ -262,14 +270,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isAdmin = false, isAboveFold 
              </button>
            </>
          )}
-         <Link
-           href={`/p/${post.slug}`}
-           aria-label="Permalink to this post"
-           title="Permalink to this post"
-           className="inline-flex items-center justify-center rounded-[10px] border border-accent/15 bg-transparent p-2 text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-         >
-           <ShareIcon className="h-4 w-4" aria-hidden="true" />
-         </Link>
        </footer>
      </article>
    );
