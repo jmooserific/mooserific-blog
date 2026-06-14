@@ -59,6 +59,26 @@ export function FeedClient({ index, firstBatch, isAdmin, timelineModel }: FeedCl
   const jumpTargetRef = useRef(0);
   const [activeDate, setActiveDate] = useState<string | undefined>(index[0]?.date);
 
+  // The feed page is force-dynamic, so a soft refresh (e.g. after deleting a post
+  // via the card's trash button → router.refresh()) re-runs the server component
+  // and streams in a fresh index + firstBatch with the post gone. The index-keyed
+  // cache is seeded once via useState, though, so without this it would keep
+  // rendering the deleted row from stale state until a hard reload. Re-seed from
+  // the new firstBatch and drop lazily-fetched lower batches (their indices have
+  // shifted); they refetch against the new index as the reader scrolls. Skips the
+  // initial render, where the useState initializer already seeded the same data.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const next = new Map<number, Post>();
+    firstBatch.forEach((p, i) => next.set(i, p));
+    setCache(next);
+    inFlight.current.clear();
+  }, [firstBatch]);
+
   const fetchBatch = useCallback(
     async (batch: number) => {
       if (batch < 0 || inFlight.current.has(batch)) return;
