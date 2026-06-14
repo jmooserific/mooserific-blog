@@ -8,6 +8,7 @@ import { Timeline } from './Timeline';
 import type { TimelineModel } from '@/utils/timeline';
 import { fracToDateISO, nearestIndexByDate } from '@/utils/timeline';
 import { estimateSkeletonMediaBox } from '@/utils/skeletonMediaBox';
+import { planJump, hasArrived, type FeedScrollConfig } from '@/utils/feedScroll';
 import type { PostIndexEntry } from '@/lib/db';
 
 interface FeedClientProps {
@@ -23,6 +24,15 @@ interface FeedClientProps {
 const BATCH_SIZE = 12;
 // Fetch this many rows beyond the visible range so scrolling rarely hits a gap.
 const PREFETCH = 8;
+// A far jump flies through: animate smoothly so the timeline feels continuous,
+// but suppress metadata fetches for the rows streaming past so they render as
+// gray skeletons (no PostCards, no images for posts we're only scrolling past),
+// and bound the animated distance for a short, cross-browser-consistent glide.
+// See feedScroll.ts for the planning logic and the rationale.
+const FEED_SCROLL_CONFIG: FeedScrollConfig = {
+  flythroughMinRows: 8,
+  flythroughGlideRows: 4,
+};
 
 const batchOf = (i: number) => Math.floor(i / BATCH_SIZE);
 
@@ -38,6 +48,15 @@ export function FeedClient({ index, firstBatch, isAdmin, timelineModel }: FeedCl
     return m;
   });
   const inFlight = useRef<Set<number>>(new Set());
+  // Latest visible range: a jump measures its distance from the top, and the
+  // settle handler reuses it to resume prefetch where we land.
+  const rangeRef = useRef({ startIndex: 0, endIndex: 0 });
+  // Set while a far jump animates: suppresses fly-by prefetch (see
+  // FLYTHROUGH_MIN_ROWS) until we reach the target (or the user interrupts).
+  const flyingRef = useRef(false);
+  // Destination index of the in-progress fly-through; the suppression lifts once
+  // the visible top reaches it.
+  const jumpTargetRef = useRef(0);
   const [activeDate, setActiveDate] = useState<string | undefined>(index[0]?.date);
 
   const fetchBatch = useCallback(
@@ -81,14 +100,42 @@ export function FeedClient({ index, firstBatch, isAdmin, timelineModel }: FeedCl
     [cache, index]
   );
 
-  const onRangeChanged = useCallback(
-    ({ startIndex, endIndex }: { startIndex: number; endIndex: number }) => {
-      setActiveDate(index[startIndex]?.date);
+  const prefetchAround = useCallback(
+    (startIndex: number, endIndex: number) => {
       const first = batchOf(Math.max(0, startIndex - PREFETCH));
       const last = batchOf(Math.min(index.length - 1, endIndex + PREFETCH));
       for (let b = first; b <= last; b++) fetchBatch(b);
     },
     [fetchBatch, index]
+  );
+
+  const onRangeChanged = useCallback(
+    ({ startIndex, endIndex }: { startIndex: number; endIndex: number }) => {
+      rangeRef.current = { startIndex, endIndex };
+      setActiveDate(index[startIndex]?.date);
+      if (flyingRef.current) {
+        // Keep the rows streaming past as skeletons until we actually reach the
+        // destination (the instant teleport lands us GLIDE_ROWS short of it, so
+        // we can't lift on first range change). Then fall through to prefetch.
+        if (!hasArrived(startIndex, jumpTargetRef.current)) return;
+        flyingRef.current = false;
+      }
+      prefetchAround(startIndex, endIndex);
+    },
+    [prefetchAround, index]
+  );
+
+  // Fallback for an interrupted fly-through: if the user grabs the scroll mid-
+  // flight, we may never reach the target, so resume normal loading once any
+  // scroll stops (Virtuoso reports false) while suppression is still on.
+  const onIsScrolling = useCallback(
+    (scrolling: boolean) => {
+      if (scrolling || !flyingRef.current) return;
+      flyingRef.current = false;
+      const { startIndex, endIndex } = rangeRef.current;
+      prefetchAround(startIndex, endIndex);
+    },
+    [prefetchAround]
   );
 
   const onJump = useCallback(
@@ -100,13 +147,38 @@ export function FeedClient({ index, firstBatch, isAdmin, timelineModel }: FeedCl
       const reduceMotion =
         typeof window !== 'undefined' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      virtuosoRef.current?.scrollToIndex({
-        index: target,
-        align: 'start',
-        behavior: reduceMotion ? 'auto' : 'smooth',
-      });
+      const scroll = virtuosoRef.current;
+      if (!scroll) return;
+
+      const plan = planJump(
+        rangeRef.current.startIndex,
+        target,
+        index.length,
+        reduceMotion,
+        FEED_SCROLL_CONFIG
+      );
+      switch (plan.kind) {
+        case 'instant':
+          scroll.scrollToIndex({ index: plan.target, align: 'start', behavior: 'auto' });
+          return;
+        case 'smooth':
+          scroll.scrollToIndex({ index: plan.target, align: 'start', behavior: 'smooth' });
+          return;
+        case 'flythrough':
+          // Suppress fly-by prefetch until we arrive; warm only the destination so
+          // it's real when the glide lands. Teleport to GLIDE_ROWS short, then
+          // smooth-scroll the last stretch on the next frame.
+          flyingRef.current = true;
+          jumpTargetRef.current = plan.target;
+          fetchBatch(batchOf(plan.target));
+          scroll.scrollToIndex({ index: plan.near, align: 'start', behavior: 'auto' });
+          requestAnimationFrame(() => {
+            scroll.scrollToIndex({ index: plan.target, align: 'start', behavior: 'smooth' });
+          });
+          return;
+      }
     },
-    [index, timelineModel]
+    [index, timelineModel, fetchBatch]
   );
 
   if (index.length === 0) {
@@ -121,6 +193,7 @@ export function FeedClient({ index, firstBatch, isAdmin, timelineModel }: FeedCl
         totalCount={index.length}
         initialItemCount={firstBatch.length}
         rangeChanged={onRangeChanged}
+        isScrolling={onIsScrolling}
         components={{
           List: FeedList,
         }}
