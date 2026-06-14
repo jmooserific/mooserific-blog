@@ -28,10 +28,12 @@ const nextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' https: data:",
+              // blob: powers the admin editor's local image/video previews
+              // (object URLs from files the author just picked, same-origin).
+              "img-src 'self' https: data: blob:",
               "font-src 'self'",
               "connect-src 'self' https:",
-              "media-src 'self' https:",
+              "media-src 'self' https: blob:",
               "frame-ancestors 'none'",
             ].join('; '),
           },

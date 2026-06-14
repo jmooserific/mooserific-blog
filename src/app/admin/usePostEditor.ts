@@ -1,12 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import type { UploadItem } from "./types";
 import { slugFromDate } from "@/utils/slug";
 import { withRetry } from "@/lib/retry";
 import { errorMessageFromResponse, fetchJson, uploadPendingItems } from "@/lib/media-upload";
+import { reorderWithinKind } from "./reorder";
 
 // --- Pure utilities ---
 
@@ -28,48 +29,6 @@ function normalizeGroupedOrder(arr: UploadItem[]): UploadItem[] {
   const photos = arr.filter((i) => i.kind === 'photo');
   const videos = arr.filter((i) => i.kind === 'video');
   return [...photos, ...videos];
-}
-
-function measurePositions(
-  itemRefs: React.MutableRefObject<Record<string, HTMLLIElement | null>>
-): Record<string, number> {
-  const map: Record<string, number> = {};
-  for (const [id, el] of Object.entries(itemRefs.current)) {
-    if (el) map[id] = el.getBoundingClientRect().top;
-  }
-  return map;
-}
-
-function animateReorder(
-  prevPositions: Record<string, number>,
-  itemRefs: React.MutableRefObject<Record<string, HTMLLIElement | null>>
-): void {
-  // Double rAF to ensure DOM has re-rendered before measuring
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      for (const [id, el] of Object.entries(itemRefs.current)) {
-        if (!el) continue;
-        const prevTop = prevPositions[id];
-        const newTop = el.getBoundingClientRect().top;
-        if (prevTop == null) continue;
-        const dy = prevTop - newTop;
-        if (Math.abs(dy) < 1) continue;
-        el.style.transition = 'transform 0s';
-        el.style.transform = `translateY(${dy}px)`;
-        el.style.willChange = 'transform';
-        requestAnimationFrame(() => {
-          el.style.transition = 'transform 180ms ease';
-          el.style.transform = '';
-          const cleanup = () => {
-            el.style.transition = '';
-            el.style.willChange = '';
-            el.removeEventListener('transitionend', cleanup);
-          };
-          el.addEventListener('transitionend', cleanup);
-        });
-      }
-    });
-  });
 }
 
 // --- Types ---
@@ -119,15 +78,8 @@ export interface PostEditorState {
   showDatePopover: boolean;
   setShowDatePopover: React.Dispatch<React.SetStateAction<boolean>>;
   dropDisabled: boolean;
-  handleDrop: (e: React.DragEvent) => void;
   addFilesToItems: (files: File[]) => void;
-  draggingId: string | null;
-  dragOver: { id: string; position: 'before' | 'after' } | null;
-  itemRefs: React.MutableRefObject<Record<string, HTMLLIElement | null>>;
-  handleDragStart: (e: React.DragEvent, id: string) => void;
-  handleDragEnd: () => void;
-  handleDragOverItem: (e: React.DragEvent, id: string) => void;
-  handleItemDrop: (id: string, position: 'before' | 'after') => void;
+  moveItem: (fromId: string, toId: string) => void;
   removeItem: (id: string) => void;
   handleSubmit: () => Promise<void>;
 }
@@ -144,9 +96,6 @@ export function usePostEditor(): PostEditorState {
   const isEditing = Boolean(editingId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
-  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [postDate, setPostDate] = useState<Date | null>(new Date());
   // Permalink slug. While creating a new post the slug tracks the date automatically
@@ -210,8 +159,6 @@ export function usePostEditor(): PostEditorState {
         });
       }
       setItems(normalizeGroupedOrder(fetched));
-      setDragOver(null);
-      setDraggingId(null);
       setCaption(post.description || "");
       setFolderId(post.id);
       const parsedDate = typeof post.date === "string" ? new Date(post.date) : null;
@@ -281,62 +228,17 @@ export function usePostEditor(): PostEditorState {
     });
   }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
+  // Reorder via the pointer-drag grid: move `fromId` to where `toId` sits, keeping
+  // photos and videos grouped (the rule lives in reorderWithinKind). Disabled while
+  // loading/submitting so the list can't shift mid-upload.
+  function moveItem(fromId: string, toId: string) {
     if (loadingExisting || isSubmitting) return;
-    addFilesToItems(Array.from(e.dataTransfer.files));
-  }
-
-  function handleDragStart(e: React.DragEvent, id: string) {
-    if (isSubmitting || loadingExisting) { e.preventDefault(); return; }
-    setDraggingId(id);
-    e.dataTransfer.setData("text/plain", id);
-    e.dataTransfer.effectAllowed = "move";
-  }
-
-  function handleDragEnd() {
-    setDraggingId(null);
-    setDragOver(null);
-  }
-
-  function handleDragOverItem(e: React.DragEvent, overId: string) {
-    e.preventDefault();
-    if (isSubmitting || loadingExisting) { setDragOver(null); return; }
-    if (!draggingId || draggingId === overId) { setDragOver(null); return; }
-    const from = items.find((i) => i.id === draggingId);
-    const over = items.find((i) => i.id === overId);
-    if (!from || !over) return;
-    // Enforce photos-before-videos group rule
-    if (from.kind !== over.kind) { e.dataTransfer.dropEffect = 'none'; setDragOver(null); return; }
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const position: 'before' | 'after' = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
-    e.dataTransfer.dropEffect = 'move';
-    setDragOver({ id: overId, position });
-  }
-
-  function handleItemDrop(overId: string, position: 'before' | 'after') {
-    if (!draggingId || draggingId === overId) return;
-    const prevPositions = measurePositions(itemRefs);
-    const fromIndex = items.findIndex((i) => i.id === draggingId);
-    const overIndex = items.findIndex((i) => i.id === overId);
-    if (fromIndex === -1 || overIndex === -1) return;
-    if (items[fromIndex].kind !== items[overIndex].kind) return;
-    let toIndex = position === 'before' ? overIndex : overIndex + 1;
-    if (fromIndex < toIndex) toIndex -= 1;
-    const next = items.slice();
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    setItems(next);
-    setDraggingId(null);
-    setDragOver(null);
-    animateReorder(prevPositions, itemRefs);
+    setItems((cur) => reorderWithinKind(cur, fromId, toId));
   }
 
   function removeItem(id: string) {
-    const prevPositions = measurePositions(itemRefs);
     setItems((cur) => cur.filter((i) => i.id !== id));
     setUploadProgress((cur) => { const next = { ...cur }; delete next[id]; return next; });
-    animateReorder(prevPositions, itemRefs);
   }
 
   async function handleSubmit() {
@@ -439,9 +341,7 @@ export function usePostEditor(): PostEditorState {
     slugChanged: Boolean(editingId) && slug.trim() !== originalSlug,
     showDatePopover, setShowDatePopover,
     dropDisabled: loadingExisting || isSubmitting,
-    handleDrop, addFilesToItems,
-    draggingId, dragOver, itemRefs,
-    handleDragStart, handleDragEnd, handleDragOverItem, handleItemDrop,
+    addFilesToItems, moveItem,
     removeItem, handleSubmit,
   };
 }

@@ -2,173 +2,145 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { ChevronLeftIcon } from "@heroicons/react/24/outline";
-import { DateTimePopover } from "@/components/DateTimePopover";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { usePostEditor } from "./usePostEditor";
-import { MediaUploader } from "./MediaUploader";
+import { DateChip } from "./DateChip";
+import { CaptionField } from "./CaptionField";
+import { MediaGrid } from "./MediaGrid";
 
 function AdminPageInner() {
   const {
     caption, setCaption,
-    editingId, isEditing, isSubmitting, loadingExisting,
+    isEditing, isSubmitting, loadingExisting,
     showAdvanced, setShowAdvanced,
     postDate, setPostDate,
     slug, setSlug, slugChanged,
-    showDatePopover, setShowDatePopover,
-    items, uploadProgress, dropDisabled, draggingId, dragOver, itemRefs,
-    handleDrop, addFilesToItems,
-    handleDragStart, handleDragEnd, handleDragOverItem, handleItemDrop,
-    removeItem, handleSubmit,
+    items, uploadProgress, dropDisabled,
+    addFilesToItems, moveItem, removeItem, handleSubmit,
   } = usePostEditor();
 
+  const canPost = items.length > 0 && !dropDisabled;
+  const photoCount = items.filter((i) => i.kind === "photo").length;
+  const videoCount = items.length - photoCount;
+  const countLabel = items.length === 0
+    ? "No media yet"
+    : [photoCount && `${photoCount} photo${photoCount > 1 ? "s" : ""}`,
+       videoCount && `${videoCount} video${videoCount > 1 ? "s" : ""}`].filter(Boolean).join(" · ");
+
   return (
-    <div className="max-w-xl mx-auto px-4 sm:px-6 py-6">
-      <nav className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen pb-28">
+      {/* Top bar */}
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-gradient-to-b from-gray-50/95 to-gray-50/60 px-4 py-3 backdrop-blur-md">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 self-start rounded-[10px] border border-transparent bg-transparent px-2 py-1.5 text-sm text-accent underline underline-offset-[3px] decoration-1 decoration-accent/15 transition-colors hover:bg-accent/6 hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+          className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1.5 text-sm text-accent underline decoration-1 decoration-accent/15 underline-offset-[3px] transition-colors hover:bg-accent/6 hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
         >
           <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
-          <span>Back to posts</span>
+          <span>Posts</span>
         </Link>
-        <form action="/api/auth/logout?redirect=/" method="post" className="self-start sm:self-auto">
+        <h1 className="text-[19px] font-medium text-accent [font-family:var(--font-zilla-slab)]">
+          {isEditing ? "Edit post" : "New post"}
+        </h1>
+        <form action="/api/auth/logout?redirect=/" method="post">
           <button
             type="submit"
-            className="inline-flex items-center rounded-[10px] border border-transparent bg-transparent px-3 py-1.5 text-sm text-red-700/80 underline underline-offset-[3px] decoration-1 decoration-red-700/20 transition-colors hover:bg-red-900/6 hover:decoration-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+            className="rounded-[10px] px-2 py-1.5 text-sm text-red-700/80 underline decoration-1 decoration-red-700/20 underline-offset-[3px] transition-colors hover:bg-red-900/6 hover:decoration-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
           >
             Sign out
           </button>
         </form>
-      </nav>
-      <article className="bg-white rounded-[20px] p-6 sm:p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          {isEditing ? 'Edit post' : 'Create a new post'}
-        </h1>
-        {isEditing && editingId && (
-          <p className="mb-4 text-sm text-gray-500">
-            Editing post ID: <code className="rounded bg-accent/6 text-accent px-1 py-0.5 text-xs">{editingId}</code>
-          </p>
-        )}
+      </header>
+
+      <main className="mx-auto max-w-2xl px-4 pt-2">
         {loadingExisting && (
-          <div className="mb-4 rounded-[10px] border border-accent/15 bg-accent/6 px-3 py-2 text-sm text-accent">
+          <div className="mb-3 rounded-[10px] border border-accent/15 bg-accent/6 px-3 py-2 text-sm text-accent">
             Loading selected post…
           </div>
         )}
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-          <textarea
-            className="appearance-none w-full rounded-[10px] border border-accent/15 bg-white py-2 px-4 text-gray-800 leading-relaxed transition-colors placeholder:text-gray-400 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-            rows={3}
-            placeholder="Caption (optional)"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-          />
-          <p className="text-xs text-gray-500 italic">
-            Use{' '}
-            <a
-              href="https://commonmark.org/help/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent underline underline-offset-[3px] decoration-1 decoration-accent/15 transition-colors hover:decoration-accent"
-            >
-              Markdown
-            </a>{' '}
-            to style
-          </p>
-          <MediaUploader
+
+        {/* The canvas IS the post card the author is composing. */}
+        <article className="overflow-clip rounded-[20px] bg-white">
+          <div className="flex flex-col gap-2.5 px-5 pb-3.5 pt-[18px]">
+            <div className="text-[13px] text-accent">
+              <DateChip date={postDate ?? new Date()} onChange={setPostDate} />
+            </div>
+            <CaptionField value={caption} onChange={setCaption} disabled={dropDisabled} />
+          </div>
+
+          <MediaGrid
             items={items}
             uploadProgress={uploadProgress}
-            isSubmitting={isSubmitting}
-            loadingExisting={loadingExisting}
-            dropDisabled={dropDisabled}
-            draggingId={draggingId}
-            dragOver={dragOver}
-            itemRefs={itemRefs}
-            onDrop={handleDrop}
+            disabled={dropDisabled}
             onFiles={addFilesToItems}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragOver={handleDragOverItem}
-            onItemDrop={handleItemDrop}
             onRemove={removeItem}
+            onMove={moveItem}
           />
-          <details className="mt-4" open={showAdvanced} onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}>
-            <summary className="cursor-pointer select-none py-2 text-sm font-medium text-accent">
-              Advanced
-            </summary>
-            <div className="pb-4 pt-2 space-y-3">
-              <div className="relative">
-                <label htmlFor="post-date" className="block text-sm text-gray-600 mb-1">
-                  Post date
-                </label>
-                <button
-                  id="post-date"
-                  type="button"
-                  className="w-full rounded-[10px] border border-accent/15 bg-white px-3 py-2 text-left text-gray-800 transition-colors hover:border-accent/30 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-                  aria-haspopup="dialog"
-                  aria-expanded={showDatePopover}
-                  onClick={() => setShowDatePopover((v) => !v)}
-                >
-                  {postDate ? new Date(postDate).toLocaleString() : 'Use current date/time'}
-                </button>
-                {showDatePopover && (
-                  <div className="absolute left-0 top-full mt-2 z-10">
-                    <DateTimePopover
-                      initialDate={postDate ?? undefined}
-                      onApply={(d) => setPostDate(d)}
-                      onClose={() => setShowDatePopover(false)}
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <label htmlFor="post-slug" className="block text-sm text-gray-600 mb-1">
-                  Permalink
-                </label>
-                <div className="flex items-center rounded-[10px] border border-accent/15 bg-white px-3 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
-                  <span className="select-none text-sm text-gray-400">/p/</span>
-                  <input
-                    id="post-slug"
-                    type="text"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    spellCheck={false}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    className="w-full bg-transparent py-2 pl-0.5 text-gray-800 focus:outline-none"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Lowercase letters, numbers, and hyphens. Defaults to the post date.
-                </p>
-                {isEditing && (
-                  <p className={`mt-1 text-xs ${slugChanged ? 'text-red-700/80' : 'text-amber-700/80'}`}>
-                    {slugChanged
-                      ? 'Heads up: changing the permalink will break existing links to this post.'
-                      : 'Changing the permalink will break existing links to this post.'}
-                  </p>
-                )}
-              </div>
+          <div className="pb-4" />
+        </article>
+
+        {/* Advanced: permalink slug */}
+        <details
+          className="mt-3.5 px-0.5"
+          open={showAdvanced}
+          onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
+        >
+          <summary className="inline-flex cursor-pointer select-none list-none items-center gap-1.5 py-2 text-sm font-medium text-accent [&::-webkit-details-marker]:hidden">
+            <ChevronRightIcon className={`h-3.5 w-3.5 transition-transform ${showAdvanced ? "rotate-90" : ""}`} aria-hidden="true" />
+            Advanced
+          </summary>
+          <div className="px-1 pb-2 pt-1">
+            <label htmlFor="post-slug" className="mb-1.5 block text-[12.5px] text-gray-500">
+              Permalink
+            </label>
+            <div className="flex items-center rounded-[10px] border border-accent/15 bg-white px-3 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
+              <span className="select-none text-sm text-gray-400">/p/</span>
+              <input
+                id="post-slug"
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="w-full bg-transparent py-2 pl-0.5 text-gray-800 focus:outline-none"
+              />
             </div>
-          </details>
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              className="inline-flex items-center rounded-[10px] bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent"
-              disabled={isSubmitting}
-              aria-busy={isSubmitting}
-            >
-              {isSubmitting ? (isEditing ? 'Updating…' : 'Posting…') : (isEditing ? 'Update post' : 'Post')}
-            </button>
+            <p className="mt-1.5 text-[11.5px] text-gray-500">
+              Lowercase letters, numbers, and hyphens. Defaults to the post date.
+            </p>
+            {isEditing && (
+              <p className={`mt-1 text-[11.5px] ${slugChanged ? "text-red-700/80" : "text-amber-700/80"}`}>
+                {slugChanged
+                  ? "Heads up: changing the permalink will break existing links to this post."
+                  : "Changing the permalink will break existing links to this post."}
+              </p>
+            )}
           </div>
-        </form>
-      </article>
+        </details>
+      </main>
+
+      {/* Floating publish bar — thumb-reachable on phones */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-gray-50/95 from-55% to-transparent px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3">
+        <div className="pointer-events-auto mx-auto flex max-w-2xl items-center gap-3">
+          <span className="whitespace-nowrap text-[12.5px] text-gray-500">{countLabel}</span>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canPost}
+            aria-busy={isSubmitting}
+            className="flex-1 rounded-2xl bg-accent px-4 py-3.5 text-[15px] font-bold text-white shadow-[0_6px_18px_rgba(132,90,44,0.28)] transition-colors hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-60"
+          >
+            {isSubmitting ? (isEditing ? "Updating…" : "Posting…") : (isEditing ? "Update post" : "Post")}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<div className="max-w-xl mx-auto px-4 sm:px-6 py-8 text-center text-gray-500">Loading editor…</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-2xl px-4 py-8 text-center text-gray-500">Loading editor…</div>}>
       <AdminPageInner />
     </Suspense>
   );
