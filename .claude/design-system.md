@@ -217,7 +217,7 @@ Destructive items (Delete, etc.) are the single allowed accent departure: muted 
 
 ## Timeline navigation (as-built)
 
-> This section describes the shipped timeline (`src/components/Timeline.tsx`), driven by the feed in `src/components/FeedClient.tsx`. It grew out of the prototype at [`../prototypes/timeline.html`](../prototypes/timeline.html); where the two diverge, the React component is authoritative. The _behavior_ below is settled; exact numbers (radii, blur, tints, durations) live in the component.
+> This section describes the shipped timeline (`src/components/Timeline.tsx`), driven by the feed in `src/components/FeedClient.tsx`. The React component is authoritative. The _behavior_ below is settled; exact numbers (radii, blur, tints, durations) live in the component.
 
 ### Surfaces & states
 
