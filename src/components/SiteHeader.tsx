@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { sacramento } from "../app/fonts";
+import { zillaSlab } from "../app/fonts";
 import { getSessionCookieName, getSessionFromToken } from "@/lib/auth";
 import { HeaderButtons } from "./HeaderButtons";
 
@@ -16,7 +16,7 @@ const SiteHeader = async () => {
   return (
     <header className="max-w-6xl mx-auto px-4 sm:px-6">
       <div className="flex flex-col sm:flex-row sm:items-center py-4 gap-2">
-        <h1 className={`${sacramento.className} text-5xl font-bold text-accent text-center sm:text-left shrink-0`}>
+        <h1 className={`${zillaSlab.className} text-[2.5rem] font-medium text-accent text-center sm:text-left shrink-0`}>
           <Link href="/">Mooserific!</Link>
         </h1>
         <HeaderButtons isAdmin={isAdmin} />

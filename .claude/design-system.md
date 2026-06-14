@@ -42,14 +42,15 @@ The moose watercolor used as the site's mascot is a warm brown palette. Umber fo
 
 ## Typography
 
-- **Body / everything:** `Inter`, loaded with weights **300, 400, 500, 700, 900**.
-- **Site title:** `Sacramento` (script) for a personal, handwritten touch.
+- **Body / everything:** `Mulish`, loaded with weights **300, 400, 500, 700, 900**. A humanist sans with rounded terminals that echo the rounded-corner card language.
+- **Site title:** `Zilla Slab` 500 at `text-[2.5rem]` (40px) — a friendly slab serif. Character without the of-an-era feel of the old `Sacramento` script.
 - No other font dependencies.
 
 | Use                  | Font / weight     | Size  | Other                          |
 |----------------------|-------------------|-------|--------------------------------|
-| Caption              | Inter 400         | 14px  | `prose prose-sm max-w-none`    |
-| Card byline meta     | Inter 400         | 13px  | `text-accent`; date + author   |
+| Site title           | Zilla Slab 500    | 40px  | `text-accent`; `SiteHeader`    |
+| Caption              | Mulish 400        | 14px  | `prose prose-sm max-w-none`    |
+| Card byline meta     | Mulish 400        | 13px  | `text-accent`; date + author   |
 
 ---
 

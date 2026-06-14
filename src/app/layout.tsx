@@ -1,6 +1,6 @@
 import "../globals.css";
 import type { Metadata, Viewport } from "next";
-import { inter } from './fonts'
+import { mulish } from './fonts'
 import { Toaster } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -30,7 +30,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}>
+      <body className={`${mulish.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}>
         <SiteHeader />
         <main>
           {children}

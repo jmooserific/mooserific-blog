@@ -1,15 +1,19 @@
-import { Inter, Sacramento } from 'next/font/google'
+import { Mulish, Zilla_Slab } from 'next/font/google'
 
-export const inter = Inter({
+// Body / everything: Mulish — humanist sans with rounded terminals that echo the
+// site's rounded-corner language. Same weight range the type scale was built on.
+export const mulish = Mulish({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-mulish',
   display: 'swap',
   weight: ['300', '400', '500', '700', '900'],
 })
 
-export const sacramento = Sacramento({
+// Site title: Zilla Slab — a friendly slab serif. Character without the of-an-era
+// feel of the old script face. Used at weight 500 in SiteHeader.
+export const zillaSlab = Zilla_Slab({
   subsets: ['latin'],
-  variable: '--font-sacramento',
+  variable: '--font-zilla-slab',
   display: 'swap',
-  weight: '400',
+  weight: ['500'],
 })
