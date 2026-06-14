@@ -1,18 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import {
   authenticateCredentials,
   createSessionToken,
-  getConfiguredCredentials,
   authorFromUsername,
   getSessionCookieName,
   SESSION_DEFAULT_TTL_SECONDS,
 } from '@/lib/auth';
+
+// The login route depends on the Cloudflare SDK (D1 lookup) + Node Buffer, so it
+// must run on the Node runtime rather than Edge.
+export const runtime = 'nodejs';
 
 type LoginInput = {
   username?: string | null;
   password?: string | null;
   redirect?: string | null;
 };
+
+// Validated at the boundary: credentials must be non-empty. `redirect` is handled
+// separately by resolveRedirect (leading-slash guard), so it's not validated here.
+const loginSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
 
 function isHtmlRequest(req: NextRequest): boolean {
   const accept = req.headers.get('accept') || '';
@@ -46,9 +57,13 @@ function resolveRedirect(req: NextRequest, target?: string | null): URL {
 }
 
 export async function POST(req: NextRequest) {
-  const { username, password, redirect } = await parseLoginInput(req);
+  const raw = await parseLoginInput(req);
+  const parsed = loginSchema.safeParse(raw);
+  // Only honor a string redirect; resolveRedirect further restricts it to a
+  // same-origin path. A non-string (e.g. malformed JSON body) is ignored.
+  const redirect = typeof raw.redirect === 'string' ? raw.redirect : undefined;
 
-  if (!username || !password) {
+  if (!parsed.success) {
     if (isHtmlRequest(req)) {
       const redirectUrl = new URL(`/login?error=missing${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ''}`, req.url);
       return NextResponse.redirect(redirectUrl, { status: 303 });
@@ -56,8 +71,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing credentials' }, { status: 400 });
   }
 
-  const isValid = await authenticateCredentials(username, password);
-  if (!isValid) {
+  const { username, password } = parsed.data;
+  const authedUser = await authenticateCredentials(username, password);
+  if (!authedUser) {
     if (isHtmlRequest(req)) {
       const redirectUrl = new URL(`/login?error=invalid${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ''}`, req.url);
       return NextResponse.redirect(redirectUrl, { status: 303 });
@@ -65,8 +81,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
   }
 
-  const { username: configuredUsername } = getConfiguredCredentials();
-  const token = await createSessionToken(configuredUsername);
+  const token = await createSessionToken(authedUser);
   const targetUrl = resolveRedirect(req, redirect);
   const res = NextResponse.redirect(targetUrl, { status: 303 });
   res.cookies.set(getSessionCookieName(), token, {
@@ -77,6 +92,6 @@ export async function POST(req: NextRequest) {
     sameSite: 'lax',
   });
   res.headers.set('Cache-Control', 'no-store');
-  res.headers.set('x-auth-user', authorFromUsername(configuredUsername));
+  res.headers.set('x-auth-user', authorFromUsername(authedUser));
   return res;
 }

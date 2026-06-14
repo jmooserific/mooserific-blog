@@ -49,9 +49,17 @@ describe('env', () => {
 
   it('throws listing every missing required variable', async () => {
     delete process.env.SESSION_SECRET;
-    delete process.env.ADMIN_PASSWORD;
+    delete process.env.R2_BUCKET_NAME;
     const env = await freshEnv();
     expect(() => env()).toThrow(/SESSION_SECRET/);
-    expect(() => env()).toThrow(/ADMIN_PASSWORD/);
+    expect(() => env()).toThrow(/R2_BUCKET_NAME/);
+  });
+
+  it('treats the admin seed credentials as optional', async () => {
+    delete process.env.ADMIN_USERNAME;
+    delete process.env.ADMIN_PASSWORD;
+    const env = await freshEnv();
+    expect(() => env()).not.toThrow();
+    expect(env().ADMIN_USERNAME).toBeUndefined();
   });
 });

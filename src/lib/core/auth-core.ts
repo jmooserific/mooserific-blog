@@ -1,4 +1,5 @@
 import { env } from '../env';
+import { getAdminByUsername } from './db-core';
 
 const SESSION_COOKIE_NAME = 'mooserific_session';
 const DEFAULT_SESSION_TTL_SECONDS = 12 * 60 * 60; // 12 hours
@@ -40,11 +41,7 @@ function getSessionSecret(): string {
   return env().SESSION_SECRET;
 }
 
-export function getConfiguredCredentials(): { username: string; password: string } {
-  return { username: env().ADMIN_USERNAME, password: env().ADMIN_PASSWORD };
-}
-
-function normalizeUsername(raw: string): string {
+export function normalizeUsername(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
@@ -123,6 +120,58 @@ async function hmacVerify(message: string, signature: string): Promise<boolean> 
   paddedExpected.set(expected);
   paddedProvided.set(provided);
   return timingSafeEqual(paddedExpected, paddedProvided);
+}
+
+// --- Password hashing (PBKDF2-HMAC-SHA256) -------------------------------------
+// Stored format: `pbkdf2$<iterations>$<saltB64url>$<hashB64url>`. We use Web Crypto
+// so this works in both the Node login route and any Edge context, with no extra
+// dependency. 200k iterations is a reasonable 2025-era cost for an admin login.
+const PBKDF2_ITERATIONS = 200_000;
+const PBKDF2_HASH_BITS = 256;
+const PBKDF2_SALT_BYTES = 16;
+
+async function pbkdf2Derive(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
+  const cryptoObj = getCrypto();
+  if (!cryptoObj.subtle) {
+    throw new Error('SubtleCrypto is not available for PBKDF2 hashing.');
+  }
+  const keyMaterial = await cryptoObj.subtle.importKey(
+    'raw',
+    textEncoder.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  const bits = await cryptoObj.subtle.deriveBits(
+    { name: 'PBKDF2', salt: salt as BufferSource, iterations, hash: 'SHA-256' },
+    keyMaterial,
+    PBKDF2_HASH_BITS
+  );
+  return new Uint8Array(bits);
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = new Uint8Array(PBKDF2_SALT_BYTES);
+  getCrypto().getRandomValues(salt);
+  const hash = await pbkdf2Derive(password, salt, PBKDF2_ITERATIONS);
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${toBase64Url(salt)}$${toBase64Url(hash)}`;
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const parts = stored.split('$');
+  if (parts.length !== 4 || parts[0] !== 'pbkdf2') return false;
+  const iterations = Number(parts[1]);
+  if (!Number.isInteger(iterations) || iterations <= 0) return false;
+  let salt: Uint8Array;
+  let expected: Uint8Array;
+  try {
+    salt = fromBase64Url(parts[2]);
+    expected = fromBase64Url(parts[3]);
+  } catch {
+    return false;
+  }
+  const actual = await pbkdf2Derive(password, salt, iterations);
+  return timingSafeEqual(actual, expected);
 }
 
 export async function createSessionToken(username: string, ttlSeconds: number = DEFAULT_SESSION_TTL_SECONDS): Promise<string> {
@@ -212,20 +261,26 @@ export async function getSessionFromRequest(req: Request): Promise<SessionPayloa
   return getSessionFromToken(cookies[SESSION_COOKIE_NAME]);
 }
 
-export async function authenticateCredentials(username: string, password: string): Promise<boolean> {
-  const { username: expectedUser, password: expectedPass } = getConfiguredCredentials();
-  const normalizedProvided = normalizeUsername(username);
-  const normalizedExpected = normalizeUsername(expectedUser);
-  const lengthsMatch = normalizedProvided.length === normalizedExpected.length && password.length === expectedPass.length;
-  if (!lengthsMatch) {
-    // Force timing-safe comparison even when lengths differ
-    timingSafeEqual(normalizedProvided, normalizedExpected);
-    timingSafeEqual(password, expectedPass);
-    return false;
+// A valid-format hash used only to equalize timing when no admin row matches, so
+// the response latency doesn't reveal whether a username exists. The iteration
+// count must match what real hashes use so the PBKDF2 cost is identical.
+const DUMMY_PASSWORD_HASH = `pbkdf2$${PBKDF2_ITERATIONS}$${'A'.repeat(22)}$${'A'.repeat(43)}`;
+
+/**
+ * Verify a login against the `admins` table. Returns the canonical (normalized)
+ * username on success so callers can seed the session with the real account name,
+ * or `null` on any failure. Runs the password KDF even when the user is unknown
+ * to avoid leaking account existence through timing.
+ */
+export async function authenticateCredentials(username: string, password: string): Promise<string | null> {
+  const normalized = normalizeUsername(username);
+  const admin = await getAdminByUsername(normalized);
+  if (!admin) {
+    await verifyPassword(password, DUMMY_PASSWORD_HASH);
+    return null;
   }
-  const usernameOk = timingSafeEqual(normalizedProvided, normalizedExpected);
-  const passwordOk = timingSafeEqual(password, expectedPass);
-  return usernameOk && passwordOk;
+  const ok = await verifyPassword(password, admin.password_hash);
+  return ok ? admin.username : null;
 }
 
 export function getSessionCookieName(): string {

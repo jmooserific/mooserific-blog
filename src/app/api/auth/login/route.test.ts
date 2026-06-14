@@ -4,7 +4,6 @@ import { NextRequest } from 'next/server';
 vi.mock('@/lib/auth', () => ({
   authenticateCredentials: vi.fn(),
   createSessionToken: vi.fn(async () => 'session-token'),
-  getConfiguredCredentials: vi.fn(() => ({ username: 'admin@example.test', password: 'pw' })),
   authorFromUsername: vi.fn((u: string) => u.split('@')[0]),
   getSessionCookieName: vi.fn(() => 'mooserific_session'),
   SESSION_DEFAULT_TTL_SECONDS: 43200,
@@ -40,14 +39,14 @@ describe('POST /api/auth/login', () => {
   });
 
   it('401s on invalid credentials for a JSON client', async () => {
-    vi.mocked(authenticateCredentials).mockResolvedValue(false);
+    vi.mocked(authenticateCredentials).mockResolvedValue(null);
     const res = await POST(jsonReq({ username: 'admin@example.test', password: 'wrong' }));
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: 'Invalid credentials' });
   });
 
   it('sets a session cookie and redirects on success', async () => {
-    vi.mocked(authenticateCredentials).mockResolvedValue(true);
+    vi.mocked(authenticateCredentials).mockResolvedValue('admin@example.test');
     const res = await POST(jsonReq({ username: 'admin@example.test', password: 'pw', redirect: '/admin/new' }));
     expect(res.status).toBe(303);
     expect(res.headers.get('location')).toBe('http://localhost/admin/new');
@@ -63,14 +62,14 @@ describe('POST /api/auth/login', () => {
   });
 
   it('redirects HTML clients to the login page with an error on bad credentials', async () => {
-    vi.mocked(authenticateCredentials).mockResolvedValue(false);
+    vi.mocked(authenticateCredentials).mockResolvedValue(null);
     const res = await POST(formReq({ username: 'admin@example.test', password: 'wrong' }, { accept: 'text/html' }));
     expect(res.status).toBe(303);
     expect(res.headers.get('location')).toContain('/login?error=invalid');
   });
 
   it('reads credentials from a form submission', async () => {
-    vi.mocked(authenticateCredentials).mockResolvedValue(true);
+    vi.mocked(authenticateCredentials).mockResolvedValue('admin@example.test');
     const res = await POST(formReq({ username: 'admin@example.test', password: 'pw' }));
     expect(res.status).toBe(303);
     expect(res.headers.get('location')).toBe('http://localhost/admin');

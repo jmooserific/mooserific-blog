@@ -1,20 +1,25 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import {
   authorFromUsername,
   authenticateCredentials,
   buildSessionClearCookie,
   buildSessionCookie,
   createSessionToken,
-  getConfiguredCredentials,
   getSessionCookieName,
   getSessionFromRequest,
   getSessionFromToken,
+  hashPassword,
   parseCookies,
   SESSION_DEFAULT_TTL_SECONDS,
   shouldRefreshSession,
+  verifyPassword,
   verifySessionToken,
   type SessionPayload,
 } from './auth-core';
+import { getAdminByUsername, type AdminRow } from './db-core';
+
+// authenticateCredentials reads the admins table via db-core; mock that boundary.
+vi.mock('./db-core', () => ({ getAdminByUsername: vi.fn() }));
 
 // Credentials come from test/setup.ts:
 // ADMIN_USERNAME=admin@example.test, ADMIN_PASSWORD=correct-horse-battery-staple
@@ -142,18 +147,57 @@ describe('shouldRefreshSession', () => {
   });
 });
 
+describe('hashPassword / verifyPassword', () => {
+  it('round-trips a password', async () => {
+    const stored = await hashPassword('correct-horse-battery-staple');
+    expect(stored.startsWith('pbkdf2$')).toBe(true);
+    expect(await verifyPassword('correct-horse-battery-staple', stored)).toBe(true);
+  });
+
+  it('uses a fresh salt each time (distinct hashes for the same password)', async () => {
+    const a = await hashPassword('same-password');
+    const b = await hashPassword('same-password');
+    expect(a).not.toBe(b);
+    expect(await verifyPassword('same-password', a)).toBe(true);
+    expect(await verifyPassword('same-password', b)).toBe(true);
+  });
+
+  it('rejects a wrong password', async () => {
+    const stored = await hashPassword('right-password');
+    expect(await verifyPassword('wrong-password', stored)).toBe(false);
+  });
+
+  it('rejects a malformed stored string', async () => {
+    expect(await verifyPassword('x', 'not-a-hash')).toBe(false);
+    expect(await verifyPassword('x', 'pbkdf2$notanumber$salt$hash')).toBe(false);
+    expect(await verifyPassword('x', 'bcrypt$1$2$3')).toBe(false);
+  });
+});
+
 describe('authenticateCredentials', () => {
-  it('accepts the configured credentials (username case-insensitive)', async () => {
-    expect(await authenticateCredentials('ADMIN@example.test', 'correct-horse-battery-staple')).toBe(true);
+  const mockedGet = vi.mocked(getAdminByUsername);
+
+  async function adminRow(username: string, password: string): Promise<AdminRow> {
+    return { username, password_hash: await hashPassword(password), created_at: '2026-01-01T00:00:00.000Z' };
+  }
+
+  beforeEach(() => mockedGet.mockReset());
+
+  it('returns the canonical username on a match (lookup is case-insensitive)', async () => {
+    mockedGet.mockResolvedValue(await adminRow('admin@example.test', 'correct-horse-battery-staple'));
+    expect(await authenticateCredentials('ADMIN@example.test', 'correct-horse-battery-staple')).toBe('admin@example.test');
+    // The username is normalized (trimmed + lowercased) before the lookup.
+    expect(mockedGet).toHaveBeenCalledWith('admin@example.test');
   });
 
-  it('rejects a wrong password of equal length', async () => {
-    expect(await authenticateCredentials('admin@example.test', 'Correct-horse-battery-stapl3')).toBe(false);
+  it('returns null for a wrong password', async () => {
+    mockedGet.mockResolvedValue(await adminRow('admin@example.test', 'correct-horse-battery-staple'));
+    expect(await authenticateCredentials('admin@example.test', 'wrong-password')).toBeNull();
   });
 
-  it('rejects credentials of a different length', async () => {
-    expect(await authenticateCredentials('admin@example.test', 'short')).toBe(false);
-    expect(await authenticateCredentials('nope', 'correct-horse-battery-staple')).toBe(false);
+  it('returns null for an unknown user (and still runs the KDF)', async () => {
+    mockedGet.mockResolvedValue(null);
+    expect(await authenticateCredentials('nobody@example.test', 'whatever')).toBeNull();
   });
 });
 
@@ -183,14 +227,7 @@ describe('Edge/Workers runtime fallbacks (no Buffer, no crypto.randomUUID)', () 
   });
 });
 
-describe('getConfiguredCredentials / getSessionCookieName', () => {
-  it('exposes the configured admin credentials', () => {
-    expect(getConfiguredCredentials()).toEqual({
-      username: 'admin@example.test',
-      password: 'correct-horse-battery-staple',
-    });
-  });
-
+describe('getSessionCookieName', () => {
   it('exposes a stable cookie name', () => {
     expect(getSessionCookieName()).toBe('mooserific_session');
   });

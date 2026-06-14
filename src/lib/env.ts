@@ -9,14 +9,16 @@ const REQUIRED = [
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
   'SESSION_SECRET',
-  'ADMIN_USERNAME',
-  'ADMIN_PASSWORD',
 ] as const;
 
 type RequiredVar = (typeof REQUIRED)[number];
 
 // Optional env vars — have sensible defaults or are only needed in certain environments.
 interface OptionalEnv {
+  /** Seeds the first admin via `npm run admin -- seed`; unused at runtime once
+   *  the admins table is populated. See src/lib/core/auth-core.ts. */
+  ADMIN_USERNAME: string | undefined;
+  ADMIN_PASSWORD: string | undefined;
   /** Falls back to R2_ACCOUNT_ID when absent. */
   D1_ACCOUNT_ID: string;
   /** "development" enables the dev/ prefix for R2 keys. */
@@ -50,8 +52,8 @@ function loadEnv(): Env {
     R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID!,
     R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY!,
     SESSION_SECRET: process.env.SESSION_SECRET!,
-    ADMIN_USERNAME: process.env.ADMIN_USERNAME!,
-    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD!,
+    ADMIN_USERNAME: process.env.ADMIN_USERNAME,
+    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
     D1_ACCOUNT_ID: process.env.D1_ACCOUNT_ID || process.env.R2_ACCOUNT_ID!,
     ENVIRONMENT: process.env.ENVIRONMENT ?? '',
     R2_PUBLIC_BASE_URL: process.env.R2_PUBLIC_BASE_URL,

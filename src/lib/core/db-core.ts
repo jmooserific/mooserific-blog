@@ -50,6 +50,43 @@ async function d1Query<T>(sql: string, params: SqlParam[] = []): Promise<{ resul
   return { results: Array.isArray(rows) ? (rows as T[]) : [] };
 }
 
+// --- Admin accounts ------------------------------------------------------------
+// Backs multi-admin login (migration 0003). Usernames are stored normalized; the
+// caller (auth-core / the CLI) is responsible for normalization before querying.
+export interface AdminRow {
+  username: string;
+  password_hash: string;
+  created_at: string;
+}
+
+export async function getAdminByUsername(username: string): Promise<AdminRow | null> {
+  const { results } = await d1Query<AdminRow>(
+    `SELECT username, password_hash, created_at FROM admins WHERE username = $1`,
+    [username]
+  );
+  return results[0] ?? null;
+}
+
+export async function upsertAdmin(username: string, passwordHash: string): Promise<void> {
+  await d1Query(
+    `INSERT INTO admins (username, password_hash, created_at) VALUES ($1, $2, $3)
+     ON CONFLICT(username) DO UPDATE SET password_hash = excluded.password_hash`,
+    [username, passwordHash, new Date().toISOString()]
+  );
+}
+
+export async function deleteAdmin(username: string): Promise<boolean> {
+  await d1Query(`DELETE FROM admins WHERE username = $1`, [username]);
+  return true;
+}
+
+export async function listAdmins(): Promise<AdminRow[]> {
+  const { results } = await d1Query<AdminRow>(
+    `SELECT username, password_hash, created_at FROM admins ORDER BY created_at ASC`
+  );
+  return results;
+}
+
 export async function listPosts(opts: ListPostsOptions = {}): Promise<Post[]> {
   const limit = Math.min(opts.limit ?? 20, 100);
 

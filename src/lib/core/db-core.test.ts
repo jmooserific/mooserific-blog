@@ -15,6 +15,10 @@ import {
   updatePost,
   deletePost,
   getDateMetadata,
+  getAdminByUsername,
+  upsertAdmin,
+  deleteAdmin,
+  listAdmins,
 } from './db-core';
 
 interface QueryCall {
@@ -333,6 +337,76 @@ describe('deletePost', () => {
     const { calls } = installDb(() => []);
     expect(await deletePost('p1')).toBe(true);
     expect(calls[0].sql).toContain('DELETE FROM posts');
+  });
+});
+
+describe('admin accounts', () => {
+  const adminRow = {
+    username: 'admin@example.test',
+    password_hash: 'pbkdf2$200000$salt$hash',
+    created_at: '2026-01-01T00:00:00.000Z',
+  };
+
+  describe('getAdminByUsername', () => {
+    it('looks up by username and returns the row', async () => {
+      const { calls } = installDb(() => [adminRow]);
+      const admin = await getAdminByUsername('admin@example.test');
+      expect(calls[0].sql).toContain('FROM admins WHERE username = ?');
+      expect(calls[0].params).toEqual(['admin@example.test']);
+      expect(admin).toEqual(adminRow);
+    });
+
+    it('returns null when no row matches', async () => {
+      installDb(() => []);
+      expect(await getAdminByUsername('nobody@example.test')).toBeNull();
+    });
+  });
+
+  describe('upsertAdmin', () => {
+    it('inserts with an upsert and binds username, hash and a timestamp', async () => {
+      const { calls } = installDb(() => []);
+      await upsertAdmin('admin@example.test', 'pbkdf2$200000$salt$hash');
+      const { sql, params } = calls[0];
+      expect(sql).toContain('INSERT INTO admins');
+      expect(sql).toContain('ON CONFLICT(username) DO UPDATE');
+      expect(params[0]).toBe('admin@example.test');
+      expect(params[1]).toBe('pbkdf2$200000$salt$hash');
+      expect(typeof params[2]).toBe('string'); // created_at ISO timestamp
+    });
+
+    // d1Query rewrites every `$N` to a positional `?`; a mismatch would shift bindings.
+    it('binds exactly one param per placeholder', async () => {
+      const { calls } = installDb(() => []);
+      await upsertAdmin('admin@example.test', 'hash');
+      for (const { sql, params } of calls) {
+        expect(params.length).toBe((sql.match(/\?/g) ?? []).length);
+      }
+    });
+  });
+
+  describe('deleteAdmin', () => {
+    it('issues a delete scoped to the username and returns true', async () => {
+      const { calls } = installDb(() => []);
+      expect(await deleteAdmin('admin@example.test')).toBe(true);
+      expect(calls[0].sql).toContain('DELETE FROM admins WHERE username = ?');
+      expect(calls[0].params).toEqual(['admin@example.test']);
+    });
+  });
+
+  describe('listAdmins', () => {
+    it('returns all admins ordered by created_at ascending', async () => {
+      const older = { ...adminRow, username: 'a@example.test', created_at: '2026-01-01T00:00:00.000Z' };
+      const newer = { ...adminRow, username: 'b@example.test', created_at: '2026-02-01T00:00:00.000Z' };
+      const { calls } = installDb(() => [older, newer]);
+      const admins = await listAdmins();
+      expect(calls[0].sql).toContain('FROM admins ORDER BY created_at ASC');
+      expect(admins).toEqual([older, newer]);
+    });
+
+    it('returns an empty array when there are no admins', async () => {
+      installDb(() => []);
+      expect(await listAdmins()).toEqual([]);
+    });
   });
 });
 
