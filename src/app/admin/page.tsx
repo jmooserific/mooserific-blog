@@ -41,7 +41,7 @@ function AdminPageInner() {
         </form>
       </nav>
       <article className="bg-white rounded-[20px] p-6 sm:p-8">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
           {isEditing ? 'Edit post' : 'Create a new post'}
         </h1>
         {isEditing && editingId && (
@@ -68,7 +68,7 @@ function AdminPageInner() {
               href="https://commonmark.org/help/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent hover:underline"
+              className="text-accent underline underline-offset-[3px] decoration-1 decoration-accent/15 transition-colors hover:decoration-accent"
             >
               Markdown
             </a>{' '}
@@ -97,7 +97,11 @@ function AdminPageInner() {
             </summary>
             <div className="pb-4 pt-2 space-y-3">
               <div className="relative">
+                <label htmlFor="post-date" className="block text-sm text-gray-600 mb-1">
+                  Post date
+                </label>
                 <button
+                  id="post-date"
                   type="button"
                   className="w-full rounded-[10px] border border-accent/15 bg-white px-3 py-2 text-left text-gray-800 transition-colors hover:border-accent/30 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
                   aria-haspopup="dialog"
