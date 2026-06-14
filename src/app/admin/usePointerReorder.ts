@@ -16,6 +16,8 @@ interface DragState {
   offY: number;
   started: boolean;
   ghost: HTMLElement | null;
+  /** Last tile we reordered against, so we don't re-fire onMove every frame. */
+  lastTargetId: string | null;
 }
 
 const DRAG_THRESHOLD = 8; // px before a press becomes a drag (vs. a tap on a control)
@@ -58,6 +60,7 @@ export function usePointerReorder(
       offY: e.clientY - rect.top,
       started: false,
       ghost: null,
+      lastTargetId: null,
     };
   }
 
@@ -95,10 +98,18 @@ export function usePointerReorder(
         if (t.dataset.tileId === drag.id) continue;
         const r = t.getBoundingClientRect();
         if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-          optsRef.current.onMove(drag.id, t.dataset.tileId!);
+          const targetId = t.dataset.tileId!;
+          // Only reorder when the hovered target changes, so holding over one
+          // tile doesn't re-fire onMove every frame (redundant churn / jitter).
+          if (targetId !== drag.lastTargetId) {
+            drag.lastTargetId = targetId;
+            optsRef.current.onMove(drag.id, targetId);
+          }
           return;
         }
       }
+      // Pointer is over no other tile (a gap/edge); next tile we enter is "new".
+      drag.lastTargetId = null;
     }
 
     function onMoveEvt(e: PointerEvent) {

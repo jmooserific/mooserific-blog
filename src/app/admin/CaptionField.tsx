@@ -1,7 +1,7 @@
 "use client"
 
 import { useLayoutEffect, useRef, useState } from "react";
-import Markdown from "react-markdown";
+import Markdown, { type Components } from "react-markdown";
 import { BoldIcon, ItalicIcon, LinkIcon, ListBulletIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { wrapSelection, insertLink, insertListItem, type FormatResult } from "./markdownFormat";
 
@@ -9,6 +9,27 @@ interface CaptionFieldProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+}
+
+// In the editor preview, links render styled but non-interactive so the
+// tap-to-edit region (a role="button") holds no nested interactive element.
+// The author edits the link's target through the toolbar, not by clicking it.
+const PREVIEW_COMPONENTS: Components = {
+  a: ({ children }) => <span className="text-blue-600 underline">{children}</span>,
+};
+
+/**
+ * Coerce a prompt-entered URL to a safe one: accept http(s)/mailto as-is, assume
+ * https for a scheme-less host, and reject anything with another scheme
+ * (javascript:, data:, …). Defense-in-depth — react-markdown already neutralizes
+ * unsafe hrefs at render — and a small UX win (typing `example.com` just works).
+ */
+function safeLinkUrl(raw: string): string | null {
+  const url = raw.trim();
+  if (!url) return null;
+  if (/^(https?:\/\/|mailto:)/i.test(url)) return url;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) return null; // some other (unsafe) scheme
+  return `https://${url}`;
 }
 
 /**
@@ -56,28 +77,45 @@ export function CaptionField({ value, onChange, disabled = false }: CaptionField
   const trimmed = value.trim();
 
   if (!editing) {
+    // Empty state is a real <button> (it holds only phrasing content).
+    if (!trimmed) {
+      return (
+        <button
+          type="button"
+          onClick={enterEdit}
+          disabled={disabled}
+          className="group inline-flex items-center gap-1.5 rounded-[10px] text-sm text-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+        >
+          <PencilSquareIcon className="h-3.75 w-3.75 opacity-80" aria-hidden="true" />
+          Add a caption
+          <span className="text-gray-500">— optional</span>
+        </button>
+      );
+    }
+    // Filled state: tap-anywhere-to-edit. Rendered as a role="button" div (not a
+    // real <button>) because react-markdown emits block content (<p>, <ul>); and
+    // its links render as non-interactive spans here so the preview holds no
+    // nested interactive element. The author edits the link via the toolbar.
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled || undefined}
         onClick={enterEdit}
-        disabled={disabled}
-        className={`group block w-full rounded-[10px] text-left transition-colors ${
-          trimmed ? "-mx-1.5 px-1.5 py-1 hover:bg-accent/6" : ""
-        } focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed`}
-        aria-label={trimmed ? "Edit caption" : "Add a caption"}
+        onKeyDown={(e) => {
+          if (disabled) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            enterEdit();
+          }
+        }}
+        aria-label="Edit caption"
+        className="-mx-1.5 cursor-text rounded-[10px] px-1.5 py-1 transition-colors hover:bg-accent/6 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
-        {trimmed ? (
-          <div className="prose prose-sm max-w-none">
-            <Markdown>{value}</Markdown>
-          </div>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-sm text-accent">
-            <PencilSquareIcon className="h-[15px] w-[15px] opacity-80" aria-hidden="true" />
-            Add a caption
-            <span className="text-gray-500">— optional</span>
-          </span>
-        )}
-      </button>
+        <div className="prose prose-sm max-w-none">
+          <Markdown components={PREVIEW_COMPONENTS}>{value}</Markdown>
+        </div>
+      </div>
     );
   }
 
@@ -93,8 +131,13 @@ export function CaptionField({ value, onChange, disabled = false }: CaptionField
         <ToolbarButton
           label="Link"
           onPress={() => {
-            const url = window.prompt("Link URL", "https://");
-            if (!url) return;
+            const raw = window.prompt("Link URL", "https://");
+            if (raw === null) return;
+            const url = safeLinkUrl(raw);
+            if (!url) {
+              window.alert("Links must start with http://, https://, or mailto:");
+              return;
+            }
             applyFormat((t, s, e) => insertLink(t, s, e, url));
           }}
         >
@@ -142,7 +185,7 @@ function ToolbarButton({ label, onPress, children }: ToolbarButtonProps) {
         e.preventDefault();
         onPress();
       }}
-      className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-accent/15 bg-transparent text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+      className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-accent/15 bg-transparent text-accent transition-colors hover:bg-accent/6 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
     >
       {children}
     </button>
