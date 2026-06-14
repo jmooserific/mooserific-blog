@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Mooserific — Post composer prototype (WYSIWYG)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;500;700;900&family=Zilla+Slab:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ── Design tokens (design-system.md) ─────────────────────────────── */
+  :root {
+    --bg: #f9fafb;
+    --surface: #ffffff;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --accent: #845A2C;            /* umber */
+    --accent-hover: #6d4a24;
+    --accent-muted: #A87941;
+    --accent-wash: rgba(132, 90, 44, 0.06);
+    --accent-hairline: rgba(132, 90, 44, 0.15);
+    --link: #2563eb;             /* caption links */
+    --danger: #b91c1c;           /* red-700 */
+    --danger-wash: rgba(127, 29, 29, 0.06);
+    --danger-hairline: rgba(185, 28, 28, 0.20);
+    --card-radius: 20px;
+    --img-radius: 12px;
+    --ctrl-radius: 10px;
+    --row-gap: 8px;              /* gallery gutter */
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: 'Mulish', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    /* leave room for the floating publish bar */
+    padding-bottom: calc(96px + var(--safe-bottom));
+    overscroll-behavior-y: contain;
+  }
+
+  /* ── Top bar ──────────────────────────────────────────────────────── */
+  header.bar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px calc(12px);
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    background: linear-gradient(to bottom, rgba(249,250,251,0.92), rgba(249,250,251,0.6));
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+  }
+  .bar h1 {
+    font-family: 'Zilla Slab', serif; font-weight: 500;
+    font-size: 19px; color: var(--accent); letter-spacing: 0.1px;
+  }
+  .ghost-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--accent); font: inherit; font-size: 14px;
+    text-decoration: underline; text-decoration-thickness: 1px;
+    text-underline-offset: 3px; text-decoration-color: var(--accent-hairline);
+    border-radius: var(--ctrl-radius); padding: 6px 8px;
+    transition: background 120ms ease, text-decoration-color 120ms ease;
+  }
+  .ghost-link:hover { background: var(--accent-wash); text-decoration-color: var(--accent); }
+  .ghost-link svg { width: 16px; height: 16px; }
+
+  /* ── Canvas (mirrors PostCard) ────────────────────────────────────── */
+  main { max-width: 680px; margin: 0 auto; padding: 8px 16px 0; }
+  .card {
+    background: var(--surface); border-radius: var(--card-radius);
+    overflow: clip;
+    opacity: 0; transform: translateY(8px);
+    animation: rise 460ms cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  .card-section { padding-left: 20px; padding-right: 20px; }
+  .card-header { padding-top: 18px; padding-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Byline */
+  .byline { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--accent); }
+  .byline .date-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; border: 1px solid var(--accent-hairline);
+    color: var(--accent); font: inherit; font-size: 13px;
+    border-radius: var(--ctrl-radius); padding: 3px 9px; cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .byline .date-chip:hover { background: var(--accent-wash); }
+  .byline .date-chip svg { width: 13px; height: 13px; opacity: .8; }
+  .byline .sep { opacity: .5; }
+  .byline input[type="datetime-local"] {
+    font: inherit; font-size: 13px; color: var(--accent);
+    border: 1px solid var(--accent-hairline); border-radius: var(--ctrl-radius);
+    padding: 3px 8px; background: var(--surface);
+  }
+
+  /* ── Caption (WYSIWYG: rendered prose, tap to edit) ───────────────── */
+  .caption-wrap { position: relative; }
+  .toolbar {
+    display: flex; align-items: center; gap: 2px; margin-bottom: 8px;
+    max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height 180ms ease, opacity 140ms ease, margin 180ms ease;
+  }
+  .caption-wrap.editing .toolbar { max-height: 44px; opacity: 1; }
+  .tool-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 8px;
+    background: transparent; border: 1px solid var(--accent-hairline);
+    color: var(--accent); cursor: pointer; font-family: 'Zilla Slab', serif;
+    font-size: 15px; transition: background 120ms ease;
+  }
+  .tool-btn:hover { background: var(--accent-wash); }
+  .tool-btn svg { width: 16px; height: 16px; }
+  .tool-btn.it { font-style: italic; }
+  .tool-spacer { flex: 1; }
+  .tool-done {
+    border: none; background: var(--accent); color: #fff;
+    border-radius: 8px; padding: 6px 14px; font: inherit; font-weight: 500;
+    font-size: 13px; cursor: pointer;
+  }
+
+  /* prose: mirrors `prose prose-sm` caption rendering */
+  .prose { font-size: 14px; line-height: 1.6; color: var(--text); }
+  .prose p { margin: 0 0 .6em; }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { font-weight: 700; }
+  .prose em { font-style: italic; }
+  .prose a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+  .prose ul { margin: .4em 0; padding-left: 1.2em; }
+  .prose-shell {
+    cursor: text; border-radius: var(--ctrl-radius); margin: -4px -6px; padding: 4px 6px;
+    transition: background 120ms ease;
+  }
+  .prose-shell:hover { background: var(--accent-wash); }
+  /* Empty state: a flush, tappable hint — deliberately NOT the gallery's
+     dashed box. The gallery is required (it earns the dashed drop target);
+     the caption is optional, so it stays light text with an explicit
+     "(optional)" tag. The contrast between the two is the signal. */
+  .prose-shell.empty {
+    color: var(--accent); font-style: normal;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .prose-shell.empty .opt { color: var(--text-muted); font-size: 13px; }
+  .prose-shell.empty svg { width: 15px; height: 15px; opacity: .8; flex: none; }
+  .caption-edit {
+    width: 100%; min-height: 84px; resize: vertical;
+    font: inherit; font-size: 14px; line-height: 1.6; color: var(--text);
+    border: 1px solid var(--accent); border-radius: var(--ctrl-radius);
+    padding: 8px 10px; outline: none;
+    box-shadow: 0 0 0 3px rgba(132,90,44,.18);
+  }
+  .hidden { display: none !important; }
+
+  /* ── Media: empty state ───────────────────────────────────────────── */
+  .dropzone {
+    margin: 4px 0 2px;
+    border: 2px dashed var(--accent-hairline); border-radius: var(--img-radius);
+    padding: 34px 20px; text-align: center; cursor: pointer;
+    color: var(--accent); transition: background 120ms ease, border-color 120ms ease;
+  }
+  .dropzone:hover, .dropzone.drag { background: var(--accent-wash); border-color: rgba(132,90,44,.4); }
+  .dropzone .big { display: flex; justify-content: center; margin-bottom: 10px; }
+  .dropzone .big svg { width: 34px; height: 34px; opacity: .85; }
+  .dropzone .title { font-weight: 700; font-size: 15px; }
+  .dropzone .sub { font-size: 12.5px; color: var(--accent-muted); margin-top: 3px; }
+
+  /* ── Media: grid (mirrors hero + justified rows) ──────────────────── */
+  .gallery { display: flex; flex-direction: column; gap: var(--row-gap); }
+  .row { display: flex; gap: var(--row-gap); }
+  .tile {
+    position: relative; border-radius: var(--img-radius); overflow: hidden;
+    background: #eee; min-width: 0; touch-action: none; user-select: none;
+    -webkit-user-select: none;
+  }
+  .tile.hero { width: 100%; }
+  .tile img, .tile video, .tile .ph {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+  }
+  .tile.hero img, .tile.hero .ph { max-height: 64vh; }
+  .tile .ph { background: linear-gradient(135deg, #e7d8c4, #cbb393); }
+
+  /* drag affordances */
+  .tile .scrim {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to top, rgba(0,0,0,.28), rgba(0,0,0,0) 38%);
+    opacity: 0; transition: opacity 140ms ease;
+  }
+  .tile:hover .scrim { opacity: 1; }
+  .tile .handle {
+    position: absolute; left: 8px; bottom: 8px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 4px;
+    color: #fff; font-size: 11px; font-weight: 600;
+    background: rgba(0,0,0,.35); border-radius: 7px; padding: 3px 7px;
+    backdrop-filter: blur(4px); cursor: grab; opacity: 0; transition: opacity 140ms ease;
+  }
+  .tile:hover .handle, .is-touch .tile .handle { opacity: 1; }
+  .tile .handle:active { cursor: grabbing; }
+  .tile .handle svg { width: 12px; height: 12px; }
+  .tile .remove {
+    position: absolute; top: 8px; right: 8px; z-index: 3;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.42); color: #fff; border: none; cursor: pointer;
+    opacity: 0; transition: opacity 140ms ease, background 120ms ease;
+  }
+  .tile:hover .remove, .is-touch .tile .remove { opacity: 1; }
+  .tile .remove:hover { background: var(--danger); }
+  .tile .remove svg { width: 15px; height: 15px; }
+  .tile .badge {
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+    color: #fff; background: rgba(132,90,44,.92); border-radius: 6px; padding: 3px 7px;
+  }
+  .tile .play {
+    position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none;
+  }
+  .tile .play svg { width: 44px; height: 44px; color: #fff; filter: drop-shadow(0 1px 4px rgba(0,0,0,.5)); }
+
+  .tile.dragging { opacity: .35; }
+  .tile.flip { transition: transform 200ms cubic-bezier(.2,.7,.2,1); }
+  .drag-ghost {
+    position: fixed; z-index: 100; border-radius: var(--img-radius); overflow: hidden;
+    pointer-events: none; box-shadow: 0 12px 30px rgba(0,0,0,.28); opacity: .96;
+    transform: rotate(1.5deg);
+  }
+  .drag-ghost img, .drag-ghost .ph { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* add-more strip */
+  .add-row { display: flex; justify-content: center; padding-top: 4px; }
+  .add-more {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; border: 1px solid var(--accent-hairline);
+    color: var(--accent); border-radius: var(--ctrl-radius); padding: 7px 14px;
+    font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .add-more:hover { background: var(--accent-wash); }
+  .add-more svg { width: 15px; height: 15px; }
+
+  .tip { font-size: 12px; color: var(--accent-muted); padding: 2px 0; }
+
+  /* ── Advanced ─────────────────────────────────────────────────────── */
+  details.advanced { margin: 14px 2px 0; }
+  details.advanced summary {
+    list-style: none; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: var(--accent); padding: 8px 4px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  details.advanced summary::-webkit-details-marker { display: none; }
+  details.advanced summary svg { width: 14px; height: 14px; transition: transform 160ms ease; }
+  details.advanced[open] summary svg { transform: rotate(90deg); }
+  .field { padding: 6px 4px 4px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 5px; }
+  .slug-shell {
+    display: flex; align-items: center; border: 1px solid var(--accent-hairline);
+    border-radius: var(--ctrl-radius); padding: 0 12px; background: var(--surface);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .slug-shell:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(132,90,44,.18); }
+  .slug-shell .pre { color: var(--text-muted); font-size: 14px; user-select: none; }
+  .slug-shell input { flex: 1; border: none; outline: none; font: inherit; font-size: 14px; padding: 9px 2px; background: transparent; }
+  .help { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+
+  /* ── Publish bar (floating liquid-glass, thumb-reachable) ─────────── */
+  .publish {
+    position: fixed; left: 0; right: 0; z-index: 40;
+    bottom: 0; padding: 12px 16px calc(12px + var(--safe-bottom));
+    display: flex; justify-content: center;
+    background: linear-gradient(to top, rgba(249,250,251,0.96) 55%, rgba(249,250,251,0));
+    pointer-events: none;
+  }
+  .publish .inner { width: 100%; max-width: 680px; display: flex; gap: 10px; align-items: center; pointer-events: auto; }
+  .count { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
+  .post-btn {
+    position: relative; flex: 1; overflow: hidden;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 14px; padding: 14px 18px; font: inherit; font-weight: 700; font-size: 15px;
+    cursor: pointer; box-shadow: 0 6px 18px rgba(132,90,44,.28);
+    transition: background 120ms ease, transform 80ms ease;
+  }
+  .post-btn:hover { background: var(--accent-hover); }
+  .post-btn:active { transform: translateY(1px); }
+  .post-btn:disabled { opacity: .6; cursor: progress; }
+  .post-btn .fill {
+    position: absolute; inset: 0; background: rgba(255,255,255,.18);
+    width: 0; transition: width 120ms linear;
+  }
+  .post-btn .label { position: relative; }
+
+  /* ── Toast ────────────────────────────────────────────────────────── */
+  .toast-area { position: fixed; bottom: calc(96px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: #fff; border: 1px solid var(--accent-hairline); border-radius: var(--ctrl-radius);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+    padding: 10px 14px; font-size: 13px; color: var(--text); min-width: 220px;
+    display: flex; align-items: center; gap: 8px;
+    animation: toastIn 200ms ease;
+  }
+  .toast.ok { color: var(--accent); }
+  .toast svg { width: 16px; height: 16px; flex: none; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <button class="ghost-link" type="button" onclick="toast('This is a prototype — back goes to the feed in the real app.')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      Posts
+    </button>
+    <h1 id="modeTitle">New post</h1>
+    <span style="width:64px"></span>
+  </header>
+
+  <main>
+    <article class="card">
+      <!-- Header band: byline + caption -->
+      <div class="card-section card-header">
+        <div class="byline" id="byline"></div>
+
+        <div class="caption-wrap" id="capWrap">
+          <div class="toolbar" id="toolbar">
+            <button class="tool-btn" type="button" data-fmt="bold" title="Bold" style="font-weight:800">B</button>
+            <button class="tool-btn it" type="button" data-fmt="italic" title="Italic">I</button>
+            <button class="tool-btn" type="button" data-fmt="link" title="Link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+            <button class="tool-btn" type="button" data-fmt="list" title="Bulleted list">•</button>
+            <span class="tool-spacer"></span>
+            <button class="tool-done" type="button" id="capDone">Done</button>
+          </div>
+          <div class="prose prose-shell" id="capRendered"></div>
+          <textarea class="caption-edit hidden" id="capInput" placeholder="Write a caption… select text and tap B, I, or the link icon to format."></textarea>
+        </div>
+      </div>
+
+      <!-- Media -->
+      <div id="mediaMount"></div>
+    </article>
+
+    <details class="advanced">
+      <summary>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        Advanced
+      </summary>
+      <div class="field">
+        <label for="slug">Permalink</label>
+        <div class="slug-shell">
+          <span class="pre">/p/</span>
+          <input id="slug" type="text" spellcheck="false" autocapitalize="none" autocorrect="off" />
+        </div>
+        <p class="help">Lowercase letters, numbers, and hyphens. Defaults to the post date.</p>
+      </div>
+    </details>
+  </main>
+
+  <!-- Floating publish bar -->
+  <div class="publish">
+    <div class="inner">
+      <span class="count" id="count">No media yet</span>
+      <button class="post-btn" id="postBtn" type="button">
+        <span class="fill" id="postFill"></span>
+        <span class="label" id="postLabel">Post</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="toast-area" id="toastArea"></div>
+
+  <!-- hidden file input -->
+  <input id="fileInput" type="file" accept="image/*,video/*" multiple style="display:none" />
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────
+   Prototype state. Mirrors the real editor's UploadItem shape closely.
+   ────────────────────────────────────────────────────────────────────── */
+const MAX_ITEMS = 20;
+const state = {
+  caption: "",
+  date: new Date(),
+  slugManual: false,
+  slug: "",
+  items: /** @type {Array<{id,kind,name,url,w,h,isPlaceholder}>} */ ([]),
+};
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const isTouch = matchMedia('(pointer: coarse)').matches;
+if (isTouch) document.body.classList.add('is-touch');
+
+/* ── Seed a few sample photos so the grid preview is alive on open ─────── */
+function svgPhoto(w, h, label, c1, c2) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>
+    <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0' stop-color='${c1}'/><stop offset='1' stop-color='${c2}'/></linearGradient></defs>
+    <rect width='100%' height='100%' fill='url(#g)'/>
+    <text x='50%' y='50%' fill='rgba(255,255,255,.85)' font-family='sans-serif' font-size='${Math.round(Math.min(w,h)/9)}' font-weight='700' text-anchor='middle' dominant-baseline='middle'>${label}</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+state.items = [
+  { id: uid(), kind: 'photo', name: 'beach.jpg',    w: 1600, h: 900,  url: svgPhoto(1600,900,'1600 × 900 (landscape)','#c08a52','#7a5128') },
+  { id: uid(), kind: 'photo', name: 'cabin.jpg',    w: 1200, h: 1500, url: svgPhoto(1200,1500,'1200 × 1500','#9c7b53','#5e4523') },
+  { id: uid(), kind: 'photo', name: 'campfire.jpg', w: 1400, h: 1050, url: svgPhoto(1400,1050,'1400 × 1050','#b08a5e','#6d4a24') },
+];
+state.caption = "First weekend at the **lake house**. The kids would not get out of the water. More on the [trip blog](https://example.com).";
+
+/* ──────────────────────────────────────────────────────────────────────
+   Hero / rows layout — ported from src/utils/heroLayout.ts and the
+   RowsPhotoAlbum behaviour in PostCard.tsx (justified rows, ≤3 per row).
+   ────────────────────────────────────────────────────────────────────── */
+function shouldLeadWithHero(photos) {
+  const first = photos[0];
+  if (!first) return false;
+  if (first.w < first.h) return false;          // portrait makes a poor hero
+  return photos.length === 1 || photos.length >= 3;
+}
+function chunkRows(photos, maxPerRow = 3) {
+  const rows = [];
+  for (let i = 0; i < photos.length; i += maxPerRow) rows.push(photos.slice(i, i + maxPerRow));
+  return rows;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Tiny Markdown renderer for the caption preview. Handles the small subset
+   captions actually use (bold, italic, links, line breaks, simple lists) —
+   the toolbar only ever emits these, matching react-markdown output.
+   ────────────────────────────────────────────────────────────────────── */
+function renderMarkdown(src) {
+  if (!src.trim()) return "";
+  const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = (s) => esc(s)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const blocks = src.split(/\n{2,}/);
+  return blocks.map(b => {
+    const lines = b.split('\n');
+    if (lines.every(l => /^\s*[-*]\s+/.test(l))) {
+      return '<ul>' + lines.map(l => '<li>' + inline(l.replace(/^\s*[-*]\s+/, '')) + '</li>').join('') + '</ul>';
+    }
+    return '<p>' + inline(b).replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Render: byline, caption, media grid, publish bar.
+   ────────────────────────────────────────────────────────────────────── */
+const $ = (s) => document.querySelector(s);
+
+function fmtDate(d) {
+  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+function toLocalInput(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function slugFromDate(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+function renderByline() {
+  const el = $('#byline');
+  el.innerHTML = `
+    <button class="date-chip" id="dateChip" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      ${fmtDate(state.date)}
+    </button>
+    <span class="sep">·</span> by <strong>vemoose</strong>`;
+  $('#dateChip').addEventListener('click', openDateEditor);
+}
+function openDateEditor() {
+  const chip = $('#dateChip');
+  const input = document.createElement('input');
+  input.type = 'datetime-local';
+  input.value = toLocalInput(state.date);
+  chip.replaceWith(input);
+  input.focus();
+  const commit = () => {
+    if (input.value) {
+      state.date = new Date(input.value);
+      if (!state.slugManual) { state.slug = slugFromDate(state.date); $('#slug').value = state.slug; }
+    }
+    renderByline();
+  };
+  input.addEventListener('change', commit);
+  input.addEventListener('blur', commit);
+}
+
+function renderCaption() {
+  const r = $('#capRendered');
+  const html = renderMarkdown(state.caption);
+  if (html) { r.innerHTML = html; r.classList.remove('empty'); }
+  else {
+    r.classList.add('empty');
+    r.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Add a caption</span><span class="opt">— optional</span>`;
+  }
+}
+
+function mediaThumb(it) {
+  if (it.isPlaceholder) return `<div class="ph"></div>`;
+  if (it.kind === 'video') return `<video muted playsinline preload="metadata" src="${it.url}"></video>
+    <span class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>`;
+  return `<img src="${it.url}" alt="" draggable="false" />`;
+}
+
+function tileHTML(it, { hero = false, heroBadge = false } = {}) {
+  const ar = it.w && it.h ? it.w / it.h : 1.5;
+  const style = hero
+    ? `aspect-ratio:${it.w} / ${it.h}`
+    : `flex:${ar} 1 0; aspect-ratio:${it.w} / ${it.h}`;
+  return `<div class="tile${hero ? ' hero' : ''}" data-id="${it.id}" style="${style}">
+      ${mediaThumb(it)}
+      <div class="scrim"></div>
+      ${heroBadge ? '<span class="badge">Hero</span>' : ''}
+      <span class="handle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg> drag</span>
+      <button class="remove" type="button" data-remove="${it.id}" aria-label="Remove ${it.name}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>`;
+}
+
+function renderMedia() {
+  const mount = $('#mediaMount');
+  if (state.items.length === 0) {
+    mount.innerHTML = `
+      <div class="card-section">
+        <div class="dropzone" id="dropzone">
+          <div class="big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9" r="1.8"/><path d="M21 15l-5-5L5 21"/></svg></div>
+          <div class="title">Add photos &amp; videos</div>
+          <div class="sub">Tap to choose from your library or camera · drag to drop here</div>
+        </div>
+      </div>`;
+    wireDropzone();
+    return;
+  }
+
+  const photos = state.items.filter(i => i.kind === 'photo');
+  const videos = state.items.filter(i => i.kind === 'video');
+  const useHero = shouldLeadWithHero(photos);
+  const heroPhoto = useHero ? photos[0] : null;
+  const rowPhotos = useHero ? photos.slice(1) : photos;
+
+  let html = `<div class="card-section"><div class="gallery">`;
+  if (heroPhoto) html += tileHTML(heroPhoto, { hero: true, heroBadge: true });
+  for (const row of chunkRows(rowPhotos)) {
+    html += `<div class="row">` + row.map(p => tileHTML(p)).join('') + `</div>`;
+  }
+  for (const v of videos) {
+    html += `<div class="row">` + tileHTML(v, { hero: true }) + `</div>`;
+  }
+  html += `</div>`;
+  html += `<div class="add-row"><button class="add-more" id="addMore" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add more
+    </button></div>`;
+  html += `<p class="tip">Lead with a landscape photo to feature it as a big hero. Drag any tile to reorder.</p>`;
+  html += `</div>`;
+  mount.innerHTML = html;
+
+  $('#addMore').addEventListener('click', () => $('#fileInput').click());
+  mount.querySelectorAll('[data-remove]').forEach(b =>
+    b.addEventListener('click', (e) => { e.stopPropagation(); removeItem(b.dataset.remove); }));
+  if (dnd && dnd.started) applyDraggingClass();   // keep the active tile dimmed across re-renders
+}
+
+function renderPublish() {
+  const n = state.items.length;
+  const photos = state.items.filter(i => i.kind === 'photo').length;
+  const videos = n - photos;
+  let label = 'No media yet';
+  if (n) label = [photos && `${photos} photo${photos>1?'s':''}`, videos && `${videos} video${videos>1?'s':''}`].filter(Boolean).join(' · ');
+  $('#count').textContent = label;
+  $('#postBtn').disabled = n === 0;
+}
+
+function renderAll() { renderByline(); renderCaption(); renderMedia(); renderPublish(); }
+
+/* ──────────────────────────────────────────────────────────────────────
+   Caption editing — tap rendered prose to edit; toolbar inserts Markdown.
+   ────────────────────────────────────────────────────────────────────── */
+const capWrap = $('#capWrap'), capRendered = $('#capRendered'), capInput = $('#capInput');
+capRendered.addEventListener('click', enterEdit);
+function enterEdit() {
+  capWrap.classList.add('editing');
+  capInput.value = state.caption;
+  capRendered.classList.add('hidden');
+  capInput.classList.remove('hidden');
+  capInput.focus();
+  const len = capInput.value.length; capInput.setSelectionRange(len, len);
+}
+function exitEdit() {
+  state.caption = capInput.value;
+  capWrap.classList.remove('editing');
+  capInput.classList.add('hidden');
+  capRendered.classList.remove('hidden');
+  renderCaption();
+}
+$('#capDone').addEventListener('click', exitEdit);
+capInput.addEventListener('input', () => { state.caption = capInput.value; });
+
+document.querySelectorAll('[data-fmt]').forEach(btn => {
+  // mousedown (not click) so the textarea keeps its selection
+  btn.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat(btn.dataset.fmt); });
+});
+function applyFormat(kind) {
+  const ta = capInput;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const sel = ta.value.slice(start, end);
+  let before = '', after = '', placeholder = '';
+  if (kind === 'bold')   { before = '**'; after = '**'; placeholder = 'bold text'; }
+  if (kind === 'italic') { before = '_';  after = '_';  placeholder = 'italic text'; }
+  if (kind === 'link')   {
+    const url = prompt('Link URL', 'https://') || '';
+    if (!url) { ta.focus(); return; }
+    const text = sel || prompt('Link text', '') || url;
+    insert(ta, start, end, `[${text}](${url})`, text.length + 1, text.length + 1);
+    state.caption = ta.value; return;
+  }
+  if (kind === 'list') {
+    const text = sel || 'list item';
+    insert(ta, start, end, `\n- ${text}`, 3, 3 + text.length);
+    state.caption = ta.value; return;
+  }
+  const body = sel || placeholder;
+  insert(ta, start, end, before + body + after, before.length, before.length + body.length);
+  state.caption = ta.value;
+}
+function insert(ta, start, end, text, selFrom, selTo) {
+  ta.setRangeText(text, start, end, 'end');
+  ta.focus();
+  ta.setSelectionRange(start + selFrom, start + selTo);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   File handling — read dimensions, enforce photos-before-videos grouping.
+   ────────────────────────────────────────────────────────────────────── */
+$('#fileInput').addEventListener('change', (e) => {
+  addFiles(Array.from(e.target.files || []));
+  e.target.value = '';
+});
+function addFiles(files) {
+  const room = MAX_ITEMS - state.items.length;
+  files.slice(0, Math.max(0, room)).forEach(file => {
+    const kind = file.type.startsWith('image/') ? 'photo' : 'video';
+    const url = URL.createObjectURL(file);
+    const item = { id: uid(), kind, name: file.name, url, w: 1200, h: 900, isPlaceholder: false };
+    state.items.push(item);
+    regroup();
+    if (kind === 'photo') {
+      const img = new Image();
+      img.onload = () => { item.w = img.naturalWidth; item.h = img.naturalHeight; renderMedia(); };
+      img.src = url;
+    } else {
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.onloadedmetadata = () => { item.w = v.videoWidth || 1280; item.h = v.videoHeight || 720; renderMedia(); };
+      v.src = url;
+    }
+  });
+  renderMedia(); renderPublish();
+}
+function regroup() {
+  // photos first, then videos (matches the editor's group rule)
+  state.items.sort((a, b) => (a.kind === b.kind) ? 0 : a.kind === 'photo' ? -1 : 1);
+}
+function removeItem(id) {
+  const tile = document.querySelector(`.tile[data-id="${id}"]`);
+  state.items = state.items.filter(i => i.id !== id);
+  renderMedia(); renderPublish();
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Pointer-based drag reorder — works with mouse AND touch (HTML5 DnD does
+   not). Reorders live so the hero/rows layout re-flows as you drag, which
+   is the whole point: you see the grid change. Same-kind only.
+
+   Drag state is module-level and the move/up listeners live on `document`
+   (set up once), so a live re-render of the tiles mid-drag can never sever
+   the gesture or orphan the floating ghost. We deliberately do NOT use
+   setPointerCapture: capturing on a tile that gets replaced by a re-render
+   is exactly what left the ghost stranded before. Without capture,
+   pointermove/up still bubble to document. `touch-action: none` on tiles
+   keeps a touch-drag from turning into a scroll.
+   ────────────────────────────────────────────────────────────────────── */
+let dnd = null;
+
+function applyDraggingClass() {
+  document.querySelector(`.tile[data-id="${dnd.id}"]`)?.classList.add('dragging');
+}
+function startGhost(d) {
+  const g = document.createElement('div');
+  g.className = 'drag-ghost';
+  g.style.width = d.w + 'px'; g.style.height = d.h + 'px';
+  g.innerHTML = mediaThumb(d.item);
+  document.body.appendChild(g);
+  d.ghost = g;
+}
+function positionGhost(d, x, y) {
+  d.ghost.style.left = (x - d.offX) + 'px';
+  d.ghost.style.top  = (y - d.offY) + 'px';
+}
+function maybeReorder(d, x, y) {
+  const tiles = [...document.querySelectorAll('#mediaMount .tile')].filter(t => t.dataset.id !== d.id);
+  let target = null;
+  for (const t of tiles) {
+    const r = t.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) { target = t; break; }
+  }
+  if (!target) return;
+  const from = state.items.findIndex(i => i.id === d.id);
+  const to = state.items.findIndex(i => i.id === target.dataset.id);
+  if (from === -1 || to === -1 || from === to) return;
+  if (state.items[from].kind !== state.items[to].kind) return;   // keep groups intact
+  const [moved] = state.items.splice(from, 1);
+  state.items.splice(to, 0, moved);
+  renderMedia();                                                 // re-flows the live grid
+}
+
+// Delegated start: one listener on the persistent #mediaMount, so it survives
+// the innerHTML swaps that renderMedia() does each frame.
+$('#mediaMount').addEventListener('pointerdown', (e) => {
+  const tile = e.target.closest('.tile');
+  if (!tile || e.target.closest('[data-remove]')) return;
+  const item = state.items.find(i => i.id === tile.dataset.id);
+  if (!item) return;
+  const rect = tile.getBoundingClientRect();
+  dnd = {
+    id: tile.dataset.id, item,
+    startX: e.clientX, startY: e.clientY,
+    offX: e.clientX - rect.left, offY: e.clientY - rect.top,
+    w: rect.width, h: rect.height, ghost: null, started: false,
+  };
+});
+document.addEventListener('pointermove', (e) => {
+  if (!dnd) return;
+  if (!dnd.started) {
+    if (Math.hypot(e.clientX - dnd.startX, e.clientY - dnd.startY) < 8) return;  // threshold
+    dnd.started = true;
+    startGhost(dnd);
+    applyDraggingClass();
+  }
+  e.preventDefault();
+  positionGhost(dnd, e.clientX, e.clientY);
+  maybeReorder(dnd, e.clientX, e.clientY);
+}, { passive: false });
+function endDrag() {
+  if (!dnd) return;
+  if (dnd.ghost) dnd.ghost.remove();
+  const wasDragging = dnd.started;
+  dnd = null;                       // clear first, so the re-render doesn't re-dim the dropped tile
+  if (wasDragging) renderMedia();
+}
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
+
+/* ──────────────────────────────────────────────────────────────────────
+   Dropzone (empty state) drag-and-drop + click.
+   ────────────────────────────────────────────────────────────────────── */
+function wireDropzone() {
+  const dz = $('#dropzone');
+  if (!dz) return;
+  dz.addEventListener('click', () => $('#fileInput').click());
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault(); dz.classList.remove('drag');
+    addFiles(Array.from(e.dataTransfer.files || []));
+  });
+}
+// also accept drops anywhere on the card once there's media
+document.addEventListener('dragover', (e) => { if (state.items.length) e.preventDefault(); });
+document.addEventListener('drop', (e) => {
+  if (!state.items.length) return;
+  if (e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); addFiles(Array.from(e.dataTransfer.files)); }
+});
+
+/* ── Slug ─────────────────────────────────────────────────────────────── */
+state.slug = slugFromDate(state.date);
+$('#slug').value = state.slug;
+$('#slug').addEventListener('input', (e) => { state.slugManual = true; state.slug = e.target.value; });
+
+/* ──────────────────────────────────────────────────────────────────────
+   Publish — simulated progress, then success toast.
+   ────────────────────────────────────────────────────────────────────── */
+$('#postBtn').addEventListener('click', () => {
+  if (!state.items.length) return;
+  const btn = $('#postBtn'), fill = $('#postFill'), label = $('#postLabel');
+  btn.disabled = true; label.textContent = 'Posting…';
+  let pct = 0;
+  const tick = setInterval(() => {
+    pct = Math.min(100, pct + 7 + Math.random() * 10);
+    fill.style.width = pct + '%';
+    if (pct >= 100) {
+      clearInterval(tick);
+      setTimeout(() => {
+        fill.style.width = '0%'; btn.disabled = false; label.textContent = 'Post';
+        toast('Post created — /p/' + state.slug, true);
+      }, 250);
+    }
+  }, 120);
+});
+
+/* ── Toast ────────────────────────────────────────────────────────────── */
+function toast(msg, ok = false) {
+  const area = $('#toastArea');
+  const t = document.createElement('div');
+  t.className = 'toast' + (ok ? ' ok' : '');
+  t.innerHTML = (ok
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>')
+    + `<span>${msg}</span>`;
+  area.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 200ms'; setTimeout(() => t.remove(), 220); }, 2600);
+}
+
+/* ── Go ───────────────────────────────────────────────────────────────── */
+renderAll();
+</script>
+</body>
+</html>
