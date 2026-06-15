@@ -1,5 +1,3 @@
-import 'server-only';
-
 // Required env vars — the app cannot function without these.
 const REQUIRED = [
   'CF_API_TOKEN',
