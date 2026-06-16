@@ -1,8 +1,7 @@
 "use client"
 
 import { Suspense } from "react";
-import Link from "next/link";
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
 import { usePostEditor } from "./usePostEditor";
 import { DateChip } from "./DateChip";
 import { CaptionField } from "./CaptionField";
@@ -29,29 +28,10 @@ function AdminPageInner() {
 
   return (
     <div className="min-h-screen pb-28">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-gradient-to-b from-gray-50/95 to-gray-50/60 px-4 py-3 backdrop-blur-md">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1.5 text-sm text-accent underline decoration-1 decoration-accent/15 underline-offset-[3px] transition-colors hover:bg-accent/6 hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-        >
-          <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
-          <span>Posts</span>
-        </Link>
-        <h1 className="text-[19px] font-medium text-accent [font-family:var(--font-zilla-slab)]">
+      <main className="mx-auto max-w-2xl px-4 pt-2">
+        <h1 className="mb-3 text-[19px] font-medium text-accent [font-family:var(--font-zilla-slab)]">
           {isEditing ? "Edit post" : "New post"}
         </h1>
-        <form action="/api/auth/logout?redirect=/" method="post">
-          <button
-            type="submit"
-            className="rounded-[10px] px-2 py-1.5 text-sm text-red-700/80 underline decoration-1 decoration-red-700/20 underline-offset-[3px] transition-colors hover:bg-red-900/6 hover:decoration-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
-          >
-            Sign out
-          </button>
-        </form>
-      </header>
-
-      <main className="mx-auto max-w-2xl px-4 pt-2">
         {loadingExisting && (
           <div className="mb-3 rounded-[10px] border border-accent/15 bg-accent/6 px-3 py-2 text-sm text-accent">
             Loading selected post…
