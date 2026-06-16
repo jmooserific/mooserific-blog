@@ -299,28 +299,15 @@ export function usePostEditor(): PostEditorState {
       // The post `id` is client-supplied and deterministic, so a retried request after a
       // network drop can't create a duplicate — at worst it conflicts and surfaces a 4xx,
       // which fetchJson treats as non-retryable.
-      const saved = await withRetry(() => fetchJson<{ id: string }>(endpoint, {
+      const saved = await withRetry(() => fetchJson<{ id: string; slug: string }>(endpoint, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       }));
 
-      if (editingId) {
-        toast.success('Post updated', { description: `ID: ${saved.id}` });
-        await loadPost(saved.id);
-        router.refresh();
-      } else {
-        toast.success('Post created', { description: `ID: ${saved.id}` });
-        setCaption('');
-        setItems([]);
-        setFolderId(crypto.randomUUID());
-        setUploadProgress({});
-        setPostDate(new Date());
-        // Fresh draft: let the slug auto-track the date again.
-        setSlugManuallyEdited(false);
-        setOriginalSlug(null);
-        router.refresh();
-      }
+      toast.success(editingId ? 'Post updated' : 'Post created', { description: `ID: ${saved.id}` });
+      // Land the author on the post's permalink so they can see the result.
+      router.push(`/p/${encodeURIComponent(saved.slug)}`);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       toast.error(editingId ? 'Failed to update post' : 'Failed to create post', { description: message });
