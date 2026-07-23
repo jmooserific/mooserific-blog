@@ -19,7 +19,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1088.0",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/postcss": "^4.3.2",
-    "cloudflare": "^6.5.0",
+    "cloudflare": "^7.0.0",
     "date-fns": "^4.4.0",
     "next": "^16.2.10",
     "react": "latest",
