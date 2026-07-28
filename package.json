@@ -21,7 +21,7 @@
     "@tailwindcss/postcss": "^4.3.2",
     "cloudflare": "^6.5.0",
     "date-fns": "^4.4.0",
-    "next": "^16.2.10",
+    "next": "^16.2.11",
     "react": "latest",
     "react-dom": "latest",
     "react-markdown": "^10.1.0",
