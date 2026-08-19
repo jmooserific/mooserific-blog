@@ -10,6 +10,13 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # TypeScript 7 dropped the classic `lib/typescript.js` API (native/Go
+      # compiler now, CLI-only package). Next.js's default type-check can't
+      # find it and the build fails. Revisit once Next officially supports
+      # the new package (or we opt into experimental.useTypeScriptCli).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
