@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   // sharp's libvips shared library (@img/sharp-libvips-*) is loaded by the OS dynamic
   // linker, not require(), so file tracing misses it and the deployed function fails
   // with ERR_DLOPEN_FAILED. Force-include it for the route that uses sharp.
