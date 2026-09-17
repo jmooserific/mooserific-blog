@@ -32,7 +32,7 @@
     "sonner": "^2.0.8",
     "tailwindcss": "latest",
     "yet-another-react-lightbox": "^3.32.2",
-    "zod": "^4.6.3"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",
