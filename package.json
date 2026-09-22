@@ -15,8 +15,8 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1131.0",
-    "@aws-sdk/s3-request-presigner": "^3.1131.0",
+    "@aws-sdk/client-s3": "^3.1136.0",
+    "@aws-sdk/s3-request-presigner": "^3.1136.0",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/postcss": "^4.3.3",
     "cloudflare": "^7.1.0",
@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",
-    "@types/node": "^26.5.1",
+    "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",
     "@vitest/coverage-v8": "^5.0.1",
     "autoprefixer": "latest",
