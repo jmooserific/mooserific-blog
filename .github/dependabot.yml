@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      # vitest and @vitest/* peer-pin each other to the exact same version,
+      # so they must move together — including majors. Listed first because
+      # a dependency joins the first group it matches.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       # Batch routine bumps into one PR; majors still get their own PR.
       minor-and-patch:
         update-types:
