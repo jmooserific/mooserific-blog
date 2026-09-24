@@ -15,8 +15,8 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1131.0",
-    "@aws-sdk/s3-request-presigner": "^3.1131.0",
+    "@aws-sdk/client-s3": "^3.1136.0",
+    "@aws-sdk/s3-request-presigner": "^3.1136.0",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/postcss": "^4.3.3",
     "cloudflare": "^7.1.0",
@@ -26,7 +26,7 @@
     "react-dom": "latest",
     "react-markdown": "^10.1.0",
     "react-photo-album": "^3.6.1",
-    "react-virtuoso": "^4.18.13",
+    "react-virtuoso": "^4.18.14",
     "server-only": "^0.0.1",
     "sharp": "^0.35.4",
     "sonner": "^2.0.8",
@@ -36,13 +36,13 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",
-    "@types/node": "^26.5.1",
+    "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",
     "@vitest/coverage-v8": "^5.0.1",
     "autoprefixer": "latest",
     "dotenv": "^17.4.1",
     "postcss": "^8.5.28",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.2",
     "vitest": "^5.0.1"
   },
